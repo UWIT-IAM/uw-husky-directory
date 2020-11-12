@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "uw-husky-directory"
+version = "0.1.0"
+description = "An updated version of the UW Directory"
+authors = ["Thomas Thorogood <goodtom@uw.edu>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "3.8.6"
+Flask = "^1.1.2"
+injector = "^0.18.4"
+Flask-Injector = "^0.12.3"
+pydantic = "^1.7.2"
+
+[tool.poetry.dev-dependencies]
+black = "^20.8b1"
+pytest = "^6.1.2"
+PyNaCl = "^1.4.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
