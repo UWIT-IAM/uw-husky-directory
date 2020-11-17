@@ -15,8 +15,12 @@ When submitting or merging pull requests, **avoid** submitting timelines like th
 Instead, submit a timeline like this:
 
 ```
-- Add new feature to do a thing
+- Add new feature to do a thing (EDS-1234)
 ```
+
+Notice that i also added `(EDS-1234)` -- please do this. The Github repo is 
+set up to autolink to EDS-prefixed Jiras if they are included in any pull request or
+commit message.
 
 In short, don't let intermediary commits bleed into the `main` timeline unless they really must be recoverable
 in the future, or to properly express a large, complex change:
