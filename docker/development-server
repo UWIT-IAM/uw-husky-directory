@@ -19,10 +19,10 @@ COPY scripts/validate-development-image.sh ./
 FROM copy-scripts AS app
 WORKDIR /app
 # If you run this image with `--mount type=bind,source="$(pwd)/husky_directory",target=/app` you can test changes live.
-COPY husky_directory/ ./
+COPY husky_directory/ ./husky_directory
 # The next line allows the local network (e.g., your laptop) to communicate with the
 # image, so that you can simply use: localhost:8000 in your browser.
 EXPOSE 8000
-ENV FLASK_PORT=8000 FLASK_ENV=development
+ENV FLASK_PORT=8000 FLASK_ENV=development PYTHONPATH=/app:$PYTHONPATH
 # 0.0.0.0 binding is necessary for the EXPOSE above to have any effect.
 CMD flask run -h 0.0.0.0 -p ${FLASK_PORT}

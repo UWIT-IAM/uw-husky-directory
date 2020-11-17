@@ -1,0 +1,271 @@
+{
+  "TotalCount": 16816,
+  "PageSize": "5",
+  "PageStart": "1",
+  "Persons": [
+    {
+      "PersonAffiliations": {
+        "EmployeePersonAffiliation": {
+          "EmployeeID": "850001274",
+          "EmployeeAffiliationState": "current",
+          "HomeDepartment": "CC: AP Operations 1",
+          "MailStop": "359485",
+          "EmployeeWhitePages": {
+            "Name": "Valentine, Cupid Q.",
+            "PublishInDirectory": true,
+            "Phones": [
+              "+1 206 123-4567"
+            ],
+            "EmailAddresses": [
+              "cupidqv@uw.edu"
+            ],
+            "Positions": [
+              {
+                "EWPDept": "CC: AP Operations 1",
+                "EWPTitle": "Program Administrator",
+                "Primary": true
+              }
+            ],
+            "Addresses": [],
+            "VoiceMails": [],
+            "TouchDials": [],
+            "Faxes": [
+              "+1 206 123-4567"
+            ],
+            "Mobiles": [],
+            "Pagers": []
+          }
+        }
+      },
+      "UWNetID": "cupidqv",
+      "PriorUWNetIDs": [],
+      "UWRegID": "00000000000000000000000000000001",
+      "PriorUWRegIDs": [],
+      "DisplayName": "Cupid Q. Valentine",
+      "UIDNumber": "214333",
+      "IsTestEntity": false,
+      "RegisteredName": "Cupid Q. Valentine",
+      "RegisteredSurname": "Valentine",
+      "RegisteredFirstMiddleName": "Cupid Q",
+      "PreferredSurname": null,
+      "PreferredFirstName": null,
+      "PreferredMiddleName": null,
+      "Pronouns": null,
+      "EduPersonAffiliations": [
+        "member",
+        "staff",
+        "employee"
+      ],
+      "WhitepagesPublish": true,
+      "RepositoryTimeStamp": "6/15/2020 3:18:58 PM"
+    },
+    {
+      "PersonAffiliations": {
+        "EmployeePersonAffiliation": {
+          "EmployeeID": "100000000",
+          "EmployeeAffiliationState": "prior",
+          "HomeDepartment": "ADMINISTRATIVE SRVCS",
+          "MailStop": "355607",
+          "EmployeeWhitePages": {
+            "Name": null,
+            "PublishInDirectory": false,
+            "Phones": [],
+            "EmailAddresses": [],
+            "Positions": [],
+            "Addresses": [],
+            "VoiceMails": [],
+            "TouchDials": [],
+            "Faxes": [],
+            "Mobiles": [],
+            "Pagers": []
+          }
+        }
+      },
+      "UWNetID": "dashvale",
+      "PriorUWNetIDs": [],
+      "UWRegID": "00000000000000000000000000000002",
+      "PriorUWRegIDs": [],
+      "DisplayName": "DASHER X. VALENTINE",
+      "UIDNumber": "222898",
+      "IsTestEntity": false,
+      "RegisteredName": "DASHER X. VALENTINE",
+      "RegisteredSurname": "VALENTINE",
+      "RegisteredFirstMiddleName": "DASHER X.",
+      "PreferredSurname": null,
+      "PreferredFirstName": null,
+      "PreferredMiddleName": null,
+      "Pronouns": null,
+      "EduPersonAffiliations": [],
+      "WhitepagesPublish": false,
+      "RepositoryTimeStamp": "6/15/2020 3:18:58 PM"
+    },
+    {
+      "PersonAffiliations": {},
+      "UWNetID": null,
+      "PriorUWNetIDs": [],
+      "UWRegID": "00000000000000000000000000000003",
+      "PriorUWRegIDs": [],
+      "DisplayName": "Shirley Valentine",
+      "UIDNumber": null,
+      "IsTestEntity": false,
+      "RegisteredName": "Shirley G. Valentine",
+      "RegisteredSurname": "Valentine",
+      "RegisteredFirstMiddleName": "Shirley G.",
+      "PreferredSurname": null,
+      "PreferredFirstName": null,
+      "PreferredMiddleName": null,
+      "Pronouns": null,
+      "EduPersonAffiliations": [
+        "affiliate"
+      ],
+      "WhitepagesPublish": false,
+      "RepositoryTimeStamp": "6/15/2020 3:18:58 PM"
+    },
+    {
+      "PersonAffiliations": {
+        "EmployeePersonAffiliation": {
+          "EmployeeID": "878004414",
+          "EmployeeAffiliationState": "prior",
+          "HomeDepartment": "PATIENT CARE SVCS ADM",
+          "MailStop": "359897",
+          "EmployeeWhitePages": {
+            "Name": null,
+            "PublishInDirectory": false,
+            "Phones": [],
+            "EmailAddresses": [],
+            "Positions": [],
+            "Addresses": [],
+            "VoiceMails": [],
+            "TouchDials": [],
+            "Faxes": [],
+            "Mobiles": [],
+            "Pagers": []
+          }
+        },
+        "StudentPersonAffiliation": {
+          "StudentNumber": "8912345",
+          "StudentAffiliationState": "prior",
+          "StudentSystemKey": "000000001",
+          "StudentWhitePages": {
+            "Name": null,
+            "Phone": null,
+            "Email": null,
+            "PublishInDirectory": false,
+            "Class": null,
+            "Departments": []
+          }
+        }
+      },
+      "UWNetID": "valentin",
+      "PriorUWNetIDs": [
+        "valent1n"
+      ],
+      "UWRegID": "00000000000000000000000000000004",
+      "PriorUWRegIDs": [
+        "10000000000000000000000000000001"
+      ],
+      "DisplayName": "Valentin L. Crusher",
+      "UIDNumber": "108187",
+      "IsTestEntity": false,
+      "RegisteredName": "Valentin Love Crusher",
+      "RegisteredSurname": "Crusher",
+      "RegisteredFirstMiddleName": "Valentin Love",
+      "PreferredSurname": null,
+      "PreferredFirstName": null,
+      "PreferredMiddleName": null,
+      "Pronouns": null,
+      "EduPersonAffiliations": [
+        "affiliate"
+      ],
+      "WhitepagesPublish": false,
+      "RepositoryTimeStamp": "6/15/2020 3:18:58 PM"
+    },
+    {
+      "PersonAffiliations": {},
+      "UWNetID": null,
+      "PriorUWNetIDs": [],
+      "UWRegID": "00000000000000000000000000000005",
+      "PriorUWRegIDs": [],
+      "DisplayName": "Mif Valentine-Locke",
+      "UIDNumber": null,
+      "IsTestEntity": false,
+      "RegisteredName": "Myfun Ny Valentine",
+      "RegisteredSurname": "Valentine",
+      "RegisteredFirstMiddleName": "Myfun Ny",
+      "PreferredSurname": "Valentine-Locke",
+      "PreferredFirstName": "Mif",
+      "PreferredMiddleName": null,
+      "Pronouns": null,
+      "EduPersonAffiliations": [],
+      "WhitepagesPublish": false,
+      "RepositoryTimeStamp": "6/15/2020 3:18:58 PM"
+    }
+  ],
+  "Current": {
+    "UWRegID": null,
+    "UWNetID": null,
+    "EmployeeID": null,
+    "StudentNumber": null,
+    "StudentSystemKey": null,
+    "DevelopmentID": null,
+    "LastName": "smith",
+    "FirstName": null,
+    "DisplayName": null,
+    "EduPersonAffiliationAffiliate": false,
+    "EduPersonAffiliationAlum": false,
+    "EduPersonAffiliationEmployee": false,
+    "EduPersonAffiliationFaculty": false,
+    "EduPersonAffiliationMember": false,
+    "EduPersonAffiliationStaff": false,
+    "EduPersonAffiliationStudent": false,
+    "ChangedSinceDate": null,
+    "PageStart": "1",
+    "PhoneNumber": null,
+    "MailStop": null,
+    "HomeDepartment": null,
+    "Department": null,
+    "Address": null,
+    "Title": null,
+    "Email": null,
+    "AlumAffiliationState": null,
+    "EmployeeAffiliationState": null,
+    "StudentAffiliationState": null,
+    "Verbose": true,
+    "PageSize": "10",
+    "Href": "/identity/v2/person.xhtml?uwregid=&uwnetid=&employee_id=&student_number=&student_system_key=&development_id=&last_name=smith&first_name=&display_name=&edupersonaffiliation_student=&edupersonaffiliation_staff=&edupersonaffiliation_faculty=&edupersonaffiliation_employee=&edupersonaffiliation_member=&edupersonaffiliation_alum=&edupersonaffiliation_affiliate=&changed_since_date=&phone_number=&mail_stop=&home_dept=&department=&address=&title=&email=&alumAffiliationState=&employeeAffiliationState=&studentAffiliationState=&verbose=true&page_size=10&page_start=1"
+  },
+  "Next": {
+    "UWRegID": null,
+    "UWNetID": null,
+    "EmployeeID": null,
+    "StudentNumber": null,
+    "StudentSystemKey": null,
+    "DevelopmentID": null,
+    "LastName": null,
+    "FirstName": null,
+    "DisplayName": "valentine",
+    "EduPersonAffiliationAffiliate": false,
+    "EduPersonAffiliationAlum": false,
+    "EduPersonAffiliationEmployee": false,
+    "EduPersonAffiliationFaculty": false,
+    "EduPersonAffiliationMember": false,
+    "EduPersonAffiliationStaff": false,
+    "EduPersonAffiliationStudent": false,
+    "ChangedSinceDate": null,
+    "PageStart": "11",
+    "PhoneNumber": null,
+    "MailStop": null,
+    "HomeDepartment": null,
+    "Department": null,
+    "Address": null,
+    "Title": null,
+    "Email": null,
+    "AlumAffiliationState": null,
+    "EmployeeAffiliationState": null,
+    "StudentAffiliationState": null,
+    "Verbose": true,
+    "PageSize": "5",
+    "Href": "/identity/v2/person.xhtml?uwregid=&uwnetid=&employee_id=&student_number=&student_system_key=&development_id=&last_name=smith&first_name=&display_name=&edupersonaffiliation_student=&edupersonaffiliation_staff=&edupersonaffiliation_faculty=&edupersonaffiliation_employee=&edupersonaffiliation_member=&edupersonaffiliation_alum=&edupersonaffiliation_affiliate=&changed_since_date=&phone_number=&mail_stop=&home_dept=&department=&address=&title=&email=&alumAffiliationState=&employeeAffiliationState=&studentAffiliationState=&verbose=true&page_size=10&page_start=6"
+  },
+  "Previous": null
+}
