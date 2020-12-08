@@ -122,7 +122,7 @@ else
 fi
 
 conditional_echo "Building development server image"
-docker build -f docker/development-server -t "${IMAGE_NAME}" .
+docker build -f docker/development-server.dockerfile -t "${IMAGE_NAME}" .
 conditional_echo "Tagged image ${IMAGE_NAME}"
 if ! docker run -it "${IMAGE_NAME}" /scripts/validate-development-image.sh
 then
