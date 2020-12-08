@@ -1,11 +1,8 @@
 #!/bin/sh
 
 # This runs validation checks and tests, outputting a summary of failures (if any).
-# You can run this on your local machine by setting SRC_DIR=husky_directory and TST_DIR=tests before running it:
+# You can run this on your local machine instead of via docker:
 #   SRC_DIR=husky_directory TEST_DIR=tests ./scripts/validate-development-image.sh
-# This
-# You can also run yourself with:
-# docker build -f docker/development-serverj .
 
 SRC_DIR=${SRC_DIR:-/app}
 TST_DIR=${TST_DIR:-/tests}
@@ -33,8 +30,6 @@ then
   FAIL=1
 fi
 
-#black --check $TST_DIR  || (BLACK_TST_DIR_ERR=1 && FAIL=1) # Make sure our test code is blackened
-#pytest $TST_DIR || (PYTEST_ERR=1 && FAIL=1)
 if test -n "$FAIL"
 then
   echo "**========================================**"

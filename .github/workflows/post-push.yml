@@ -54,7 +54,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
           name: ${{ needs.configure-image.outputs.full_image_name }}
           tags: ${{ needs.configure-image.outputs.tag_name }}
-          dockerfile: docker/development-server
+          dockerfile: docker/development-server.dockerfile
           cache: false
 
   # This uses the image built above to run validations and tests from inside the image.
