@@ -16,5 +16,5 @@ do
   esac
 done
 
-docker build -f docker/development-server -t "uw-husky-directory-local" .
+docker build -f docker/development-server.dockerfile -t "uw-husky-directory-local" .
 docker run -p 8000:8000 ${MOUNTLOCAL} -it uw-husky-directory-local

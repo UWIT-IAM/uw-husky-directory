@@ -1,4 +1,4 @@
-from flask import Flask, Request, render_template
+from flask import Flask, Request, render_template, jsonify
 from flask.blueprints import Blueprint
 import logging
 from logging.config import dictConfig
@@ -14,6 +14,12 @@ logger = logging.getLogger(__name__)
 def index(request: Request):
     logger.info(f"Someone is here: {request}")
     return render_template("index.html")
+
+
+@app_module.route("/healthz")
+def health(request: Request):
+    status = {"ready": "ready" in request.args}
+    return jsonify(status)
 
 
 def create_app():
