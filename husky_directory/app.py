@@ -16,7 +16,7 @@ def index(request: Request):
     return render_template("index.html")
 
 
-@app_module.route("/healthz")
+@app_module.route("/health")
 def health(request: Request):
     status = {"ready": "ready" in request.args}
     return jsonify(status)
