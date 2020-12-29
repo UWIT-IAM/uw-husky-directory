@@ -1,5 +1,7 @@
-import pytest
 import os
+
+import pytest
+
 from husky_directory.models.pws import ListPersonsOutput
 
 

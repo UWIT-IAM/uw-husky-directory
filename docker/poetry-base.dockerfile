@@ -3,9 +3,7 @@
 # The base template for this was stolen from https://github.com/python-poetry/poetry/issues/1879
 
 # `python-base` sets up all our shared environment variables
-FROM python:3.8.6-slim as python-base
-
-    # python
+FROM python:3.8-slim as python-base
 ENV PYTHONUNBUFFERED=1 \
     # prevents python creating .pyc files
     PYTHONDONTWRITEBYTECODE=1 \

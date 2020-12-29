@@ -50,6 +50,7 @@ jobs:
         name: Build and push docker container
         uses: elgohr/Publish-Docker-Github-Action@master
         with:
+          # TODO: This needs documentation; what if these need updating?
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
           name: ${{ needs.configure-image.outputs.full_image_name }}

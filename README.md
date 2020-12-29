@@ -29,6 +29,8 @@ on how to get started on Windows.
 
 - Docker, with a running docker daemon
 - Python, preferably 3+, to install poetry (if not already installed)
+- Python 3.8, somewhere on your system, so that poetry can link your virtualenv to 
+  the right python binary for the application.
 
 ## Bootstrapping
 

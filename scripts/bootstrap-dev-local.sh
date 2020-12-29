@@ -1,9 +1,12 @@
 set -e
 # Bootstraps a developer laptop by installing poetry as well as library dependencies (using poetry to do so).
-# This takes one optional argument: a python interpreter path. You can use this to change which python interpreter
-# is used to _install_ poetry. It won't have any effect on the virtual environment _created_ by poetry. If the
+# This takes one optional argument: a python interpreter path. you can use this to change which python interpreter
+# is used to _install_ poetry. It won't have any effect on the virtual environment _created_ by poetry. if the
 # default (python3.8) is not available on your system, provide a path to a python3 binary, for instance:
 #     ./scripts/bootstrap-dev-local.sh ~/.pyenv/versions/3.7.7/bin/python
+#
+# Even though poetry can be installed using any version of python>=2.7, the
+# actual directory poetry environment will require >=3.8 to be available on your system.
 #
 # Note that poetry creates virtual environments; you should already have created one before installing poetry.
 # Poetry will be installed in ${HOME}/.poetry by default, but you can override this by setting
@@ -36,6 +39,7 @@ then
 fi
 
 # Install declared library dependencies
+poetry env use "${PYTHON}"
 poetry install
 
 VIRTUAL_ENV=$(poetry env list --full-path 2>/dev/null | cut -f1 -d\ )
