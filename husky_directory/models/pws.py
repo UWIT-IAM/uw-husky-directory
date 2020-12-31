@@ -5,10 +5,11 @@ the PWS API definitions at https://it-wseval1.s.uw.edu/identity/swagger/index.ht
 These are not 1:1 models of that API; only fields we care about are declared here.
 """
 
-from typing import Optional, Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import inflection
-from pydantic import BaseModel, Field, Extra
+from pydantic import BaseModel, Extra, Field
+
 from .enum import AffiliationState
 
 
@@ -23,6 +24,7 @@ class PWSBaseModel(BaseModel):
         # to preserve them.
         extra = Extra.ignore
 
+        @staticmethod
         def generate_alias(field_name: str) -> str:
             return inflection.camelize(field_name, uppercase_first_letter=True)
 
@@ -45,6 +47,9 @@ class ListResponsesOutputWrapper(PWSBaseModel):
 
 class ListPersonsInput(PWSBaseModel):
     """The input model for PWS search."""
+
+    class Config:
+        alias_generator = None
 
     first_name: Optional[str]
     last_name: Optional[str]
@@ -93,7 +98,9 @@ class ListPersonsInput(PWSBaseModel):
         default=None,
         description="This is returned with a request as "
         "metadata and is not actually used when "
-        "submitting a request.",
+        "submitting a request. However, it may be set in a"
+        "PWS response to indicate the next page of a large query.",
+        alias="Href",
     )
 
 
@@ -109,7 +116,7 @@ class EmployeeDirectoryListing(PWSBaseModel):
     phones: List[str] = []
     emails: List[str] = Field(default=[], alias="EmailAddresses")
     positions: List[EmployeePosition] = []
-    faxes: List[str]
+    faxes: List[str] = []
 
 
 class StudentDirectoryListing(PWSBaseModel):
@@ -123,8 +130,8 @@ class StudentDirectoryListing(PWSBaseModel):
 
 
 class EmployeePersonAffiliation(PWSBaseModel):
-    department: str = Field(..., alias="HomeDepartment")
-    mail_stop: str = Field(..., alias="MailStop")
+    department: Optional[str]
+    mail_stop: Optional[str]
     directory_listing: EmployeeDirectoryListing = Field(..., alias="EmployeeWhitePages")
 
 
@@ -136,12 +143,16 @@ class PersonAffiliations(PWSBaseModel):
     employee: Optional[EmployeePersonAffiliation] = Field(
         default=None, alias="EmployeePersonAffiliation"
     )
+    student: Optional[StudentPersonAffiliation] = Field(
+        default=None, alias="StudentPersonAffiliation"
+    )
 
 
 class PersonOutput(PWSBaseModel):
-    display_name = Field(..., alias="DisplayName")
-    affiliations: PersonAffiliations = Field(..., alias="PersonAffiliations")
-    display_name: str
+    display_name: str = Field(..., alias="DisplayName")
+    affiliations: PersonAffiliations = Field(
+        PersonAffiliations(), alias="PersonAffiliations"
+    )
     registered_name: str
     registered_surname: str
     registered_first_middle_name: str
@@ -150,7 +161,6 @@ class PersonOutput(PWSBaseModel):
     preferred_last_name: Optional[str]
     pronouns: Optional[str]
     netid: Optional[str] = Field(None, alias="UWNetID")
-    publish_listing: bool = Field(..., alias="WhitepagesPublish")
     whitepages_publish: bool
     is_test_entity: bool
 

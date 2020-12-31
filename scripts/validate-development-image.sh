@@ -22,11 +22,19 @@ then
   FAIL=1
 fi
 
-CMD="pytest $TST_DIR"
+CMD="pytest $TST_DIR --cov ${SRC_DIR}/husky_directory --cov-fail-under 95"
 echo $CMD
 if ! $CMD
 then
   PYTEST_ERR=1
+  FAIL=1
+fi
+
+CMD="flake8 /app/husky_directory /tests --max-line-length=119"
+echo $CMD
+if ! $CMD
+then
+  FLAKE8_ERR=1
   FAIL=1
 fi
 
@@ -45,6 +53,13 @@ then
   then
     echo " * Expected $TST_DIR to be blackened."
     echo "   Run 'black $TST_DIR' and try again."
+    echo "**========================================**"
+  fi
+  if test -n "$FLAKE8_ERR"
+  then
+    echo " * Expected flake8 to succeed. "
+    echo "   Review output and correct errors, "
+    echo "   then try again."
     echo "**========================================**"
   fi
   if test -n "$PYTEST_ERR"

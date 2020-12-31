@@ -15,6 +15,7 @@ COPY tests ./
 FROM copy-tests AS copy-scripts
 WORKDIR /scripts
 COPY scripts/validate-development-image.sh ./
+COPY scripts/run-image-tests.sh ./
 
 FROM copy-scripts AS app
 WORKDIR /app
@@ -33,4 +34,4 @@ CMD gunicorn -b 0.0.0.0:${FLASK_PORT} \
     -c "/app/husky_directory/gunicorn.conf.py" \
     --reload \
     --capture-output \
-    "husky_directory:create_app()"
+    "husky_directory.app:create_app()"
