@@ -100,7 +100,11 @@ class Search(DirectoryView):
         request_input = self.injector.get(SearchDirectoryInput)
         self.logger.info(f"searching for {request_input}")
         request_output = self.directory.search_directory(request_input)
-        return jsonify(request_output.dict(by_alias=True))
+        result = {
+            descr: result.dict(by_alias=True)
+            for descr, result in request_output.items()
+        }
+        return jsonify(result)
 
 
 @app_module.route("/health")

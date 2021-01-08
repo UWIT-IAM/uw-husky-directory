@@ -1,27 +1,35 @@
+from __future__ import annotations
+
 from logging import Logger
-from typing import List
+from typing import Dict, List
 
 from devtools import PrettyFormat
 from injector import inject, singleton
 
-from husky_directory.models.pws import ListPersonsInput, ListPersonsOutput, PersonOutput
+from husky_directory.models.pws import ListPersonsOutput, PersonOutput
 from husky_directory.models.search import (
     Person,
     SearchDirectoryInput,
     SearchDirectoryOutput,
 )
 from husky_directory.services.pws import PersonWebServiceClient
+from husky_directory.services.query_generator import SearchQueryGenerator
 
 
 @singleton
 class DirectorySearchService:
     @inject
     def __init__(
-        self, pws: PersonWebServiceClient, logger: Logger, formatter: PrettyFormat
+        self,
+        pws: PersonWebServiceClient,
+        logger: Logger,
+        formatter: PrettyFormat,
+        query_generator: SearchQueryGenerator,
     ):
         self._pws = pws
         self.logger = logger
         self.formatter = formatter
+        self.query_generator = query_generator
 
     @staticmethod
     def _filter_person(person: PersonOutput) -> bool:
@@ -73,16 +81,18 @@ class DirectorySearchService:
 
     def search_directory(
         self, request_input: SearchDirectoryInput
-    ) -> SearchDirectoryOutput:
+    ) -> Dict[str, SearchDirectoryOutput]:
         """The main interface for this service. Submits a query to PWS, filters and translates the output,
         and returns a SearchDirectoryOutput."""
-        # For now, only searches for a display name matching the input.
-        # This will be expanded in short order to include all necessary searches.
-        pws_input = ListPersonsInput(display_name=request_input.name)
-        pws_output = self._pws.list_persons(pws_input)
-        results = []
-        results.extend(self._translate_pws_list_persons_output(pws_output))
-        while pws_output.next and pws_output.next.href:
-            pws_output = self._pws.get_next(pws_output.next.href)
+
+        all_results = {}
+
+        for query_description, query in self.query_generator.generate(request_input):
+            pws_output = self._pws.list_persons(query)
+            results = self._translate_pws_list_persons_output(pws_output)
             results.extend(self._translate_pws_list_persons_output(pws_output))
-        return SearchDirectoryOutput(people=results)
+            while pws_output.next and pws_output.next.href:
+                pws_output = self._pws.get_next(pws_output.next.href)
+                results.extend(self._translate_pws_list_persons_output(pws_output))
+            all_results[query_description] = SearchDirectoryOutput(people=results)
+        return all_results

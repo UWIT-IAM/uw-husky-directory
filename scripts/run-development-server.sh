@@ -13,7 +13,7 @@ RUNENV="${RUNENV}"
 
 while (( $# ))
 do
-  case $arg in
+  case $1 in
     # Run with `-m/--mount` to test changes live
     -m|--mount)
       MOUNTLOCAL="--mount type=bind,source="$(pwd)/husky_directory",target=/app/husky_directory"
