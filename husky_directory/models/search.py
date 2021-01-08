@@ -1,11 +1,11 @@
 """
 Models for the DirectorySearchService.
 """
-
+import re
 from typing import List, Optional
 
 import inflection
-from pydantic import BaseModel, Extra, Field
+from pydantic import BaseModel, Extra, Field, validator
 
 
 class DirectoryBaseModel(BaseModel):
@@ -38,6 +38,23 @@ class Person(DirectoryBaseModel):
     email: Optional[str]
     box_number: Optional[str]
     department: Optional[str]
+
+    @validator("phone", pre=True)
+    def remove_phone_non_digits(cls, phone: str):
+        if phone:
+            return re.sub("[^0-9]", "", phone)
+        return phone
+
+    @validator("name")
+    def validate_name_words(cls, name: str) -> str:
+        """
+        Currently the search only supports up to 3 words in a user's name. Otherwise the combinatorics
+        get a little ridiculous, and although there are folks with more than 3 'words' they should still be
+        findable.
+        """
+        if name:
+            assert len(name.split()) <= 5
+        return name
 
 
 class SearchDirectoryOutput(DirectoryBaseModel):

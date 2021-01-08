@@ -29,4 +29,4 @@ def test_get_search(client, injector, mock_person_data):
     mock_get_next.return_value = ListPersonsOutput.parse_obj(mock_person_data)
     response = client.get("/search?name=foo")
     assert response.status_code == 200, response.data
-    assert response.json["people"]
+    assert list(response.json.values())[0]["people"]
