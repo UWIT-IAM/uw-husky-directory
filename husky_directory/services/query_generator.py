@@ -90,12 +90,6 @@ Query = ListPersonsInput  # Aliasing this for brevity in the below definitions.
 ArgFmt = WildcardFormat  # An uglier, but shorter name
 
 
-# TODO: Once auth is enabled and set up:
-#       also include netid queries for authenticated users
-#       https://github.com/UWIT-IAM/whitepages-ui/blob/master/wpquery.c#L426-L434
-#  (Also, create a jira for this, and remove this comment.)
-
-
 @singleton
 class SearchQueryGenerator:
     """
@@ -265,8 +259,6 @@ class SearchQueryGenerator:
     def generate(
         self, request_input: SearchDirectoryInput
     ) -> Iterable[Tuple[str, ListPersonsInput]]:
-        # TODO: generate queries for other field types (phone, box number, email)
-        #       Those will all be much easier because we don't have to contend with combinatorics as much.
         if request_input.name:
             for description, query in self.generate_queries(request_input.name):
                 yield description, query
