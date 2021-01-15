@@ -2,16 +2,14 @@ base: &base
   version: 1
   formatters:
     default:
-      # TODO: For some reason this formatter isn't being used. We need to
-      #       fix this so that we know we can control the log formatting easily.
-      format: "[%(asctime)s] %(levelname)s in %(module)s: %(message)s"
+      format: "[%(levelname)s][%(asctime)s][%(module)s]: %(message)s"
   handlers:
     wsgi:
       level: DEBUG
       class: logging.StreamHandler
       formatter: default
   loggers:
-    root:
+    gunicorn.error:
       level: DEBUG
       handlers:
         - wsgi

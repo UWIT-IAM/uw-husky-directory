@@ -28,6 +28,10 @@ class TestApplicationConfig:
             "pws_default_path",
             "settings_dir",
             "stage",
+            "cookie_secret_key",
+            "saml_acs_url",
+            "use_test_idp",
+            "saml_entity_id",
         }
         assert set(self.app_config.dict().keys()) == expected_field_names
 

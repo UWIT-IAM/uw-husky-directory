@@ -10,6 +10,7 @@ UWCA_KEY_PATH="${UWCA_KEY_PATH}"
 UWCA_CERT_NAME=${UWCA_CERT_NAME:-uwca}
 APP_ENV_FILE=${APP_ENV_FILE:-husky_directory/settings/local.dotenv}
 RUNENV="${RUNENV}"
+USE_TEST_IDP=1
 
 while (( $# ))
 do
@@ -36,9 +37,14 @@ do
       shift
       RUNENV="${RUNENV} -e $1"
       ;;
+    --idp)
+      USE_TEST_IDP=0
+      ;;
   esac
   shift
 done
+
+RUNENV="${RUNENV} -e USE_TEST_IDP=${USE_TEST_IDP}"
 
 if test -n "${UWCA_CERT_PATH}"
 then

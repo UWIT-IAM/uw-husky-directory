@@ -105,8 +105,8 @@ class ListPersonsInput(PWSBaseModel):
 
 
 class EmployeePosition(PWSBaseModel):
-    department: str = Field(..., alias="EWPDept")
-    title: str = Field(..., alias="EWPTitle")
+    department: Optional[str] = Field(None, alias="EWPDept")
+    title: Optional[str] = Field(None, alias="EWPTitle")
     primary: bool
 
 
@@ -155,7 +155,7 @@ class PersonOutput(PWSBaseModel):
     )
     registered_name: str
     registered_surname: str
-    registered_first_middle_name: str
+    registered_first_middle_name: Optional[str]
     preferred_first_name: Optional[str]
     preferred_middle_name: Optional[str]
     preferred_last_name: Optional[str]

@@ -90,7 +90,6 @@ class DirectorySearchService:
         for query_description, query in self.query_generator.generate(request_input):
             pws_output = self._pws.list_persons(query)
             results = self._translate_pws_list_persons_output(pws_output)
-            results.extend(self._translate_pws_list_persons_output(pws_output))
             while pws_output.next and pws_output.next.href:
                 pws_output = self._pws.get_next(pws_output.next.href)
                 results.extend(self._translate_pws_list_persons_output(pws_output))
