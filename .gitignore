@@ -1,5 +1,4 @@
 .idea
-glenrg.crt
 node_modules
 # Byte-compiled / optimized / DLL files
 __pycache__/
