@@ -1,15 +1,18 @@
 import logging
 from logging.config import dictConfig
 from typing import List, NoReturn, Optional, Type
-
 from flask import Flask, session
 from flask_injector import FlaskInjector, request
 from injector import Injector, Module, provider, singleton
+from flask import Flask, Request, jsonify, render_template
+from flask.blueprints import Blueprint
+from flask.views import View
+from flask_injector import FlaskInjector, RequestScope
+from injector import Injector, inject, singleton
 from pydantic import ValidationError
 from uw_saml2 import mock, python3_saml
 from werkzeug.exceptions import BadRequest, HTTPException, InternalServerError
 from werkzeug.local import LocalProxy
-
 from husky_directory.blueprints.app import AppBlueprint
 from husky_directory.blueprints.saml import IdentityProviderModule, SAMLBlueprint
 from husky_directory.blueprints.search import SearchBlueprint
@@ -53,7 +56,7 @@ class DirectoryView(View, ABC):
 @app_module.route("/")
 def index(request: Request, logger: logging.Logger):
     logger.info(f"Someone is here: {request}")
-    return render_template("index.html")
+    return render_template("index_test.html")
 
 
 def inject_request_input(input_model: Type[DirectoryBaseModel]):
