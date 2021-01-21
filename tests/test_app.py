@@ -27,6 +27,16 @@ def test_get_search(client, injector, mock_person_data):
     mock_list_persons.return_value = ListPersonsOutput.parse_obj(mock_person_data)
     del mock_person_data["Next"]
     mock_get_next.return_value = ListPersonsOutput.parse_obj(mock_person_data)
-    response = client.get("/search?name=foo")
+    response = client.get("/search/?name=foo")
     assert response.status_code == 200, response.data
     assert list(response.json.values())[0]["people"]
+
+
+def test_get_login(client, injector):
+    response = client.get("/saml/login")
+    assert response.status_code == 302, response.data
+
+
+def test_get_logout(client, injector):
+    response = client.get("/saml/logout")
+    assert response.status_code == 302, response.data

@@ -124,7 +124,7 @@ fi
 conditional_echo "Building development server image"
 docker build -f docker/development-server.dockerfile -t "${IMAGE_NAME}" .
 conditional_echo "Tagged image ${IMAGE_NAME}"
-if ! docker run -it "${IMAGE_NAME}" /scripts/validate-development-image.sh
+if ! docker run -v "$(pwd)"/htmlcov:/app/htmlcov -it "${IMAGE_NAME}" /scripts/validate-development-image.sh
 then
   echo "☠️ Your commit should NOT be pushed."
   conditional_exit
@@ -136,7 +136,7 @@ then
   conditional_echo "Run 'git switch -c feature-branch-name' to create a new branch, then run this script again."
 fi
 
-echo "🛳 Your commit is good to go! 🌈"
+test -z "${NO_EXIT_ON_FAIL}" && echo "🛳 Your commit is good to go! 🌈"
 
 if test -z "${NO_ENV_VARS}"
 then

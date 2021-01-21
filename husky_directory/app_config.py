@@ -1,10 +1,12 @@
 import logging
 import os
-from typing import Dict, Type, TypeVar, Union
+import secrets
+import string
+from typing import Dict, Optional, Type, TypeVar, Union
 
 import yaml
 from injector import Module, inject, provider, singleton
-from pydantic import BaseSettings, Field, SecretStr
+from pydantic import BaseSettings, Field, SecretStr, validator
 
 logger = logging.getLogger("app_config")
 
@@ -35,6 +37,10 @@ class ApplicationConfig(BaseSettings):
     pws_host: str = Field(..., env="PWS_HOST")
     pws_default_path: str = Field(..., env="PWS_DEFAULT_PATH")
     stage: str = Field(..., env="FLASK_ENV")
+    saml_entity_id: str = Field(..., env="SAML_ENTITY_ID")
+    saml_acs_url: str = Field(..., env="SAML_ACS_URL")
+    cookie_secret_key: Optional[str] = Field(None, env="COOKIE_SECRET_KEY")
+    use_test_idp: bool = Field(False, env="USE_TEST_IDP")
 
     @property
     def uwca_certificate_path(self):
@@ -43,6 +49,13 @@ class ApplicationConfig(BaseSettings):
     @property
     def uwca_certificate_key(self):
         return os.path.join(self.uwca_cert_path, f"{self.uwca_cert_name}.crt")
+
+    @validator("cookie_secret_key")
+    def ensure_secret_key(cls, val: Optional[str]) -> str:
+        if val:
+            return val
+        characters = string.ascii_letters + string.digits
+        return "".join(secrets.choice(characters) for _ in range(24))
 
 
 class ApplicationConfigInjectorModule(Module):

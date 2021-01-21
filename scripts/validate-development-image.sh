@@ -22,7 +22,8 @@ then
   FAIL=1
 fi
 
-CMD="pytest $TST_DIR --cov ${SRC_DIR}/husky_directory --cov-fail-under 95"
+CMD="pytest $TST_DIR --cov ${SRC_DIR}/husky_directory --cov-report term-missing --cov-report html --cov-fail-under 95"
+
 echo $CMD
 if ! $CMD
 then

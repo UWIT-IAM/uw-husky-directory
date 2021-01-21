@@ -14,6 +14,10 @@ For full documentation, refer to the [docs/](https://github.com/uwit-iam/uw-husk
 | | + compose   # docker-compose files
 | + docs        # Documentation about using and maintaining this package
 | + husky_directory  # Source code for the application
+| | + blueprints     # View/API blueprints
+| | + models         # API models
+| | + services       # Application/back-end services
+| | + settings       # Application settings (dotenv and yml files)
 | | + templates      # jinja2 templates
 | + static      # Static assets
 | + tests       # Unit tests

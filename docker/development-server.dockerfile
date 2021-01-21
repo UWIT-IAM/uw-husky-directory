@@ -1,7 +1,12 @@
-FROM uwitiam/poetry:latest as poetry-base
+FROM uwitiam/xmlsec-base:latest as poetry-base
 WORKDIR $PYSETUP_PATH
 COPY poetry.lock pyproject.toml ./
-RUN poetry install
+# For some reason, poetry doesn't know how to install
+# uw-saml. So, we force it to install using pip ahead of time, so that
+# poetry doesn't try. This should probably be fixed.
+RUN pip install 'uw-saml[python3-saml]' && \
+    poetry install && \
+    apt-get remove -y $XMLSEC_BUILD_DEPS && apt-get -y autoremove
 
 # `development` image is used during development / testing
 FROM poetry-base AS copy-tests
