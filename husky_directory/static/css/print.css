@@ -1,0 +1,5 @@
+/****** Print Styles ******/
+
+#wheader, .cblock, .rsummary, .mobileHeader, #footerMain, #footerMainNoPatch, .title, .btn-primary  {
+	display: none;
+}
