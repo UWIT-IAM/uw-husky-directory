@@ -68,7 +68,7 @@
 
     </head>
 
-    <body onload="if(document.dirform.term.value.length == 0) document.dirform.term.focus()">
+    <body onload="if(document.dirform.name.value.length == 0) document.dirform.name.focus()">
         {% include "header.html" %}
         <div class="container">
             <!--Section Banner Table -->
@@ -81,10 +81,13 @@
                 {% include "search.html" %}
 
                 <hr/>
-                <div class="contenttable">
-                    <div class="contentspacer"></div>
-                    <div class="contentcell"></div>
-                </div>
+                {% if search_result is defined %}
+                    {% include "results.html"%}
+                {% endif %}
+<!--                <div class="contenttable">-->
+<!--                    <div class="contentspacer"></div>-->
+<!--                    <div class="contentcell"></div>-->
+<!--                </div>-->
                 {% include "links.html" %}
             </div>
 
