@@ -15,6 +15,7 @@ class SearchBlueprint(Blueprint):
         super().__init__("search", __name__, url_prefix="/search")
         self.logger = logger
         self.add_url_rule("/", view_func=self.search)
+        self.add_url_rule("/render", view_func=self.render)
 
     def search(self, request: Request, search_service: DirectorySearchService):
         request_input = SearchDirectoryInput.parse_obj(request.args)
@@ -24,5 +25,9 @@ class SearchBlueprint(Blueprint):
             descr: result.dict(by_alias=True)
             for descr, result in request_output.items()
         }
-        search_result = jsonify(result)
-        return render_template('index.html', search_result=search_result.get_json())
+        return jsonify(result)
+
+    def render(self, request: Request, service: DirectorySearchService):
+        return render_template(
+            "index.html", search_result=self.search(request, service).get_json()
+        )
