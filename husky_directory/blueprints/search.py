@@ -2,6 +2,7 @@ from logging import Logger
 
 from flask import Blueprint, Request, jsonify
 from injector import inject, singleton
+from flask import render_template
 
 from husky_directory.models.search import SearchDirectoryInput
 from husky_directory.services.search import DirectorySearchService
@@ -14,6 +15,7 @@ class SearchBlueprint(Blueprint):
         super().__init__("search", __name__, url_prefix="/search")
         self.logger = logger
         self.add_url_rule("/", view_func=self.search)
+        self.add_url_rule("/render", view_func=self.render)
 
     def search(self, request: Request, search_service: DirectorySearchService):
         request_input = SearchDirectoryInput.parse_obj(request.args)
@@ -24,3 +26,8 @@ class SearchBlueprint(Blueprint):
             for descr, result in request_output.items()
         }
         return jsonify(result)
+
+    def render(self, request: Request, service: DirectorySearchService):
+        return render_template(
+            "index.html", search_result=self.search(request, service).get_json()
+        )

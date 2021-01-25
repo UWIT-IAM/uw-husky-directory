@@ -1,0 +1,17 @@
+
+
+{% for key,value in search_result.items() %}
+    {% if (value['people']|length) %}
+        <p>
+            <h4>{{key}}</h4>
+                {% for data in value['people'] %} {# people is an array of objects #}
+                    <h3>{{ data['name'] }}</h3>
+                    <ul class="dir-listing">
+                        <li>{{ data['email'] }}</li>
+                        <li>{{ data['phone'] }}</li>
+                    </ul>
+                {% endfor %}
+    {#value: {{value}}#}
+        </p>
+    {% endif %}
+{% endfor %}
