@@ -4,8 +4,9 @@ Models for the DirectorySearchService.
 import re
 from typing import List, Optional
 
-import inflection
 from pydantic import BaseModel, Extra, Field, validator
+
+from husky_directory.util import camelize
 
 
 class DirectoryBaseModel(BaseModel):
@@ -14,12 +15,7 @@ class DirectoryBaseModel(BaseModel):
         use_enum_values = True
         allow_population_by_field_name = True
         validate_assignment = True
-
-        @staticmethod
-        def to_camel(s: str) -> str:
-            return inflection.camelize(s, uppercase_first_letter=False)
-
-        alias_generator = to_camel
+        alias_generator = camelize
 
 
 class SearchDirectoryInput(DirectoryBaseModel):

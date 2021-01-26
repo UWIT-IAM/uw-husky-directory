@@ -32,6 +32,8 @@ class TestApplicationConfig:
             "saml_acs_url",
             "use_test_idp",
             "saml_entity_id",
+            "build_id",
+            "start_time",
         }
         assert set(self.app_config.dict().keys()) == expected_field_names
 
