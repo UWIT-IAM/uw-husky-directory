@@ -2,6 +2,7 @@ import logging
 import os
 import secrets
 import string
+from datetime import datetime
 from typing import Dict, Optional, Type, TypeVar, Union
 
 import yaml
@@ -11,6 +12,7 @@ from pydantic import BaseSettings, Field, SecretStr, validator
 logger = logging.getLogger("app_config")
 
 
+@singleton
 class ApplicationConfig(BaseSettings):
     """
     Base settings for the application. These can be provided by a dotenv file, environment variables, or directly
@@ -29,9 +31,7 @@ class ApplicationConfig(BaseSettings):
         # Loaded entirely from environment variables:
         ApplicationConfig(settings_dir='/foo/settings')
     """
-
     settings_dir: str
-
     uwca_cert_name: str = Field(..., env="UWCA_CERT_NAME")
     uwca_cert_path: str = Field(..., env="UWCA_CERT_PATH")
     pws_host: str = Field(..., env="PWS_HOST")
@@ -41,6 +41,8 @@ class ApplicationConfig(BaseSettings):
     saml_acs_url: str = Field(..., env="SAML_ACS_URL")
     cookie_secret_key: Optional[str] = Field(None, env="COOKIE_SECRET_KEY")
     use_test_idp: bool = Field(False, env="USE_TEST_IDP")
+    build_id: Optional[str] = Field(None, env="BUILD_ID")
+    start_time: datetime = Field(datetime.now())
 
     @property
     def uwca_certificate_path(self):
