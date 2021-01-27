@@ -30,23 +30,28 @@ jobs:
         name: Creates a fully qualified image name with the tag
         id: image_with_tag
         env:
-          TAG_NAME: ${{ steps.commit_tag.outputs.tag_name }}
+          COMMIT_TAG_NAME: ${{ steps.commit_tag.outputs.tag_name }}
           IMAGE_NAME: ${{ steps.image_name.outputs.image_name }}
-        run: echo ::set-output name=name_with_tag::${IMAGE_NAME}:${TAG_NAME}
+        run: echo ::set-output name=name_with_commit_tag::${IMAGE_NAME}:${COMMIT_TAG_NAME}
     outputs:
       full_image_name: ${{ steps.image_name.outputs.image_name }}
       tag_name: ${{ steps.commit_tag.outputs.tag_name }}
-      image_name_with_tag: ${{ steps.image_with_tag.outputs.name_with_tag }}
+      image_name_with_commit_tag: ${{ steps.image_with_tag.outputs .name_with_commit_tag }}
   # This job is responsible for building an image and uploading it to our repository. This image can later be
   # tested, deployed, and/or have other tags applied.
   build-and-push-image:
     needs: [configure-image]
     runs-on: ubuntu-latest
+    env:
+      # TODO:
+      # In eval, we will instead use the release candidate tag name (e.g., 1.2.3-rc.1)
+      # In prod, we will use the semver tag name (e.g., 1.2.3)
+      BUILD_ID: ${{ github.sha }}
     steps:
       - uses: actions/checkout@master
-      # Pushes the public image based on the commit to dockerhub.
-      # This could then be used in subsequent jobs to tag versions in deployment repositories.
-      - id: container_push
+      - # Pushes the public image based on the commit to dockerhub.
+        # This could then be used in subsequent jobs to tag versions in deployment repositories.
+        id: container_push
         name: Build and push docker container
         uses: elgohr/Publish-Docker-Github-Action@master
         with:
@@ -56,16 +61,36 @@ jobs:
           name: ${{ needs.configure-image.outputs.full_image_name }}
           tags: ${{ needs.configure-image.outputs.tag_name }}
           dockerfile: docker/development-server.dockerfile
-          cache: false
+          buildargs: BUILD_ID
+          cache: true
 
   # This uses the image built above to run validations and tests from inside the image.
   validate-image-quality:
     needs: [configure-image, build-and-push-image]
     runs-on: ubuntu-latest
     container:
-      image: ${{ needs.configure-image.outputs.image_name_with_tag }}
+      image: ${{ needs.configure-image.outputs.image_name_with_commit_tag }}
     steps:
       - uses: actions/checkout@master
       -
         name: Run validation checks and tests
         run: /scripts/validate-development-image.sh
+
+  # If the validation steps above succeed, these deployment workflows may run.
+  promote-deployment:
+    # - configure-image exports variables used here
+    # - validate-image-quality is required to succeed before any promotions are run
+    needs: [configure-image, validate-image-quality]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Deploy to uw-directory.iamdev.s.uw.edu from the 'main' branch
+        id: deploy_main_to_dev
+        env:
+          IMAGE_NAME: ${{ needs.configure-image.outputs.full_image_name }}
+          IMAGE_SOURCE: ${{ needs.configure-image.outputs.image_name_with_commit_tag }}
+          COMMIT_TAG: ${{ needs.configure-image.outputs.tag_name }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
+        if: github.ref == 'refs/heads/main'
+        run: ./.github/scripts/promote.sh -s "${IMAGE_SOURCE}" -d "${IMAGE_NAME}:deploy-dev.${COMMIT_TAG}"

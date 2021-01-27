@@ -31,6 +31,7 @@ class ApplicationConfig(BaseSettings):
         # Loaded entirely from environment variables:
         ApplicationConfig(settings_dir='/foo/settings')
     """
+
     settings_dir: str
     uwca_cert_name: str = Field(..., env="UWCA_CERT_NAME")
     uwca_cert_path: str = Field(..., env="UWCA_CERT_PATH")
