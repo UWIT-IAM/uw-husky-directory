@@ -108,7 +108,7 @@ conditional_echo "ℹ️ Commit tag is: ${COMMIT_TAG}"
 IMAGE_NAME="$DOCKER_ORG/$APP_NAME:$COMMIT_TAG"
 PERSONAL_IMAGE="$DOCKER_ORG/$APP_NAME:personal-$PERSONAL_IMAGE_SUFFIX"
 
-if ! black --check $SRC_DIR $TST_DIR
+if ! black --check $SRC_DIR $TST_DIR > /dev/null
 then
   conditional_echo "ℹ️ Blackening all code . . ."
   black $SRC_DIR $TST_DIR

@@ -71,7 +71,7 @@ then
   fi
   MOUNTLOCAL="${MOUNTLOCAL} --mount type=bind,source=${UWCA_CERT_PATH},target=/app/certificates"
 else
-  echo "WARNING: No certificate is being mounted. Running the application may fail."
+  echo "WARNING: No certificate is being mounted. You can still view the UI, but the search function will fail."
 fi
 
 docker build -f docker/development-server.dockerfile -t "uw-husky-directory-local" .
