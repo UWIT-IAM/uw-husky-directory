@@ -19,17 +19,17 @@
                                     <tr>
                                         <th>Name</th> <th>Phone</th> <th>Email</th> <th>UW NetID</th> <th>*</th>
                                     </tr>
-                                    {% for key,value in search_result.items() %}
-                                        {% if (value['people']|length) %}
+                                    {% for scenario in search_result['scenarios'] %}
+                                        {% if (scenario['people']|length) %}
                                             <tr>
                                                 <td colspan="4"><div class="rcdescr">
                                                     <h3><a id="f1" name="f1"></a>
-                                                    Hard Coded Faculty/Staff: {{key}}</h3>
+                                                    Hard Coded Faculty/Staff: {{scenario['description']}}</h3>
                                                     </div>
                                                 </td>
                                                 <td>&nbsp;</td>
                                             </tr>
-                                                {% for data in value['people'] %}
+                                                {% for data in scenario['people'] %}
                                                     <tr>
                                                         <td valign="top">{{ data['name'] }}&nbsp;</td>
                                                         <td valign="top" nowrap="nowrap">{{ data['phone'] }}&nbsp;</td>

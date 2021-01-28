@@ -53,5 +53,12 @@ class Person(DirectoryBaseModel):
         return name
 
 
-class SearchDirectoryOutput(DirectoryBaseModel):
+class DirectoryQueryScenarioOutput(DirectoryBaseModel):
+    description: str
     people: List[Person] = []
+
+
+class SearchDirectoryOutput(DirectoryBaseModel):
+    query: SearchDirectoryInput
+    num_results: int
+    scenarios: List[DirectoryQueryScenarioOutput]

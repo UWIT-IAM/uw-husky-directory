@@ -116,5 +116,7 @@ class TestDirectorySearchService:
     def test_search_directory(self):
         request_input = SearchDirectoryInput(name="foo")
         output = self.client.search_directory(request_input)
-        values = list(output.values())
-        assert values[0].people
+        assert output.query.name == "foo"
+        assert output.num_results
+        assert output.scenarios
+        assert output.scenarios[0].people

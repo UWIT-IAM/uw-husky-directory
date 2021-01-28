@@ -21,11 +21,9 @@ class SearchBlueprint(Blueprint):
         request_input = SearchDirectoryInput.parse_obj(request.args)
         self.logger.info(f"searching for {request_input}")
         request_output = search_service.search_directory(request_input)
-        result = {
-            descr: result.dict(by_alias=True)
-            for descr, result in request_output.items()
-        }
-        return jsonify(result)
+        return jsonify(
+            request_output.dict(by_alias=True, exclude_none=True, exclude_unset=True)
+        )
 
     def render(self, request: Request, service: DirectorySearchService):
         return render_template(

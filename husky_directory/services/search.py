@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from logging import Logger
-from typing import Dict, List
+from typing import List
 
 from devtools import PrettyFormat
 from injector import inject, singleton
 
 from husky_directory.models.pws import ListPersonsOutput, PersonOutput
 from husky_directory.models.search import (
+    DirectoryQueryScenarioOutput,
     Person,
     SearchDirectoryInput,
     SearchDirectoryOutput,
@@ -81,11 +82,12 @@ class DirectorySearchService:
 
     def search_directory(
         self, request_input: SearchDirectoryInput
-    ) -> Dict[str, SearchDirectoryOutput]:
+    ) -> SearchDirectoryOutput:
         """The main interface for this service. Submits a query to PWS, filters and translates the output,
-        and returns a SearchDirectoryOutput."""
+        and returns a DirectoryQueryScenarioOutput."""
 
-        all_results = {}
+        scenarios: List[DirectoryQueryScenarioOutput] = []
+        num_results = 0
 
         for query_description, query in self.query_generator.generate(request_input):
             pws_output = self._pws.list_persons(query)
@@ -93,5 +95,13 @@ class DirectorySearchService:
             while pws_output.next and pws_output.next.href:
                 pws_output = self._pws.get_next(pws_output.next.href)
                 results.extend(self._translate_pws_list_persons_output(pws_output))
-            all_results[query_description] = SearchDirectoryOutput(people=results)
-        return all_results
+            scenarios.append(
+                DirectoryQueryScenarioOutput(
+                    description=query_description, people=results
+                )
+            )
+            num_results += len(results)
+
+        return SearchDirectoryOutput(
+            query=request_input, num_results=num_results, scenarios=scenarios
+        )
