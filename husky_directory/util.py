@@ -1,3 +1,4 @@
+import inflection
 from devtools.debug import PrettyFormat
 from injector import Module, provider, singleton
 
@@ -16,3 +17,8 @@ class UtilityInjectorModule(Module):
             print(injector.get(PrettyFormat)(obj))
         """
         return PrettyFormat(simple_cutoff=0)  # Always show list items 1 per line.
+
+
+def camelize(string: str, uppercase_first_letter=False) -> str:
+    """Fixes the default behavior to keep the first character lowerCased."""
+    return inflection.camelize(string, uppercase_first_letter=uppercase_first_letter)

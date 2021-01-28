@@ -28,6 +28,7 @@ COPY husky_directory/ ./husky_directory
 # The next line allows the local network (e.g., your laptop) to communicate with the
 # image, so that you can simply use: localhost:8000 in your browser.
 EXPOSE 8000
+ARG BUILD_ID
 ENV FLASK_PORT=8000 \
     FLASK_ENV=development \
     PYTHONPATH=/app:$PYTHONPATH \

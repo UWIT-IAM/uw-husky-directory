@@ -16,7 +16,7 @@ def test_get_health(client):
 
 def test_get_ready(client):
     response = client.get("/health?ready")
-    assert response.status_code == 200
+    assert response.status_code == 200, response.data
     assert response.json["ready"] is True
 
 
