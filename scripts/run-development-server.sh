@@ -37,6 +37,10 @@ do
       shift
       RUNENV="${RUNENV} -e $1"
       ;;
+    --image|-i)
+      shift
+      IMAGE=$1
+      ;;
     --idp)
       USE_TEST_IDP=0
       ;;
@@ -74,5 +78,12 @@ else
   echo "WARNING: No certificate is being mounted. You can still view the UI, but the search function will fail."
 fi
 
-docker build -f docker/development-server.dockerfile -t "uw-husky-directory-local" .
-docker run ${RUNENV} -p 8000:8000 ${MOUNTLOCAL} -it uw-husky-directory-local
+if test -z "${IMAGE}"
+then
+  IMAGE="uw-husky-directory-local"
+  docker build -f docker/development-server.dockerfile -t "${IMAGE}" .
+else
+  docker pull "${IMAGE}"
+fi
+
+docker run ${RUNENV} -p 8000:8000 ${MOUNTLOCAL} -it "${IMAGE}"
