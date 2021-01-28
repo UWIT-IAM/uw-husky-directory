@@ -1,16 +1,19 @@
 {% if request.args.get('length') == "full" %}
     {# show full results #}
-    {% for key,value in search_result.items() %}
+    {% for scenario in search_result["scenarios"].items() %}
         {#
-        The data will look like this
-           "First name is \"kurle\"": {
-                "people": []
-            },
+        See models/search.py#SearchDirectoryOutput for full shape of model.
+        The data will look like this:
+            {
+                "description": "First name is \"kurle\"",
+                "people": [{...}]
+            }
         #}
-        {% if (value['people']|length) %}
+        {% if (scenario['people']|length) %}
             <p>
-                <h4>{{key}}</h4>
-                    {% for data in value['people'] %} {# people is an array of objects #}
+                <h4>{{scenario['description']}}</h4>
+                    {# people is an array of objects #}
+                    {% for data in scenario['people'] %}
                         <h3>{{ data['name'] }}</h3>
                         <ul class="dir-listing">
                             <li>{{ data['email'] }}</li>
