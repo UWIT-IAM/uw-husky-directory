@@ -9,6 +9,8 @@ base: &base
       class: logging.StreamHandler
       formatter: default
   loggers:
+    glogging:
+      level: WARNING  # This is very noisy and duplicates a lot of error messages.
     gunicorn.error:
       level: DEBUG
       handlers:
