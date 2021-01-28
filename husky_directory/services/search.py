@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from logging import Logger
-from typing import List
+from typing import List, Set
 
 from devtools import PrettyFormat
 from injector import inject, singleton
@@ -59,7 +59,7 @@ class DirectorySearchService:
         )
 
     def _translate_pws_list_persons_output(
-        self, list_persons_output: ListPersonsOutput
+        self, list_persons_output: ListPersonsOutput, exclude_netids: Set[str]
     ) -> List[Person]:
         """
         This is responsible for converting the output we get from PWS and packaging it for our API. Right now it's
@@ -67,12 +67,15 @@ class DirectorySearchService:
         """
         people = []
         for person in filter(self._filter_person, list_persons_output.persons):
+            if person.netid in exclude_netids:
+                continue
             person_args = {"name": person.display_name}
             if person.affiliations.employee:
                 employee = person.affiliations.employee.directory_listing
                 person_args["phone"] = employee.phones[0] if employee.phones else None
                 person_args["email"] = employee.emails[0] if employee.emails else None
             people.append(Person.parse_obj(person_args))
+            exclude_netids.add(person.netid)
             self.logger.debug(f"Successfully parsed publishable person {person_args}")
         self.logger.debug(
             f"Accepted {len(people)} valid PersonOutput "
@@ -87,14 +90,23 @@ class DirectorySearchService:
         and returns a DirectoryQueryScenarioOutput."""
 
         scenarios: List[DirectoryQueryScenarioOutput] = []
+        # We only include entities with netids in our search results, so they are
+        # an easy sentinel for de-duplicating results.
+        matched_netids: Set[str] = set()
         num_results = 0
 
         for query_description, query in self.query_generator.generate(request_input):
             pws_output = self._pws.list_persons(query)
-            results = self._translate_pws_list_persons_output(pws_output)
+            results = self._translate_pws_list_persons_output(
+                pws_output, exclude_netids=matched_netids
+            )
             while pws_output.next and pws_output.next.href:
                 pws_output = self._pws.get_next(pws_output.next.href)
-                results.extend(self._translate_pws_list_persons_output(pws_output))
+                results.extend(
+                    self._translate_pws_list_persons_output(
+                        pws_output, exclude_netids=matched_netids
+                    )
+                )
             scenarios.append(
                 DirectoryQueryScenarioOutput(
                     description=query_description, people=results

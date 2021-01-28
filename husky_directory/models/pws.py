@@ -50,12 +50,13 @@ class ListPersonsInput(PWSBaseModel):
 
     class Config:
         alias_generator = None
+        use_enum_values = True
 
     first_name: Optional[str]
     last_name: Optional[str]
     display_name: Optional[str]
     employee_affiliation_state: Optional[AffiliationState] = Field(
-        default=None, alias="employeeAffiliationState"
+        default=AffiliationState.current, alias="employeeAffiliationState"
     )
     student_affiliation_state: Optional[AffiliationState] = Field(
         default=None, alias="studentAffiliationState"
@@ -65,7 +66,7 @@ class ListPersonsInput(PWSBaseModel):
     department: Optional[str]
     phone_number: Optional[str]
     page_size: Optional[int] = Field(
-        default=100,
+        default=250,
         description="The maximum number of records to "
         "fetch at once. The PWS default is "
         "10, which isn't practical for our "
