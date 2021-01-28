@@ -1,0 +1,22 @@
+{% for scenario in search_result["scenarios"]%}
+    {#
+    See models/search.py#SearchDirectoryOutput for full shape of model.
+    The data will look like this:
+        {
+            "description": "First name is \"kurle\"",
+            "people": [{...}]
+        }
+    #}
+    {% if (scenario['people']|length) %}
+        <p>
+            <h4>{{scenario['description']}}</h4>
+                {% for data in scenario['people'] %}
+                    <h3>{{ data['name'] }}</h3>
+                    <ul class="dir-listing">
+                        <li>{{ data['email'] }}</li>
+                        <li>{{ data['phone'] }}</li>
+                    </ul>
+                {% endfor %}
+        </p>
+    {% endif %}
+{% endfor %}
