@@ -51,22 +51,24 @@
 <!--              ga('send', 'pageview');-->
 <!--        </script>-->
 
-        <script type="text/javascript">
-        // clear out the global search input text field
-        $(document).ready(function() {
-            $('#searchInput').focus(function() {
-                var $this = $(this)
-                if ($this.val() == $this.prop('defaultValue'))
-                    $this.val('')
+<!--        This script was carried over from the outgoing directory, although the id searchInput doesn't exist. -->
+<!--        There still may be a need for this as we continue to create the cloud directory -->
+<!--        <script type="text/javascript">-->
+<!--        // clear out the global search input text field-->
+<!--        $(document).ready(function() {-->
+<!--            $('#searchInput').focus(function() {-->
+<!--                var $this = $(this)-->
+<!--                if ($this.val() == $this.prop('defaultValue'))-->
+<!--                    $this.val('')-->
 
-            }).blur(function() {
-                var $this = $(this)
-                if ($this.val() == '')
-                    $this.val($this.prop('defaultValue'))
-            });
+<!--            }).blur(function() {-->
+<!--                var $this = $(this)-->
+<!--                if ($this.val() == '')-->
+<!--                    $this.val($this.prop('defaultValue'))-->
+<!--            });-->
 
-        })
-        </script>
+<!--        })-->
+<!--        </script>-->
 
     <!--[if lt IE 9]>
         <script src="https://www.washington.edu/wp-content/themes/uw-2014/assets/ie/js/html5shiv.js"
@@ -95,10 +97,6 @@
                 {% if search_result is defined %}
                     {% include "results.html"%}
                 {% endif %}
-<!--                <div class="contenttable">-->
-<!--                    <div class="contentspacer"></div>-->
-<!--                    <div class="contentcell"></div>-->
-<!--                </div>-->
                 {% include "links.html" %}
             </div>
 
