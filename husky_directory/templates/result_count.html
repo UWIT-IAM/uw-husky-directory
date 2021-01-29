@@ -1,0 +1,10 @@
+<div class="rsummary" id="rsummary">
+    {% for scenario in search_result['scenarios'] %}
+        {% if (scenario['people']|length) %}
+            {# when done this needs to look something lik <a href="#f1">1 Faculty/Staff</a> #}
+            {{ scenario['description']}}: {{ scenario['people']|length }}
+            <br>
+        {% endif %}
+    {% endfor %}
+</div>
+<br>
