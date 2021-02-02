@@ -26,6 +26,7 @@ class SearchDirectoryInput(DirectoryBaseModel):
     )  # https://tools.ietf.org/html/rfc5321#section-4.5.3
     box_number: Optional[str] = Field(None, regex="^[0-9]+$", max_length=32)
     phone: Optional[str] = Field(None, regex=r"^[0-9]+$", max_length=32)
+    netid: Optional[str] = Field(None)
 
 
 class Person(DirectoryBaseModel):

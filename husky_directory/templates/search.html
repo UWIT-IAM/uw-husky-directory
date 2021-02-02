@@ -11,7 +11,7 @@
                                            value=""
                                        {% endif %}
 
-                                       style="color:black; height:43px; z-index:0;" name="name">
+                                       style="color:black; height:43px; z-index:0;" id="query" name="name">
                                 <!--show result_count -->
                                 <input type="hidden" name="show_count" value="true">
                                 <span class="input-group-btn">
@@ -19,14 +19,15 @@
                                             style="background-color:white; border: thin solid #ddd;">Search</button>
                                 </span>
                             </div><!-- /input-group -->
-<!--                            <select name="method"
-                                     id="method" style="width: 220px; border: 1px solid #bbb; margin: 10px 0;">-->
-<!--                                 <option value="name" selected="selected">Name</option>-->
-<!--                                 <option value="dept" >Department</option>-->
-<!--                                 <option value="mail" >Email</option>-->
-<!--                                 <option value="box" >Box Number</option>-->
-<!--                                 <option value="phone" >Phone</option>-->
-<!--                            </select>-->
+                            <select name="method"
+                                     id="method" style="width: 220px; border: 1px solid #bbb; margin: 10px 0;">
+                                 <option value="name">Name</option>
+                                 <option value="department">Department</option>
+                                 <option value="email">Email</option>
+                                 <option value="boxNumber">Box Number</option>
+                                 <option value="phone">Phone</option>
+                                 <option value="netid">UW NetID</option>
+                            </select>
                         </div>
 <!--                        <div class="col-md-3">-->
 <!--                            <h3>Search options</h3>-->
