@@ -14,7 +14,14 @@
                     <h3>{{ data['name'] }}</h3>
                     <ul class="dir-listing">
                         <li>{{ data['email'] }}</li>
-                        <li>{{ data['phone'] }}</li>
+                        {%
+                            for contact_method, numbers in
+                                data['phoneContacts'].items()
+                        %}
+                            {% if numbers|length %}
+                                <li>{{ contact_method }}: {{ numbers|join(', ') }}</li>
+                            {%  endif %}
+                        {% endfor %}
                     </ul>
                 {% endfor %}
         </p>

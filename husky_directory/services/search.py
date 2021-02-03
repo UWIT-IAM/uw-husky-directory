@@ -72,7 +72,18 @@ class DirectorySearchService:
             person_args = {"name": person.display_name}
             if person.affiliations.employee:
                 employee = person.affiliations.employee.directory_listing
-                person_args["phone"] = employee.phones[0] if employee.phones else None
+                person_args["phone_contacts"] = employee.dict(
+                    include={
+                        "phones",
+                        "pagers",
+                        "voice_mails",
+                        "touch_dials",
+                        "faxes",
+                        "mobiles",
+                    },
+                    exclude_none=True,
+                    exclude_unset=True,
+                )
                 person_args["email"] = employee.emails[0] if employee.emails else None
             people.append(Person.parse_obj(person_args))
             exclude_netids.add(person.netid)
