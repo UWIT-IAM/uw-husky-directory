@@ -233,7 +233,7 @@ class SearchQueryGenerator:
             ),
         )
 
-    def generate_queries(self, name: str) -> Tuple[str, ListPersonsInput]:
+    def generate_name_queries(self, name: str) -> Tuple[str, ListPersonsInput]:
         # No matter the case, we will always be checking for an exact match
         yield f'Name matches "{name}"', ListPersonsInput(display_name=name)
 
@@ -256,9 +256,30 @@ class SearchQueryGenerator:
         for template in self._generate_sliced_name_queries(cardinality):
             yield template.get_description(name_parts), template.get_query(name_parts)
 
+    @staticmethod
+    def generate_phone_queries(phone: str) -> Tuple[str, ListPersonsInput]:
+        """
+        Attempts to match the phone exactly as provided; if the phone number was very long, we'll also try to match
+        only the last 10 digits.
+
+        Right now, PWS only supports phone number searches, and won't return results for pagers, faxes, etc.
+        This is a regression from the previous directory product that allowed pager searches.
+
+        :param phone: The phone number (digits only)
+        """
+        yield f'Phone matches "{phone}"', ListPersonsInput(phone_number=phone)
+        if len(phone) > 10:  # XXX YYY-ZZZZ
+            no_country_code = phone[-10:]
+            yield f'Phone matches "{no_country_code}"', ListPersonsInput(
+                phone_number=no_country_code
+            )
+
     def generate(
         self, request_input: SearchDirectoryInput
     ) -> Iterable[Tuple[str, ListPersonsInput]]:
         if request_input.name:
-            for description, query in self.generate_queries(request_input.name):
+            for description, query in self.generate_name_queries(request_input.name):
+                yield description, query
+        elif request_input.phone:
+            for description, query in self.generate_phone_queries(request_input.phone):
                 yield description, query
