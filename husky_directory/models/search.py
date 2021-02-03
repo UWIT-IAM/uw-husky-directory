@@ -1,10 +1,9 @@
 """
 Models for the DirectorySearchService.
 """
-import re
 from typing import List, Optional
 
-from pydantic import BaseModel, Extra, Field, validator
+from pydantic import BaseModel, Extra, Field
 
 from husky_directory.util import camelize
 
@@ -28,18 +27,23 @@ class SearchDirectoryInput(DirectoryBaseModel):
     phone: Optional[str] = Field(None, regex=r"^[0-9]+$", max_length=32)
 
 
+class PhoneContactMethods(DirectoryBaseModel):
+    # These aliases are for humans, instead of for computers, so use
+    # human conventions for the front end to display.
+    phones: List[str] = Field([], alias="phone")
+    faxes: List[str] = Field([], alias="fax")
+    voice_mails: List[str] = Field([], alias="voicemail")
+    touch_dials: List[str] = Field([], alias="tdd")
+    mobiles: List[str] = Field([], alias="mobile")
+    pagers: List[str] = Field([], alias="pager")
+
+
 class Person(DirectoryBaseModel):
     name: str
-    phone: Optional[str]
+    phone_contacts: PhoneContactMethods = PhoneContactMethods()
     email: Optional[str]
     box_number: Optional[str]
     department: Optional[str]
-
-    @validator("phone", pre=True)
-    def remove_phone_non_digits(cls, phone: str):
-        if phone:
-            return re.sub("[^0-9]", "", phone)
-        return phone
 
 
 class DirectoryQueryScenarioOutput(DirectoryBaseModel):

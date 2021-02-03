@@ -6,11 +6,10 @@ These are not 1:1 models of that API; only fields we care about are declared her
 """
 
 from typing import Any, Dict, List, Optional
-
-import inflection
 from pydantic import BaseModel, Extra, Field
 
 from .enum import AffiliationState
+from ..util import camelize
 
 
 class PWSBaseModel(BaseModel):
@@ -26,7 +25,7 @@ class PWSBaseModel(BaseModel):
 
         @staticmethod
         def generate_alias(field_name: str) -> str:
-            return inflection.camelize(field_name, uppercase_first_letter=True)
+            return camelize(field_name, uppercase_first_letter=True)
 
         alias_generator = generate_alias
 
@@ -118,6 +117,10 @@ class EmployeeDirectoryListing(PWSBaseModel):
     emails: List[str] = Field(default=[], alias="EmailAddresses")
     positions: List[EmployeePosition] = []
     faxes: List[str] = []
+    voice_mails: List[str] = []
+    touch_dials: List[str] = []
+    pagers: List[str] = []
+    mobiles: List[str] = []
 
 
 class StudentDirectoryListing(PWSBaseModel):

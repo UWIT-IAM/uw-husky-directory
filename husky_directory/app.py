@@ -51,7 +51,7 @@ class AppInjectorModule(Module):
     @provider
     @request
     def provide_request_session(self) -> LocalProxy:
-        return session
+        return session  # Ignore IDE errors here. I hunted this down and determined the IDE is just confused.
 
     @provider
     @singleton
