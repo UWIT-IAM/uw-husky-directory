@@ -7,7 +7,9 @@ name: Commit Image Workflow
 # This runs on every push, so that every push gets its own image and validation tests. This also means
 # we can use any push as a rollback point for any live instance, if something goes wrong, and be able to find
 # the image is easily using the commit hash as a reference.
-on: push
+on:
+  - pull_request
+  - push
 # Sets up some aliases so we can keep these values DRY
 env:
   APP_NAME: husky-directory
@@ -36,10 +38,11 @@ jobs:
     outputs:
       full_image_name: ${{ steps.image_name.outputs.image_name }}
       tag_name: ${{ steps.commit_tag.outputs.tag_name }}
-      image_name_with_commit_tag: ${{ steps.image_with_tag.outputs .name_with_commit_tag }}
+      image_name_with_commit_tag: ${{ steps.image_with_tag.outputs.name_with_commit_tag }}
   # This job is responsible for building an image and uploading it to our repository. This image can later be
   # tested, deployed, and/or have other tags applied.
   build-and-push-image:
+    if: ${{ github.event_name == 'push' }}
     needs: [configure-image]
     runs-on: ubuntu-latest
     env:
@@ -63,9 +66,33 @@ jobs:
           dockerfile: docker/development-server.dockerfile
           buildargs: BUILD_ID
           cache: true
+  append-to-pr:
+    needs: [configure-image]
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' }}
+    steps:
+      - uses: thollander/actions-comment-pull-request@master
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          message: |
+            Run this build from your local repository with:
+
+            ```bash
+            ./scripts/run-development-server.sh \
+              -i ${{ needs.configure-image.outputs.image_name_with_commit_tag }}
+              -c $UWCA_CERT_PATH
+            ```
+
+            > This message may have posted before the build was completed; if the
+            image can't be found, wait a minute and try again.
+
+            See [docs/running-the-app.md] for more information.
+
+            [docs/running-the-app.md]: https://github.com/UWIT-IAM/uw-husky-directory/blob/main/docs/running-the-app.md
 
   # This uses the image built above to run validations and tests from inside the image.
   validate-image-quality:
+    if: ${{ github.event_name == 'pull_request' }}
     needs: [configure-image, build-and-push-image]
     runs-on: ubuntu-latest
     container:
@@ -81,6 +108,7 @@ jobs:
     # - configure-image exports variables used here
     # - validate-image-quality is required to succeed before any promotions are run
     needs: [configure-image, validate-image-quality]
+    if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
