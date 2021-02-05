@@ -60,6 +60,20 @@ class People:
             )
         )
     )
+    contactable_person = generate_person(
+        affiliations=PersonAffiliations(
+            employee=EmployeePersonAffiliation(
+                directory_listing=EmployeeDirectoryListing(
+                    publish_in_directory=True,
+                    phones=["2068675309 Ext. 4242"],
+                    pagers=["1234567"],
+                    faxes=["+1 999 214-9864"],
+                    mobiles=["+1 999 (967)-4222", "+1 999 (967) 4999"],
+                    touch_dials=["+19999499911"],
+                )
+            )
+        )
+    )
 
 
 class TestDirectorySearchService:
@@ -73,7 +87,7 @@ class TestDirectorySearchService:
 
         self.set_list_persons_output(ListPersonsOutput.parse_obj(mock_person_data))
         del mock_person_data["Next"]
-        self.set_list_persons_output(ListPersonsOutput.parse_obj(mock_person_data))
+        self.set_get_next_output(ListPersonsOutput.parse_obj(mock_person_data))
 
     def set_list_persons_output(self, output: ListPersonsOutput):
         self.list_persons_output = output
@@ -132,3 +146,18 @@ class TestDirectorySearchService:
 
         # But we should only expect a single result because it was de-duplicated
         assert output.num_results == 1
+
+    def test_output_includes_phones(self):
+        person = People.contactable_person
+        self.list_persons_output.persons = [person]
+        request_input = SearchDirectoryInput(name="foo")
+        output = self.client.search_directory(request_input)
+        contacts = output.scenarios[0].people[0].phone_contacts
+
+        for field_name, val in contacts:
+            assert (
+                getattr(
+                    person.affiliations.employee.directory_listing, field_name, None
+                )
+                == val
+            ), field_name
