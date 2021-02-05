@@ -156,3 +156,15 @@ class TestSearchQueryGenerator:
                 assert case in actual_queries
 
         assert len(generated) == expected_num_queries
+
+    def test_phone_input_short_number(self):
+        request_input = SearchDirectoryInput(phone="2065554321")
+        queries = list(self.query_generator.generate(request_input))
+        assert len(queries) == 1
+
+    def test_phone_input_long_number(self):
+        request_input = SearchDirectoryInput(phone="+1 (206) 555-4321")
+        queries = list(self.query_generator.generate(request_input))
+        assert queries[0][1].phone_number == "12065554321"
+        assert queries[1][1].phone_number == "2065554321"
+        assert len(queries) == 2
