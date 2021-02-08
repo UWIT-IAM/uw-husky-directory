@@ -2,10 +2,12 @@
     {% if request.args.get('show_count') == "true" %}
         {% include "result_count.html" %}
     {% endif %}
+
     {# show full results #}
     {% include "full_results.html" %}
 {% else %}
     {% include "result_count.html" %}
+
     {# show summary results #}
     {% include "summary_results.html" %}
 {% endif %}

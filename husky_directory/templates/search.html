@@ -12,21 +12,19 @@
                                        {% endif %}
 
                                        style="color:black; height:43px; z-index:0;" id="query" name="name">
-                                <!--show result_count -->
                                 <input type="hidden" name="show_count" value="true">
                                 <span class="input-group-btn">
-                                    <button class="btn search" type="submit"
+                                    <button class="btn search" type="submit" id="search"
                                             style="background-color:white; border: thin solid #ddd;">Search</button>
                                 </span>
                             </div><!-- /input-group -->
                             <select name="method"
                                      id="method" style="width: 220px; border: 1px solid #bbb; margin: 10px 0;">
-                                 <option value="name">Name</option>
-                                 <option value="department">Department</option>
-                                 <option value="email">Email</option>
-                                 <option value="boxNumber">Box Number</option>
-                                 <option value="phone">Phone</option>
-                                 <option value="netid">UW NetID</option>
+                                {% if search_result is defined %}
+                                   {% include "dynamic_search_options.html" %}
+                                {% else %}
+                                   {% include "search_options.html" %}
+                                {% endif %}
                             </select>
                         </div>
 <!--                        <div class="col-md-3">-->
