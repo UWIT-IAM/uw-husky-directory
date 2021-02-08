@@ -8,9 +8,11 @@
 
 
 let searchFormField = document.getElementById("query");
-document.getElementById("method").onchange = changeListener;
 
-function changeListener(){
-    var value = this.value
+document.getElementById("search").onclick = updateSearchSelect;
+document.getElementById("method").onchange = updateSearchSelect;
+
+function updateSearchSelect(){
+    var value = document.getElementById("method").value;
     searchFormField.setAttribute("name", value);
 }
