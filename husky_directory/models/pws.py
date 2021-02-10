@@ -6,6 +6,7 @@ These are not 1:1 models of that API; only fields we care about are declared her
 """
 
 from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Extra, Field
 
 from .enum import AffiliationState

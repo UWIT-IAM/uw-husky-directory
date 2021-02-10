@@ -103,8 +103,9 @@
                             <div class="contentcell">
                                 <p>No matches for
                                     <b>
-                                    {{ search_result['query'].keys()|first|capitalize }}
-                                    is "{{ search_result['query'].values()|first }}"
+                                    {{ search_result['request'].keys()
+                                    |first|capitalize }}
+                                    is "{{ search_result['request'].values()|first }}"
                                     </b>.
                                 </p>
                             </div>

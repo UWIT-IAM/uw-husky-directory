@@ -4,7 +4,7 @@ Models for the DirectorySearchService.
 import re
 from typing import List, Optional
 
-from pydantic import BaseModel, Extra, Field, validator
+from pydantic import BaseModel, Extra, Field
 
 from husky_directory.util import camelize
 
@@ -25,14 +25,14 @@ class SearchDirectoryInput(DirectoryBaseModel):
         None, max_length=256
     )  # https://tools.ietf.org/html/rfc5321#section-4.5.3
     box_number: Optional[str] = Field(None, regex="^[0-9]+$", max_length=32)
-    phone: Optional[str] = Field(None, max_length=32)
+    phone: Optional[str]
     netid: Optional[str] = Field(None)
 
-    @validator("phone", pre=True)
-    def remove_non_digits(cls, phone: Optional[str]):
-        if phone:
-            return re.sub("[^0-9]", "", phone)
-        return phone
+    @property
+    def sanitized_phone(self) -> Optional[str]:
+        if self.phone:
+            return re.sub("[^0-9]", "", self.phone)
+        return self.phone
 
 
 class PhoneContactMethods(DirectoryBaseModel):
@@ -60,6 +60,6 @@ class DirectoryQueryScenarioOutput(DirectoryBaseModel):
 
 
 class SearchDirectoryOutput(DirectoryBaseModel):
-    query: SearchDirectoryInput
+    request: SearchDirectoryInput
     num_results: int
     scenarios: List[DirectoryQueryScenarioOutput]
