@@ -161,3 +161,9 @@ class TestDirectorySearchService:
                 )
                 == val
             ), field_name
+
+    def test_output_includes_original_phone_query(self):
+        request_input = SearchDirectoryInput(phone="abcdef")
+        output = self.client.search_directory(request_input)
+        assert request_input.sanitized_phone == ""
+        assert output.query.phone == "abcdef"
