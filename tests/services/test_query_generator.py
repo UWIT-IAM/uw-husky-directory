@@ -168,3 +168,11 @@ class TestSearchQueryGenerator:
         assert queries[0][1].phone_number == "12065554321"
         assert queries[1][1].phone_number == "2065554321"
         assert len(queries) == 2
+
+    def test_phone_input_invalid_number(self):
+        request_input = SearchDirectoryInput(phone="abcdefg")
+        assert request_input.phone
+        assert not request_input.sanitized_phone
+
+        queries = list(self.query_generator.generate(request_input))
+        assert not queries

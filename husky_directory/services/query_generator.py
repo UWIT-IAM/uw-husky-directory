@@ -280,7 +280,7 @@ class SearchQueryGenerator:
         if request_input.name:
             for description, query in self.generate_name_queries(request_input.name):
                 yield description, query
-        elif request_input.phone:
+        elif request_input.sanitized_phone:
             for description, query in self.generate_phone_queries(
                 request_input.sanitized_phone
             ):
