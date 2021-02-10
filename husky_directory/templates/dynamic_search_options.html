@@ -1,27 +1,27 @@
 <option value="name"
-   {% if search_result['query']['name'] is defined %}
+   {% if search_result['request']['name'] is defined %}
        selected="selected"
    {% endif %}
    >Name
 </option>
 <option value="department"
-   {% if search_result['query']['department'] is defined %}
+   {% if search_result['request']['department'] is defined %}
        selected="selected"
    {% endif %}
 >Department
 </option>
 <option value="email"
-   {% if search_result['query']['email'] is defined %}
+   {% if search_result['request']['email'] is defined %}
        selected="selected"
    {% endif %}
 >Email
 <option value="box_number"
-   {% if search_result['query']['boxNumber'] is defined %}
+   {% if search_result['request']['boxNumber'] is defined %}
        selected="selected"
    {% endif %}
 >Box Number
 <option value="phone"
-   {% if search_result['query']['phone'] is defined %}
+   {% if search_result['request']['phone'] is defined %}
        selected="selected"
    {% endif %}
 >Phone

@@ -126,7 +126,7 @@ class TestDirectorySearchService:
         output = self.client.search_directory(request_input)
         # The same data was returned a total of 10 times:
 
-        assert output.query.name == "foo"
+        assert output.request.name == "foo"
         assert output.num_results
         assert output.scenarios
         assert output.scenarios[0].people
@@ -166,4 +166,4 @@ class TestDirectorySearchService:
         request_input = SearchDirectoryInput(phone="abcdef")
         output = self.client.search_directory(request_input)
         assert request_input.sanitized_phone == ""
-        assert output.query.phone == "abcdef"
+        assert output.request.phone == "abcdef"

@@ -60,6 +60,6 @@ class DirectoryQueryScenarioOutput(DirectoryBaseModel):
 
 
 class SearchDirectoryOutput(DirectoryBaseModel):
-    query: SearchDirectoryInput
+    request: SearchDirectoryInput
     num_results: int
     scenarios: List[DirectoryQueryScenarioOutput]

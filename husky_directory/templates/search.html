@@ -6,7 +6,7 @@
                             <div class="input-group">
                                 <input type="text" class="form-control"
                                        {% if search_result is defined %}
-                                           value="{{ search_result['query'].values()|first }}"
+                                           value="{{ search_result['request'].values()|first }}"
                                        {% else %}
                                            value=""
                                        {% endif %}
