@@ -112,11 +112,14 @@ if ! black --check $SRC_DIR $TST_DIR > /dev/null
 then
   conditional_echo "ℹ️ Blackening all code . . ."
   black $SRC_DIR $TST_DIR
-  conditional_echo "Amending your commit with blackened code:"
-  # Because the script won't run if the branch isn't clean, the only changes we should see are
-  # those made by Black.
-  git add -u
-  git commit --amend --no-edit
+  if test -z "${NO_COMMIT}"
+  then
+    conditional_echo "Amending your commit with blackened code."
+    # Because the script won't run if the branch isn't clean, the only changes we should see are
+    # those made by Black.
+    git add -u
+    git commit --amend --no-edit
+  fi
 else
   conditional_echo "🖤 Your code is already blackened. Good job! 🏴"
 fi
