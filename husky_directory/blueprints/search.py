@@ -1,8 +1,7 @@
 from logging import Logger
 
-from flask import Blueprint, Request, jsonify
+from flask import Blueprint, Request, jsonify, render_template
 from injector import inject, singleton
-from flask import render_template
 
 from husky_directory.models.search import SearchDirectoryInput
 from husky_directory.services.search import DirectorySearchService
