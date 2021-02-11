@@ -103,4 +103,4 @@ class SearchBlueprint(Blueprint):
             # Now we render the template with the full context every time!
             render_template("index.html", **context.dict(exclude_none=True)),
             context.status_code,
-        ), context.status_code
+        )
