@@ -176,3 +176,10 @@ class TestSearchQueryGenerator:
 
         queries = list(self.query_generator.generate(request_input))
         assert not queries
+
+    def test_box_number_input(self):
+        request_input = SearchDirectoryInput(box_number="123456")
+        queries = list(self.query_generator.generate(request_input))
+        assert len(queries) == 2
+        assert queries[0][1].mail_stop == "123456"
+        assert queries[1][1].mail_stop == "35123456"

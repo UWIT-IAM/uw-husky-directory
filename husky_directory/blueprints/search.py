@@ -38,5 +38,13 @@ class SearchBlueprint(Blueprint):
             return render_template("index.html", error=reportable_error), 401
         except Exception as e:
             logger.exception(str(e))
-            return render_template("index.html", error={'msg': "Something unexpected happened. Please try again or "
-                                                               "email help@uw.edu describing your problem."}), 500
+            return (
+                render_template(
+                    "index.html",
+                    error={
+                        "msg": "Something unexpected happened. Please try again or "
+                        "email help@uw.edu describing your problem."
+                    },
+                ),
+                500,
+            )

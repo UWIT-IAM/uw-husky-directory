@@ -167,3 +167,8 @@ class TestDirectorySearchService:
         output = self.client.search_directory(request_input)
         assert request_input.sanitized_phone == ""
         assert output.request.phone == "abcdef"
+
+    def test_box_number_search(self):
+        request_input = SearchDirectoryInput(box_number="1234")
+        output = self.client.search_directory(request_input)
+        assert output.request.box_number == "1234"
