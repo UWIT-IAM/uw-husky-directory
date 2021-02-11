@@ -65,6 +65,7 @@ class AppInjectorModule(Module):
     @staticmethod
     def register_jinja_filters(app: Flask):
         """You can define jinja filters here in order to make them available in our jinja templates."""
+
         @app.template_filter()
         def titleize(text):
             """
