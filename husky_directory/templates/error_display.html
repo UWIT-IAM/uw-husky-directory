@@ -1,0 +1,15 @@
+<div class="contenttable">
+    <div class="contentspacer"></div>
+    <div class="contentcell">
+        {% if search_result is defined %}
+            <p>No matches for
+                <b>
+                    {{ search_result['request'].keys()|first|titleize }}
+                    is "{{ search_result['request'].values()|first }}"
+                </b>.
+            </p>
+        {% elif error is defined %}
+            <p>Encountered error: <b>"{{ error["msg"] }}"</b></p>
+        {% endif %}
+    </div>
+</div>
