@@ -113,7 +113,9 @@ class AppInjectorModule(Module):
         # We've done our pre-work; now we can create the instance itself.
         app = Flask("husky_directory")
         app.secret_key = app_settings.cookie_secret_key
-        app.url_map.strict_slashes = False  # Allows both '/search' and '/search/' to work
+        app.url_map.strict_slashes = (
+            False  # Allows both '/search' and '/search/' to work
+        )
 
         # App blueprints get registered here.
         app.register_blueprint(app_blueprint)
