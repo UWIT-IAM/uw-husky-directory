@@ -12,7 +12,7 @@ injector = "^0.18.4"
 Flask-Injector = "^0.12.3"
 pydantic = {extras = ["email"], version = "^1.7.3"}
 inflection = "^0.5.1"
-gunicorn = "^20.0.4"
+gunicorn = {extras = ["gevent"], version = "^20.0.4"}
 PyYAML = "^5.3.1"
 requests = "^2.25.1"
 devtools = "^0.6.1"
