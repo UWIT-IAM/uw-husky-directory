@@ -94,19 +94,15 @@
                 {% include "search.html" %}
 
                 <hr/>
-                {% if search_result is defined and search_result["numResults"] > 0 %}
+                {% if search_result is not blank and search_result["num_results"] > 0 %}
                     {% include "results.html" %}
                 {% else %}
                     {% include 'error_display.html' %}
                 {% endif %}
                 {% include "links.html" %}
             </div>
-
         </div>
         {% include "footer.html" %}
-
-        <!--</div>--><!-- container-inner -->
-        <!--</div>--><!-- container -->
         <script src="{{ url_for('static', filename='js/setSearchNameAttribute.js') }}"></script>
     </body>
 </html>

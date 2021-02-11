@@ -6,20 +6,19 @@
                 <tbody>
                     <tr>
                         <td>
-                            <table
-                                    class="table table-bordered table-striped table-condensed"
-                                    summary="results" width="100%"
+                            <table class="table table-bordered table-striped table-condensed"
+                                   summary="results" width="100%"
                             >
                                 <tbody>
                                     <tr>
-                                        <th>Name</th> <th>Phone</th> <th>Email</th> <th>UW NetID</th> <th>*</th>
+                                        <th>Name</th> <th>Phone</th> <th>Email</th> <th>*</th>
                                     </tr>
                                     {% for scenario in search_result['scenarios'] %}
                                         {% if (scenario['people']|length) %}
                                             <tr>
-                                                <td colspan="4"><div class="rcdescr">
+                                                <td colspan="3"><div class="rcdescr">
                                                     <h3><a id="f1" name="f1"></a>
-                                                    Hard Coded Faculty/Staff: {{scenario['description']}}</h3>
+                                                    Hard Coded Faculty/Staff: {{ scenario['description'] }}</h3>
                                                     </div>
                                                 </td>
                                                 <td>&nbsp;</td>
@@ -28,12 +27,13 @@
                                                     <tr>
                                                         <td valign="top">{{ data['name'] }}&nbsp;</td>
                                                         <td valign="top" nowrap="nowrap">
-                                                            {{ data['phoneContacts']['phone']|first}}
+                                                            {{ data['phone_contacts']['phone']|first }}
                                                         </td>
                                                         <td valign="top">{{ data['email'] }}&nbsp;</td>
-                                                        <td valign="top">theNetIdWouldBeHere&nbsp;</td>
                                                         <td>
-                                                            <form action="/search/render" method="get" name="moreform">
+                                                            <form action="/search"
+                                                                  method="POST"
+                                                                  name="moreform">
                                                                 <input
                                                                         type="hidden" name="name"
                                                                         value="{{ data['name'] }}"

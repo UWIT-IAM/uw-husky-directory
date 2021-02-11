@@ -16,7 +16,7 @@
                         <li>{{ data['email'] }}</li>
                         {%
                             for contact_method, numbers in
-                                data['phoneContacts'].items()
+                                data['phone_contacts'].items()
                         %}
                             {% if numbers|length %}
                                 <li>{{ contact_method }}: {{ numbers|join(', ') }}</li>

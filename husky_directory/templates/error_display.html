@@ -1,14 +1,14 @@
 <div class="contenttable">
     <div class="contentspacer"></div>
     <div class="contentcell">
-        {% if search_result is defined %}
+        {% if search_result is not blank %}
             <p>No matches for
                 <b>
-                    {{ search_result['request'].keys()|first|titleize }}
-                    is "{{ search_result['request'].values()|first }}"
+                    {{ request_input.keys()|first|titleize }}
+                    is "{{ request_input.values()|first }}"
                 </b>.
             </p>
-        {% elif error is defined %}
+        {% elif error is not blank %}
             <p>Encountered error: <b>"{{ error["msg"] }}"</b></p>
         {% endif %}
     </div>
