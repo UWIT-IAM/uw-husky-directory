@@ -87,11 +87,6 @@ class DirectorySearchService:
                 person_args["email"] = employee.emails[0] if employee.emails else None
             people.append(Person.parse_obj(person_args))
             exclude_netids.add(person.netid)
-            self.logger.debug(f"Successfully parsed publishable person {person_args}")
-        self.logger.debug(
-            f"Accepted {len(people)} valid PersonOutput "
-            f"instances of {len(list_persons_output.persons)} returned by PWS."
-        )
         return people
 
     def search_directory(
