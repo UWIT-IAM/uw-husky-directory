@@ -1,16 +1,15 @@
                <div class="cblock row">
-                    <form action="/search/render" method="get" name="dirform">
-<!--                    <form action="/search" method="get" name="dirform">-->
+                    <form action="/search" method="POST" name="dirform"
+                          enctype="multipart/form-data">
                         <div class="col-md-6">
                             <h3>Search by</h3>
                             <div class="input-group">
                                 <input type="text" class="form-control"
-                                       {% if search_result is defined %}
-                                           value="{{ search_result['request'].values()|first }}"
+                                       {% if request_input is not blank %}
+                                           value="{{ request_input.values()|first }}"
                                        {% else %}
                                            value=""
                                        {% endif %}
-
                                        style="color:black; height:43px; z-index:0;" id="query" name="name">
                                 <input type="hidden" name="show_count" value="true">
                                 <span class="input-group-btn">
@@ -20,11 +19,7 @@
                             </div><!-- /input-group -->
                             <select name="method"
                                      id="method" style="width: 220px; border: 1px solid #bbb; margin: 10px 0;">
-                                {% if search_result is defined %}
-                                   {% include "dynamic_search_options.html" %}
-                                {% else %}
-                                   {% include "search_options.html" %}
-                                {% endif %}
+                               {% include "search_options.html" %}
                             </select>
                         </div>
 <!--                        <div class="col-md-3">-->
@@ -37,9 +32,10 @@
                              <h3>Kind of listing</h3>
                              <label for="lengthfull"><input type="radio"  name="length" value="full"
                                   id="lengthfull" />Full</label>
-                             <label for="lengthsum">
-                                 <input type="radio"  name="length" value="sum" checked="checked"
-                                 id="lengthsum" />Summary</label>
+                             <label for="lengthsummary">
+                                 <input type="radio"  name="length" value="summary"
+                                        checked="checked"
+                                 id="lengthsummary" />Summary</label>
                         </div>
                     </form>
                </div>

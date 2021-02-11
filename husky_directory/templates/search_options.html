@@ -1,5 +1,14 @@
-<option value="name">Name</option>
-<option value="department">Department</option>
-<option value="email">Email</option>
-<option value="box_number">Box Number</option>
-<option value="phone">Phone</option>
+{# For each of the search fields in the SearchDirectoryInput model, create
+    a dropdown option whose value matches the field name, and whose display name
+    is run through the titleize filter to make it presentable. Additionally, if the
+    request_input context is present and the attribute is defined there, we
+    automatically mark that attribute as selected.
+#}
+{% for attribute in search_attributes %}
+    <option value="{{ attribute }}"
+        {% if request_input is not blank and request_input[attribute] is not blank %}
+            selected="selected"
+        {% endif %}
+    >{{ attribute|titleize }}
+    </option>
+{% endfor %}
