@@ -5,6 +5,7 @@ from typing import List, NoReturn, Optional, Type
 from flask import Flask, session
 from flask_injector import FlaskInjector, request
 from injector import Injector, Module, provider, singleton
+from inflection import titleize as titleize_
 from pydantic import ValidationError
 from uw_saml2 import mock, python3_saml
 from werkzeug.exceptions import BadRequest, HTTPException, InternalServerError
@@ -61,6 +62,18 @@ class AppInjectorModule(Module):
         gunicorn_error_logger = logging.getLogger("gunicorn.error")
         return gunicorn_error_logger
 
+    @staticmethod
+    def register_jinja_filters(app: Flask):
+        """You can define jinja filters here in order to make them available in our jinja templates."""
+
+        @app.template_filter()
+        def titleize(text):
+            """
+            Turns snake_case and camelCase into "Snake Case" and "Camel Case," respectively.
+            Use: {{ some_string|titleize }}
+            """
+            return titleize_(text)
+
     @provider
     @singleton
     def provide_app(
@@ -96,6 +109,7 @@ class AppInjectorModule(Module):
         # our dependencies appropriate for each request.
         FlaskInjector(app=app, injector=injector)
         attach_app_error_handlers(app)
+        self.register_jinja_filters(app)
         return app
 
 

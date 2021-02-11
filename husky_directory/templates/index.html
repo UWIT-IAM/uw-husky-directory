@@ -94,25 +94,11 @@
                 {% include "search.html" %}
 
                 <hr/>
-                {% if search_result is defined %}
-                    {% if search_result["numResults"] > 0 %}
-                        {% include "results.html"%}
-                    {% else %}
-                        <div class="contenttable">
-                            <div class="contentspacer"></div>
-                            <div class="contentcell">
-                                <p>No matches for
-                                    <b>
-                                    {{ search_result['request'].keys()
-                                    |first|capitalize }}
-                                    is "{{ search_result['request'].values()|first }}"
-                                    </b>.
-                                </p>
-                            </div>
-                        </div>
-                    {% endif %}
+                {% if search_result is defined and search_result["numResults"] > 0 %}
+                    {% include "results.html" %}
+                {% else %}
+                    {% include 'error_display.html' %}
                 {% endif %}
-
                 {% include "links.html" %}
             </div>
 

@@ -274,6 +274,20 @@ class SearchQueryGenerator:
                 phone_number=no_country_code
             )
 
+    @staticmethod
+    def generate_mail_box_queries(box_number: str) -> Tuple[str, ListPersonsInput]:
+        # PWS only ever returns "begins with" results for mailstop.
+        yield f'Mailstop begins with "{box_number}"', ListPersonsInput(
+            mail_stop=box_number
+        )
+        # All (most?) UW mail stops start with '35,' and so it is considered shorthand to omit
+        # them at times. To be sure we account for shorthand input, we will also always try
+        # adding '35' to every query.
+        alt_number = f"35{box_number}"
+        yield f'Mailstop begins with "35{alt_number}"', ListPersonsInput(
+            mail_stop=alt_number
+        )
+
     def generate(
         self, request_input: SearchDirectoryInput
     ) -> Iterable[Tuple[str, ListPersonsInput]]:
@@ -283,5 +297,10 @@ class SearchQueryGenerator:
         elif request_input.sanitized_phone:
             for description, query in self.generate_phone_queries(
                 request_input.sanitized_phone
+            ):
+                yield description, query
+        elif request_input.box_number:
+            for description, query in self.generate_mail_box_queries(
+                request_input.box_number
             ):
                 yield description, query
