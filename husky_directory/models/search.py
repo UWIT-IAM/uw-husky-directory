@@ -59,12 +59,12 @@ class SearchDirectoryInput(DirectoryBaseModel):
 class PhoneContactMethods(DirectoryBaseModel):
     # These aliases are for humans, instead of for computers, so use
     # human conventions for the front end to display.
-    phones: List[str] = Field([], alias="phone")
-    faxes: List[str] = Field([], alias="fax")
-    voice_mails: List[str] = Field([], alias="voicemail")
-    touch_dials: List[str] = Field([], alias="tdd")
-    mobiles: List[str] = Field([], alias="mobile")
-    pagers: List[str] = Field([], alias="pager")
+    phones: List[str] = []
+    faxes: List[str] = []
+    voice_mails: List[str] = []
+    touch_dials: List[str] = []
+    mobiles: List[str] = []
+    pagers: List[str] = []
 
 
 class Person(DirectoryBaseModel):

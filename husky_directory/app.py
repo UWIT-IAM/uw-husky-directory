@@ -4,7 +4,7 @@ from typing import List, NoReturn, Optional, Type
 
 from flask import Flask, session
 from flask_injector import FlaskInjector, request
-from inflection import titleize as titleize_
+import inflection
 from injector import Injector, Module, provider, singleton
 from jinja2.tests import test_undefined
 from pydantic import ValidationError
@@ -75,7 +75,11 @@ class AppInjectorModule(Module):
             Turns snake_case and camelCase into "Snake Case" and "Camel Case," respectively.
             Use: {{ some_string|titleize }}
             """
-            return titleize_(text)
+            return inflection.titleize(text)
+
+        @app.template_filter()
+        def singularize(text):
+            return inflection.singularize(text)
 
         @app.template_test()
         def blank(val):

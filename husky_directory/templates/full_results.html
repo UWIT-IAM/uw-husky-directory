@@ -19,7 +19,8 @@
                                 data['phone_contacts'].items()
                         %}
                             {% if numbers|length %}
-                                <li>{{ contact_method }}: {{ numbers|join(', ') }}</li>
+                                <li>{{ contact_method|singularize|titleize }}:
+                                    {{ numbers|join(', ') }}</li>
                             {%  endif %}
                         {% endfor %}
                     </ul>
