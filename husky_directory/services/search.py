@@ -120,6 +120,4 @@ class DirectorySearchService:
             )
             num_results += len(results)
 
-        return SearchDirectoryOutput(
-            request=request_input, num_results=num_results, scenarios=scenarios
-        )
+        return SearchDirectoryOutput(num_results=num_results, scenarios=scenarios)
