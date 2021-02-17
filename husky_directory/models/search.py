@@ -55,6 +55,16 @@ class SearchDirectoryInput(DirectoryBaseModel):
             raise BoxNumberValueError()
         return box_number
 
+    @validator("email")
+    def validate_email(cls, value: Optional[str]) -> Optional[str]:
+        if value and value.startswith(
+            "@"
+        ):  # Don't let people search for everyone at @uw.edu or @washington.edu
+            raise ValueError(
+                "Unable to search by domain only; please start with the username portion of the address."
+            )
+        return value
+
 
 class PhoneContactMethods(DirectoryBaseModel):
     # These aliases are for humans, instead of for computers, so use

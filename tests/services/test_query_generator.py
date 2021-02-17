@@ -183,3 +183,22 @@ class TestSearchQueryGenerator:
         assert len(queries) == 2
         assert queries[0][1].mail_stop == "123456"
         assert queries[1][1].mail_stop == "35123456"
+
+    @pytest.mark.parametrize(
+        "input_value, expected_snippets",
+        [
+            ("foo", ['begins with "foo"', 'contains "foo"']),
+            ("foo@bar.com", ['is "foo@bar.com"']),
+            ("foo@", ['matches "foo@"']),
+            ("foo*", ['matches "foo*"']),
+            ("foo@uw.edu", ['is "foo@uw.edu"', 'is "foo@washington.edu"']),
+            ("foo@washington.edu", ['is "foo@washington.edu"', 'is "foo@uw.edu"']),
+        ],
+    )
+    def test_email_input(self, input_value, expected_snippets):
+        request_input = SearchDirectoryInput(email=input_value)
+        queries = list(self.query_generator.generate(request_input))
+        assert len(queries) == len(expected_snippets)
+        for i, snippet in enumerate(expected_snippets):
+            description, _ = queries[i]
+            assert snippet in description

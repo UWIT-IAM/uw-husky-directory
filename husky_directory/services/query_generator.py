@@ -3,7 +3,7 @@ from typing import Callable, Iterable, List, Optional, Tuple
 
 import inflection
 from injector import singleton
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailError, validate_email
 
 from husky_directory.models.pws import ListPersonsInput
 from husky_directory.models.search import SearchDirectoryInput
@@ -288,6 +288,45 @@ class SearchQueryGenerator:
             mail_stop=alt_number
         )
 
+    @staticmethod
+    def generate_email_queries(partial: str) -> Tuple[str, ListPersonsInput]:
+        # If a user has supplied a full, valid email address, we will search only for the complete
+        # listing as an 'is' operator.
+        try:
+            username, _ = validate_email(partial)
+            # Decide whether we want to help the user by also including an alternate
+            # domain in their query.
+            alternate = None
+            if partial.endswith("@uw.edu"):
+                alternate = "washington.edu"
+            elif partial.endswith("@washington.edu"):
+                alternate = "uw.edu"
+            yield f'Email is "{partial}"', ListPersonsInput(email=partial)
+            if alternate:
+                alternate_email = f"{username}@{alternate}"
+
+                yield f'Email is "{alternate_email}"', ListPersonsInput(
+                    email=alternate_email
+                )
+            return
+        except EmailError:
+            pass
+
+        # If the user includes a partial with '@' or '*', we assume they
+        # just want to run this specific query, so will not forcibly include
+        # any additional results.
+        if "@" in partial or "*" in partial:  # If a user types in a full address
+            yield f'Email matches "{partial}"', ListPersonsInput(email=partial)
+        else:
+            # If the user has just supplied 'foo123', we will search for a couple of
+            # combinations.
+            yield f'Email begins with "{partial}"', ListPersonsInput(
+                email=WildcardFormat.begins_with(partial)
+            )
+            yield f'Email contains "{partial}"', ListPersonsInput(
+                email=WildcardFormat.contains(partial)
+            )
+
     def generate(
         self, request_input: SearchDirectoryInput
     ) -> Iterable[Tuple[str, ListPersonsInput]]:
@@ -303,4 +342,7 @@ class SearchQueryGenerator:
             for description, query in self.generate_mail_box_queries(
                 request_input.box_number
             ):
+                yield description, query
+        elif request_input.email:
+            for description, query in self.generate_email_queries(request_input.email):
                 yield description, query
