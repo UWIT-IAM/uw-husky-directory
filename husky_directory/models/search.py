@@ -10,12 +10,13 @@ from husky_directory.util import camelize
 
 
 class DirectoryBaseModel(BaseModel):
-    class Config:
+    class Config:  # See https://pydantic-docs.helpmanual.io/usage/model_config/
         extra = Extra.ignore
         use_enum_values = True
         allow_population_by_field_name = True
         validate_assignment = True
         alias_generator = camelize
+        anystr_strip_whitespace = True
 
 
 class BoxNumberValueError(PydanticValueError):
@@ -36,7 +37,6 @@ class SearchDirectoryInput(DirectoryBaseModel):
     )  # https://tools.ietf.org/html/rfc5321#section-4.5.3
     box_number: Optional[str]
     phone: Optional[str]
-    netid: Optional[str] = Field(None)
 
     @property
     def sanitized_phone(self) -> Optional[str]:
@@ -59,12 +59,12 @@ class SearchDirectoryInput(DirectoryBaseModel):
 class PhoneContactMethods(DirectoryBaseModel):
     # These aliases are for humans, instead of for computers, so use
     # human conventions for the front end to display.
-    phones: List[str] = Field([], alias="phone")
-    faxes: List[str] = Field([], alias="fax")
-    voice_mails: List[str] = Field([], alias="voicemail")
-    touch_dials: List[str] = Field([], alias="tdd")
-    mobiles: List[str] = Field([], alias="mobile")
-    pagers: List[str] = Field([], alias="pager")
+    phones: List[str] = []
+    faxes: List[str] = []
+    voice_mails: List[str] = []
+    touch_dials: List[str] = []
+    mobiles: List[str] = []
+    pagers: List[str] = []
 
 
 class Person(DirectoryBaseModel):
@@ -81,6 +81,5 @@ class DirectoryQueryScenarioOutput(DirectoryBaseModel):
 
 
 class SearchDirectoryOutput(DirectoryBaseModel):
-    request: SearchDirectoryInput
-    num_results: int
-    scenarios: List[DirectoryQueryScenarioOutput]
+    num_results: int = 0
+    scenarios: List[DirectoryQueryScenarioOutput] = []

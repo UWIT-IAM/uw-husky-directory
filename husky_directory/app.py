@@ -4,8 +4,9 @@ from typing import List, NoReturn, Optional, Type
 
 from flask import Flask, session
 from flask_injector import FlaskInjector, request
+import inflection
 from injector import Injector, Module, provider, singleton
-from inflection import titleize as titleize_
+from jinja2.tests import test_undefined
 from pydantic import ValidationError
 from uw_saml2 import mock, python3_saml
 from werkzeug.exceptions import BadRequest, HTTPException, InternalServerError
@@ -14,6 +15,7 @@ from werkzeug.local import LocalProxy
 from husky_directory.blueprints.app import AppBlueprint
 from husky_directory.blueprints.saml import IdentityProviderModule, SAMLBlueprint
 from husky_directory.blueprints.search import SearchBlueprint
+from husky_directory.models.search import SearchDirectoryInput
 from husky_directory.util import UtilityInjectorModule
 from .app_config import (
     ApplicationConfig,
@@ -49,6 +51,8 @@ def create_app_injector() -> Injector:
 
 
 class AppInjectorModule(Module):
+    search_attributes = list(SearchDirectoryInput.__fields__.keys())
+
     @provider
     @request
     def provide_request_session(self) -> LocalProxy:
@@ -62,8 +66,7 @@ class AppInjectorModule(Module):
         gunicorn_error_logger = logging.getLogger("gunicorn.error")
         return gunicorn_error_logger
 
-    @staticmethod
-    def register_jinja_filters(app: Flask):
+    def register_jinja_extensions(self, app: Flask):
         """You can define jinja filters here in order to make them available in our jinja templates."""
 
         @app.template_filter()
@@ -72,7 +75,24 @@ class AppInjectorModule(Module):
             Turns snake_case and camelCase into "Snake Case" and "Camel Case," respectively.
             Use: {{ some_string|titleize }}
             """
-            return titleize_(text)
+            return inflection.titleize(text)
+
+        @app.template_filter()
+        def singularize(text):
+            return inflection.singularize(text)
+
+        @app.template_test()
+        def blank(val):
+            """
+            A quick way to test whether a value is undefined OR none.
+            This is an alternative to writing '{% if val is defined and val is not sameas None %}'
+            """
+            return test_undefined(val) or val is None
+
+        @app.context_processor
+        def provide_search_attributes():
+            """Makes the list of search attributes available to the parser without having to hard-code them."""
+            return {"search_attributes": self.search_attributes}
 
     @provider
     @singleton
@@ -97,19 +117,23 @@ class AppInjectorModule(Module):
         # We've done our pre-work; now we can create the instance itself.
         app = Flask("husky_directory")
         app.secret_key = app_settings.cookie_secret_key
+        app.url_map.strict_slashes = (
+            False  # Allows both '/search' and '/search/' to work
+        )
 
         # App blueprints get registered here.
         app.register_blueprint(app_blueprint)
         app.register_blueprint(search_blueprint)
         app.register_blueprint(saml_blueprint)
-        logger.debug(f"Adding gunicorn log handlers to {app}")
+
+        # Ensure the application is using the same logger as everything else.
         app.logger.handlers = logger.handlers
 
-        # Lastly, we'll bind an injector to the app itself to manage the scopes of
+        # Bind an injector to the app itself to manage the scopes of
         # our dependencies appropriate for each request.
         FlaskInjector(app=app, injector=injector)
         attach_app_error_handlers(app)
-        self.register_jinja_filters(app)
+        self.register_jinja_extensions(app)
         return app
 
 

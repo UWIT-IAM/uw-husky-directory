@@ -4,75 +4,103 @@ from unittest import mock
 import pytest
 from bs4 import BeautifulSoup
 
-from husky_directory.models.pws import ListPersonsInput, ListPersonsOutput
 from husky_directory.services.pws import PersonWebServiceClient
 
 
 class TestSearchBlueprint:
     @pytest.fixture(autouse=True)
-    def initialize(self, client, mock_person_data, injector):
+    def initialize(self, client, mock_people, injector):
         self.pws_client = injector.get(PersonWebServiceClient)
         self.flask_client = client
+        self.mock_people = mock_people
         self.mock_list_persons = mock.patch.object(
             self.pws_client, "list_persons"
         ).start()
         self.mock_get_next = mock.patch.object(self.pws_client, "get_next").start()
-        self.mock_list_persons.return_value = ListPersonsOutput.parse_obj(
-            mock_person_data
+        self.mock_list_persons.return_value = mock_people.as_search_output(
+            self.mock_people.contactable_person
         )
-        del mock_person_data["Next"]
-        self.mock_get_next.return_value = ListPersonsOutput.parse_obj(mock_person_data)
+        self.mock_get_next.return_value = mock_people.as_search_output()
 
-    def test_search_success(self):
-        response = self.flask_client.get("/search/?name=foo")
+    def assert_tag_with_text(self, html: BeautifulSoup, tag_name: str, text: str):
+        for element in html.find_all(tag_name):
+            for word in text.split():
+                if word not in element.text:
+                    continue
+            return
+        raise AssertionError(
+            f"Could not find any <{tag_name}> tags with text matching {text}"
+        )
+
+    def test_json_success(self):
+        response = self.flask_client.get("/search?name=foo")
         assert response.status_code == 200
-        assert response.json["request"] == {"name": "foo"}
-        assert response.json["numResults"] > 0
+        assert response.json["numResults"] == 1
+        for scenario in response.json["scenarios"]:
+            if scenario["people"]:
+                assert (
+                    scenario["people"][0]["name"]
+                    == self.mock_people.contactable_person.display_name
+                )
+                assert (
+                    scenario["people"][0]["phoneContacts"]["phones"][0]
+                    == self.mock_people.contactable_person.affiliations.employee.directory_listing.phones[
+                        0
+                    ]
+                )
 
-    def test_render_success(self):
-        response = self.flask_client.get("/search/render?name=foo")
+    def test_render_summary_success(self):
+        response = self.flask_client.post("/search", data={"name": "foo"})
         assert response.status_code == 200
         html = BeautifulSoup(response.data, "html.parser")
-        assert html.find("table", summary="results")
+        results_table = html.find("table", summary="results")
+        profile = self.mock_people.contactable_person
+        self.assert_tag_with_text(results_table, "td", profile.display_name)
+        self.assert_tag_with_text(
+            results_table,
+            "td",
+            profile.affiliations.employee.directory_listing.phones[0],
+        )
+        self.assert_tag_with_text(
+            results_table,
+            "td",
+            profile.affiliations.employee.directory_listing.emails[0],
+        )
+
+    def test_render_full_success(self):
+        response = self.flask_client.post(
+            "/search", data={"name": "foo", "length": "full"}
+        )
+        html = BeautifulSoup(response.data, "html.parser")
+        listing = html.find("ul", class_="dir-listing")
+        profile = self.mock_people.contactable_person
+        self.assert_tag_with_text(
+            listing, "li", profile.affiliations.employee.directory_listing.emails[0]
+        )
+        self.assert_tag_with_text(
+            listing, "li", profile.affiliations.employee.directory_listing.phones[0]
+        )
+        self.assert_tag_with_text(html, "h3", profile.display_name)
 
     def test_render_no_results(self):
-        self.mock_list_persons.return_value = ListPersonsOutput(
-            persons=[],
-            page_start=0,
-            total_count=0,
-            page_size=0,
-            current=ListPersonsInput(),
-        )
-        response = self.flask_client.get("/search/render?name=foo")
+        self.mock_list_persons.return_value = self.mock_people.as_search_output()
+        response = self.flask_client.post("/search", data={"name": "foo"})
         html = BeautifulSoup(response.data, "html.parser")
         assert not html.find("table", summary="results")
         assert html.find(string=re.compile("No matches for"))
-        for e in html.find_all("b"):
-            # Newlines in the rendered output make it impossible for BeautifulSoup to find
-            # the text exactly, which is annoying, so we can just verify that all the pieces are
-            # together in the same <b> tag.
-            text = e.string.strip()
-            if "Name" in text and 'is "foo"' in text:
-                return
-        raise AssertionError("Not able to find correct results message in output")
+        self.assert_tag_with_text(html, "b", 'Name is "foo"')
 
     def test_render_invalid_box_number(self):
-        response = self.flask_client.get("/search/render?boxNumber=abcdef")
+        response = self.flask_client.post("/search", data={"box_number": "abcdef"})
         html = BeautifulSoup(response.data, "html.parser")
         assert not html.find("table", summary="results")
         assert html.find(string=re.compile("Encountered error"))
-        assert response.status_code == 401
-        for e in html.find_all("b"):
-            if "invalid mailbox number" in e.text.strip():
-                return
-        raise AssertionError("Not able to find correct error message in output")
+        assert response.status_code == 400
+        self.assert_tag_with_text(html, "b", "invalid mailbox number")
 
     def test_render_unexpected_error(self):
         self.mock_list_persons.side_effect = RuntimeError
-        response = self.flask_client.get("/search/render?boxNumber=123456")
+        response = self.flask_client.post("/search", data={"box_number": "123456"})
         html = BeautifulSoup(response.data, "html.parser")
         assert response.status_code == 500
-        for e in html.find_all("b"):
-            if "Something unexpected happened" in e.text.strip():
-                return
-        raise AssertionError("Not able to find correct error message in output")
+        self.assert_tag_with_text(html, "b", "Something unexpected happened")

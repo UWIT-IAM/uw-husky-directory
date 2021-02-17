@@ -9,10 +9,10 @@ from husky_directory.services.pws import PersonWebServiceClient
 
 class TestPersonWebServiceClient:
     @pytest.fixture(autouse=True)
-    def configure_base(self, injector, mock_person_data):
+    def configure_base(self, injector, mock_people):
         self.injector = injector
         self.client: PersonWebServiceClient = injector.get(PersonWebServiceClient)
-        self.mock_person_data = mock_person_data
+        self.mock_people = mock_people
         self.get_search_request_output_patcher = mock.patch.object(
             self.client, "_get_search_request_output"
         )
@@ -42,7 +42,13 @@ class TestPersonWebServiceClient:
             mock_response = mock.MagicMock(requests.Response)
             mock_response.status_code = 200
             mock_response.url = "https://foo.com"
-            mock_response.json.return_value = self.mock_person_data
+            mock_response.json.return_value = {
+                "TotalCount": 0,
+                "PageSize": 0,
+                "PageStart": 0,
+                "Persons": [],
+                "Current": {},
+            }
             mock_get_url.return_value = mock_response
             self.client._get_search_request_output("https://foo.com", mock_params)
 
