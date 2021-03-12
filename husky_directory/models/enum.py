@@ -13,3 +13,9 @@ class AffiliationState(Enum):
     current = "current"
     prior = "prior"
     exists = "current,prior"
+
+
+class PopulationType(Enum):
+    students = "students"
+    employees = "employees"
+    all = "all"

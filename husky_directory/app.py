@@ -13,7 +13,11 @@ from werkzeug.exceptions import BadRequest, HTTPException, InternalServerError
 from werkzeug.local import LocalProxy
 
 from husky_directory.blueprints.app import AppBlueprint
-from husky_directory.blueprints.saml import IdentityProviderModule, SAMLBlueprint
+from husky_directory.blueprints.saml import (
+    IdentityProviderModule,
+    MockSAMLBlueprint,
+    SAMLBlueprint,
+)
 from husky_directory.blueprints.search import SearchBlueprint
 from husky_directory.models.search import SearchDirectoryInput
 from husky_directory.util import UtilityInjectorModule
@@ -106,13 +110,10 @@ class AppInjectorModule(Module):
         search_blueprint: SearchBlueprint,
         app_blueprint: AppBlueprint,
         saml_blueprint: SAMLBlueprint,
+        mock_saml_blueprint: MockSAMLBlueprint,
     ) -> Flask:
         # First we have to do some logging configuration, before the
         # app instance is created.
-
-        if app_settings.use_test_idp:
-            python3_saml.MOCK = True
-            mock.MOCK_LOGIN_URL = "/"
 
         # We've done our pre-work; now we can create the instance itself.
         app = Flask("husky_directory")
@@ -120,6 +121,11 @@ class AppInjectorModule(Module):
         app.url_map.strict_slashes = (
             False  # Allows both '/search' and '/search/' to work
         )
+
+        if app_settings.use_test_idp:
+            python3_saml.MOCK = True
+            mock.MOCK_LOGIN_URL = "/mock-saml/login"
+            app.register_blueprint(mock_saml_blueprint)
 
         # App blueprints get registered here.
         app.register_blueprint(app_blueprint)

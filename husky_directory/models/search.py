@@ -6,6 +6,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Extra, Field, PydanticValueError, validator
 
+from husky_directory.models.enum import PopulationType
 from husky_directory.util import camelize
 
 
@@ -37,6 +38,7 @@ class SearchDirectoryInput(DirectoryBaseModel):
     )  # https://tools.ietf.org/html/rfc5321#section-4.5.3
     box_number: Optional[str]
     phone: Optional[str]
+    population: PopulationType = PopulationType.employees
 
     @property
     def sanitized_phone(self) -> Optional[str]:

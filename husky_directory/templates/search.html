@@ -22,12 +22,38 @@
                                {% include "search_options.html" %}
                             </select>
                         </div>
-<!--                        <div class="col-md-3">-->
-<!--                            <h3>Search options</h3>-->
-<!--                            <label for="whichstaff"><input type="radio" name="whichdir" value="staff"
-                                checked="checked" id="whichstaff" />Faculty/Staff Only</label>-->
-<!--                            <a href='secure'>Search students</a>-->
-<!--                        </div>-->
+                        <div id="search-population" class="col-md-3">
+                            <h3>Search options</h3>
+                            <label for="employee-population-option">
+                                <input type="radio"
+                                       id="employee-population-option"
+                                       name="population"
+                                       value="employees"
+                                       checked>
+                                Faculty/Staff Only
+                            </label>
+                            {% if uwnetid is not blank %}
+                                <label for="student-population-option">
+                                    <input type="radio"
+                                           id="student-population-option"
+                                           name="population"
+                                           value="students">
+                                    Students Only
+                                </label>
+                                <label for="all-populations-option">
+                                    <input type="radio"
+                                           id="all-populations-option"
+                                           name="population"
+                                           value="all">
+                                    Faculty/Staff and Students
+                                </label>
+                            {% else %}
+                                <a id="sign-in"
+                                   href="/saml/login">
+                                    Sign in for student search
+                                </a>
+                            {%  endif %}
+                        </div>
                         <div class="col-md-2">
                              <h3>Kind of listing</h3>
                              <label for="lengthfull"><input type="radio"  name="length" value="full"
