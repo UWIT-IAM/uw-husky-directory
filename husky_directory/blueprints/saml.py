@@ -19,10 +19,7 @@ class SAMLBlueprint(Blueprint):
     ):
         super().__init__("saml", __name__, url_prefix="/saml")
         self.idp_config = idp_config
-        self.add_url_rule("/login", view_func=self.login, methods=["GET"])
-        self.add_url_rule(
-            "/login", view_func=self.process_saml_request, methods=["POST"]
-        )
+        self.add_url_rule("/login", view_func=self.login, methods=["GET", "POST"])
         self.add_url_rule("/logout", view_func=self.logout)
         self.app_settings = settings
         self.logger = logger
@@ -34,10 +31,12 @@ class SAMLBlueprint(Blueprint):
         self.logger.info(f"Signed in user {session['uwnetid']}")
         relay_state = request.form.get("RelayState")
 
-        if relay_state and relay_state.startswith("/"):
-            return redirect(urljoin(request.url_root, relay_state))
-
-        return redirect("/")
+        if relay_state:
+            if not relay_state.startswith("http"):
+                if not relay_state.startswith("/"):
+                    relay_state = f"/{relay_state}"
+                relay_state = urljoin(request.url_root, relay_state)
+        return redirect(relay_state or "/")
 
     def login(self, request: Request, session: LocalProxy):
         session.clear()
@@ -49,8 +48,8 @@ class SAMLBlueprint(Blueprint):
         if request.method == "GET":
             self.logger.info(f"Redirecting {request.remote_addr} to SAML sign in.")
             return redirect(uw_saml2.login_redirect(**args))
-        else:
-            self.process_saml_request(request, session, **args)
+
+        return self.process_saml_request(request, session, **args)
 
     def logout(self, request: Request, session: LocalProxy):
         session.clear()
