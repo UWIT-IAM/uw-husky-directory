@@ -55,7 +55,7 @@ def create_app_injector() -> Injector:
 
 
 class AppInjectorModule(Module):
-    search_attributes = list(SearchDirectoryInput.__fields__.keys())
+    search_attributes = SearchDirectoryInput.search_methods()
 
     @provider
     @request
