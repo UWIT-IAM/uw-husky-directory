@@ -6,6 +6,7 @@ from flask import Flask
 from injector import Injector
 
 from husky_directory.app import create_app, create_app_injector
+from husky_directory.app_config import ApplicationConfig
 from husky_directory.models.pws import (
     EmployeeDirectoryListing,
     EmployeePersonAffiliation,
@@ -33,8 +34,18 @@ def injector() -> Injector:
     return create_app_injector()
 
 
+@pytest.fixture
+def app_config(injector) -> ApplicationConfig:
+    config = injector.get(ApplicationConfig)
+    config.use_test_idp = True
+    return config
+
+
 @pytest.fixture(autouse=True)
-def app(injector) -> Flask:
+def app(
+    injector,
+    app_config,  # ensures app_config fixture loads before the Flask app.
+) -> Flask:
     return create_app(injector)
 
 

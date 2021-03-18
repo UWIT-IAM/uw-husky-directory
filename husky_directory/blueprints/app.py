@@ -1,9 +1,9 @@
-import logging
 from typing import Optional
 
 from flask import Blueprint, Request, jsonify, render_template
 from injector import inject
 from pydantic import BaseModel, Extra
+from werkzeug.local import LocalProxy
 
 from husky_directory.app_config import ApplicationConfig
 from husky_directory.util import camelize
@@ -30,11 +30,11 @@ class AppBlueprint(Blueprint):
         self.add_url_rule("/health", view_func=self.health)
         self.build_id = app_config.build_id
         self.start_time = app_config.start_time
+        self._app_config = app_config
 
     @staticmethod
-    def index(request: Request, logger: logging.Logger):
-        logger.info(f"Someone is here: {request}")
-        return render_template("index.html")
+    def index(request: Request, session: LocalProxy):
+        return render_template("index.html", uwnetid=session.get("uwnetid"))
 
     def health(self, request: Request):
         report = HealthReport(
