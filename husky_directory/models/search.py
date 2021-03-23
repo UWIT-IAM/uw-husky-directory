@@ -35,6 +35,7 @@ class SearchDirectoryInput(DirectoryBaseModel):
     This is the input model for the /search API endpoint.
     Fields with `search_method=True` will be included in the drop down menu as search methods.
     """
+
     name: Optional[str] = Field(None, max_length=128, search_method=True)
     department: Optional[str] = Field(None, max_length=128, search_method=True)
     email: Optional[str] = Field(
@@ -48,7 +49,9 @@ class SearchDirectoryInput(DirectoryBaseModel):
     def search_methods(cls) -> List[str]:
         fields: Dict[str, Field] = cls.__fields__
         return [
-            f_name for f_name, f in fields.items() if f.field_info.extra.get('search_method')
+            f_name
+            for f_name, f in fields.items()
+            if f.field_info.extra.get("search_method")
         ]
 
     @property

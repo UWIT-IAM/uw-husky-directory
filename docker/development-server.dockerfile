@@ -1,5 +1,6 @@
 ARG BASE_VERSION=latest
 FROM gcr.io/uwit-mci-iam/husky-directory-base:${BASE_VERSION} as poetry-base
+ARG ENV_FILE=husky_directory/settings/base.dotenv
 WORKDIR /scripts
 # TODO: Move test stuff into its own layer
 COPY scripts/validate-development-image.sh ./
@@ -17,7 +18,8 @@ ENV FLASK_PORT=8000 \
     PYTHONPATH=/app:$PYTHONPATH \
     GUNICORN_LOG_LEVEL=DEBUG \
     BUILD_ID=${BUILD_ID} \
-    PATH="$POETRY_HOME/bin:$PATH"
+    PATH="$POETRY_HOME/bin:$PATH" \
+    DOTENV_FILE="$ENV_FILE"
 
 # 0.0.0.0 binding is necessary for the EXPOSE above to have any effect.
 CMD poetry run gunicorn -b 0.0.0.0:${FLASK_PORT} \

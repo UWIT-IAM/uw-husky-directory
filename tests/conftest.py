@@ -37,7 +37,7 @@ def injector() -> Injector:
 @pytest.fixture
 def app_config(injector) -> ApplicationConfig:
     config = injector.get(ApplicationConfig)
-    config.use_test_idp = True
+    config.auth_settings.use_test_idp = True
     return config
 
 

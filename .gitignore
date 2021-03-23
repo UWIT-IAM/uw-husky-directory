@@ -5,6 +5,8 @@ node_modules
 __pycache__/
 *.py[cod]
 *$py.class
+nocommit.*  # Store arbitrary files in your local repo without committing them
+flask_session/  # Filesystem cache auto-created when running via pycharm
 
 # C extensions
 *.so

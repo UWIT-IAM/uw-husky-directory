@@ -41,7 +41,8 @@
 #
 # There are some options available for running this script; you will see them documented below.
 
-DOCKER_ORG=uwitiam
+REPO_HOST=gcr.io
+REPO_PROJECT=uwit-mci-iam
 APP_NAME=husky-directory
 SRC_DIR=husky_directory
 TST_DIR=tests
@@ -105,7 +106,7 @@ COMMIT_SHA=$(git log | head -n 1 | cut -f2 -d\ | cut -c 1-10)
 COMMIT_TAG="commit-${COMMIT_SHA}"
 conditional_echo "ℹ️ Commit tag is: ${COMMIT_TAG}"
 
-IMAGE_NAME="$DOCKER_ORG/$APP_NAME:$COMMIT_TAG"
+IMAGE_NAME="$REPO_HOST/$REPO_PROJECT/$APP_NAME:$COMMIT_TAG"
 PERSONAL_IMAGE="$DOCKER_ORG/$APP_NAME:personal-$PERSONAL_IMAGE_SUFFIX"
 
 if ! black --check $SRC_DIR $TST_DIR > /dev/null
