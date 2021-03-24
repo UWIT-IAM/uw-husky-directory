@@ -2,7 +2,7 @@
 Models for the DirectorySearchService.
 """
 import re
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Extra, Field, PydanticValueError, validator
 
@@ -31,14 +31,28 @@ class BoxNumberValueError(PydanticValueError):
 
 
 class SearchDirectoryInput(DirectoryBaseModel):
-    name: Optional[str] = Field(None, max_length=128)
-    department: Optional[str] = Field(None, max_length=128)
+    """
+    This is the input model for the /search API endpoint.
+    Fields with `search_method=True` will be included in the drop down menu as search methods.
+    """
+
+    name: Optional[str] = Field(None, max_length=128, search_method=True)
+    department: Optional[str] = Field(None, max_length=128, search_method=True)
     email: Optional[str] = Field(
-        None, max_length=256
+        None, max_length=256, search_method=True
     )  # https://tools.ietf.org/html/rfc5321#section-4.5.3
-    box_number: Optional[str]
-    phone: Optional[str]
+    box_number: Optional[str] = Field(None, search_method=True)
+    phone: Optional[str] = Field(None, search_method=True)
     population: PopulationType = PopulationType.employees
+
+    @classmethod
+    def search_methods(cls) -> List[str]:
+        fields: Dict[str, Field] = cls.__fields__
+        return [
+            f_name
+            for f_name, f in fields.items()
+            if f.field_info.extra.get("search_method")
+        ]
 
     @property
     def sanitized_phone(self) -> Optional[str]:

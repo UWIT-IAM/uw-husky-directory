@@ -22,14 +22,14 @@ class PersonWebServiceClient:
         logger: Logger,
         formatter: PrettyFormat,
     ):
-        uwca_cert_path = application_config.uwca_cert_path
-        uwca_cert_name = application_config.uwca_cert_name
+        uwca_cert_path = application_config.auth_settings.uwca_cert_path
+        uwca_cert_name = application_config.auth_settings.uwca_cert_name
         self.cert = RequestsCertificate(
             os.path.join(uwca_cert_path, f"{uwca_cert_name}.crt"),
             os.path.join(uwca_cert_path, f"{uwca_cert_name}.key"),
         )
-        self.host = application_config.pws_host
-        self.default_path = application_config.pws_default_path
+        self.host = application_config.pws_settings.pws_host
+        self.default_path = application_config.pws_settings.pws_default_path
         self.logger = logger
         self.formatter = formatter
 

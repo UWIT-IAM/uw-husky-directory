@@ -1,10 +1,11 @@
 import logging
 from logging.config import dictConfig
-from typing import List, NoReturn, Optional, Type
+from typing import List, NoReturn, Optional, Type, cast
 
-from flask import Flask, session
+from flask import Flask, session as flask_session
 from flask_injector import FlaskInjector, request
 import inflection
+from flask_session import Session
 from injector import Injector, Module, provider, singleton
 from jinja2.tests import test_undefined
 from pydantic import ValidationError
@@ -55,12 +56,14 @@ def create_app_injector() -> Injector:
 
 
 class AppInjectorModule(Module):
-    search_attributes = list(SearchDirectoryInput.__fields__.keys())
+    search_attributes = SearchDirectoryInput.search_methods()
 
     @provider
     @request
     def provide_request_session(self) -> LocalProxy:
-        return session  # Ignore IDE errors here. I hunted this down and determined the IDE is just confused.
+        return cast(
+            LocalProxy, flask_session
+        )  # Cast this so that IDEs knows what's up; does not affect runtime
 
     @provider
     @singleton
@@ -117,12 +120,12 @@ class AppInjectorModule(Module):
 
         # We've done our pre-work; now we can create the instance itself.
         app = Flask("husky_directory")
-        app.secret_key = app_settings.cookie_secret_key
+        app.config.update(app_settings.app_configuration)
         app.url_map.strict_slashes = (
             False  # Allows both '/search' and '/search/' to work
         )
 
-        if app_settings.use_test_idp:
+        if app_settings.auth_settings.use_test_idp:
             python3_saml.MOCK = True
             mock.MOCK_LOGIN_URL = "/mock-saml/login"
             app.register_blueprint(mock_saml_blueprint)
@@ -138,6 +141,7 @@ class AppInjectorModule(Module):
         # Bind an injector to the app itself to manage the scopes of
         # our dependencies appropriate for each request.
         FlaskInjector(app=app, injector=injector)
+        Session(app)
         attach_app_error_handlers(app)
         self.register_jinja_extensions(app)
         return app

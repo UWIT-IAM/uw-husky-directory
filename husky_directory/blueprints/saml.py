@@ -21,7 +21,7 @@ class SAMLBlueprint(Blueprint):
         self.idp_config = idp_config
         self.add_url_rule("/login", view_func=self.login, methods=["GET", "POST"])
         self.add_url_rule("/logout", view_func=self.logout)
-        self.app_settings = settings
+        self.auth_settings = settings.auth_settings
         self.logger = logger
 
     def process_saml_request(self, request: Request, session: LocalProxy, **kwargs):
@@ -41,8 +41,8 @@ class SAMLBlueprint(Blueprint):
     def login(self, request: Request, session: LocalProxy):
         session.clear()
         args = {
-            "entity_id": self.app_settings.saml_entity_id,
-            "acs_url": self.app_settings.saml_acs_url,
+            "entity_id": self.auth_settings.saml_entity_id,
+            "acs_url": self.auth_settings.saml_acs_url,
         }
 
         if request.method == "GET":

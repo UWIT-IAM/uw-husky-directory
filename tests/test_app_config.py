@@ -22,18 +22,14 @@ class TestApplicationConfig:
 
     def test_app_config_has_fields(self):
         expected_field_names = {
-            "uwca_cert_path",
-            "uwca_cert_name",
-            "pws_host",
-            "pws_default_path",
             "settings_dir",
             "stage",
-            "cookie_secret_key",
-            "saml_acs_url",
-            "use_test_idp",
-            "saml_entity_id",
             "build_id",
             "start_time",
+            "auth_settings",
+            "redis_settings",
+            "session_settings",
+            "pws_settings",
         }
         assert set(self.app_config.dict().keys()) == expected_field_names
 
