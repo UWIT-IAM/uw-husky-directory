@@ -33,7 +33,7 @@ jobs:
         name: Set up build variables
         id: set_vars
         env:
-          POETRY_LOCK_MD5: ${{ hashFiles('pyproject.toml') }}
+          POETRY_LOCK_MD5: ${{ hashFiles('pyproject.toml', 'docker/husky-directory-base.dockerfile') }}
         run: ./.github/scripts/set-workflow-vars.sh
     outputs:
       # These are all set by the set-workflow-vars.sh script.
