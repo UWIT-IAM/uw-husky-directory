@@ -1,42 +1,51 @@
 # This workflow is responsible for:
 # - Creating a docker image from this commit
-# - Pushing the docker image to a public repository
+# - Pushing the docker images to our repository.
 # - Running any validation tests within the built image so we can validate it exactly as it will run when deployed
 #
 name: Commit Image Workflow
 # This runs on every push, so that every push gets its own image and validation tests. This also means
 # we can use any push as a rollback point for any live instance, if something goes wrong, and be able to find
 # the image is easily using the commit hash as a reference.
-on: push
+on:
+  # We run this workflow for all pull requests.
+  # For pushes, we only run if merging onto the main branch, or if
+  # the push is a tag (i.e., version release).
+  pull_request:
+  push:
+    tags:
+    branches:
+      - main
 # Sets up some aliases so we can keep these values DRY
 env:
   APP_NAME: husky-directory
-  DOCKERHUB_ORG: uwitiam
+  REPO_HOST: gcr.io
+  REPO_PROJECT: uwit-mci-iam
+  GCR_TOKEN: ${{ secrets.GCR_TOKEN }}
 jobs:
   # This job simply builds and outputs some variables used in other contexts
   configure-image:
     runs-on: ubuntu-latest
     steps:
-      - # Creates a tag like "commit-abcde12345" where abcde12345 is a substring of the first 10 commit SHA characters.
-        name: Create commit tag
-        id: commit_tag
-        run: echo ::set-output name=tag_name::commit-$(echo $GITHUB_SHA | cut -c 1-10)
+      - uses: actions/checkout@master
       - # Creates a full image name from the above tag and environment variables
         # It will be something like: uwitiam/husky-directory:commit-abcde12345
-        name: Create full image name
-        id: image_name
-        run: echo ::set-output name=image_name::$DOCKERHUB_ORG/$APP_NAME
-      -
-        name: Creates a fully qualified image name with the tag
-        id: image_with_tag
+        name: Set up build variables
+        id: set_vars
         env:
-          COMMIT_TAG_NAME: ${{ steps.commit_tag.outputs.tag_name }}
-          IMAGE_NAME: ${{ steps.image_name.outputs.image_name }}
-        run: echo ::set-output name=name_with_commit_tag::${IMAGE_NAME}:${COMMIT_TAG_NAME}
+          POETRY_LOCK_MD5: ${{ hashFiles('pyproject.toml', 'docker/husky-directory-base.dockerfile') }}
+        run: ./.github/scripts/set-workflow-vars.sh
     outputs:
-      full_image_name: ${{ steps.image_name.outputs.image_name }}
-      tag_name: ${{ steps.commit_tag.outputs.tag_name }}
-      image_name_with_commit_tag: ${{ steps.image_with_tag.outputs .name_with_commit_tag }}
+      # These are all set by the set-workflow-vars.sh script.
+      app_repo: ${{ steps.set_vars.outputs.app_repo }}
+      app_build_version: ${{ steps.set_vars.outputs.app_build_version }}
+      app_build_tag: ${{ steps.set_vars.outputs.app_build_tag }}
+      app_head_tag: ${{ steps.set_vars.outputs.app_head_tag }}
+      base_repo: ${{ steps.set_vars.outputs.base_repo }}
+      base_build_version: ${{ steps.set_vars.outputs.base_build_version }}
+      base_build_tag: ${{ steps.set_vars.outputs.base_build_tag }}
+      base_head_tag: ${{ steps.set_vars.outputs.base_head_tag }}
+
   # This job is responsible for building an image and uploading it to our repository. This image can later be
   # tested, deployed, and/or have other tags applied.
   build-and-push-image:
@@ -49,48 +58,103 @@ jobs:
       BUILD_ID: ${{ github.sha }}
     steps:
       - uses: actions/checkout@master
+      - run: ./.github/scripts/gcr-login.sh
+      - name: Download requirements base, or build if it doesn't exist
+        id: requirements_base
+        env:
+          BASE_TAG_NAME: ${{ needs.configure-image.outputs.base_build_tag }}
+        run: ./.github/scripts/pull-or-build-base.sh
       - # Pushes the public image based on the commit to dockerhub.
         # This could then be used in subsequent jobs to tag versions in deployment repositories.
-        id: container_push
-        name: Build and push docker container
-        uses: elgohr/Publish-Docker-Github-Action@master
-        with:
-          # See docs/docker.md#github-actions-access-to-dockerhub
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
-          name: ${{ needs.configure-image.outputs.full_image_name }}
-          tags: ${{ needs.configure-image.outputs.tag_name }}
-          dockerfile: docker/development-server.dockerfile
-          buildargs: BUILD_ID
-          cache: true
-
+        id: image_push
+        name: Build and push docker image
+        env:
+          BASE_VERSION: ${{ needs.configure-image.outputs.base_build_version }}
+          APP_TAG: ${{ needs.configure-image.outputs.app_build_tag }}
+          BASE_TAG: ${{ needs.configure-image.outputs.base_build_tag }}
+        run: ./.github/scripts/build-and-push.sh
   # This uses the image built above to run validations and tests from inside the image.
   validate-image-quality:
     needs: [configure-image, build-and-push-image]
     runs-on: ubuntu-latest
-    container:
-      image: ${{ needs.configure-image.outputs.image_name_with_commit_tag }}
+    env:
+      TARGET_IMAGE: ${{ needs.configure-image.outputs.app_build_tag }}
     steps:
       - uses: actions/checkout@master
-      -
-        name: Run validation checks and tests
-        run: /scripts/validate-development-image.sh
+      - run: ./.github/scripts/gcr-login.sh
+      - name: Run validation checks and tests
+        run: docker run ${TARGET_IMAGE} /scripts/validate-development-image.sh
 
-  # If the validation steps above succeed, these deployment workflows may run.
-  promote-deployment:
-    # - configure-image exports variables used here
-    # - validate-image-quality is required to succeed before any promotions are run
-    needs: [configure-image, validate-image-quality]
+  # For pull requests, create a PR tag for the build
+  update-pull-request:
+    if: github.event_name == 'pull_request'
+    needs: [configure-image, build-and-push-image]
     runs-on: ubuntu-latest
+    env:
+      APP_REPO: ${{ needs.configure-image.outputs.app_repo }}
+      BUILD_TAG: ${{ needs.configure-image.outputs.app_build_tag }}
+    steps:
+      - name: Create pull request tag name
+        id: create_pr_tag_name
+        run: |
+          PR_NUMBER=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
+          TAG_NAME=pull-request-${PR_NUMBER}
+          FULL_IMAGE_NAME=${APP_REPO}:${TAG_NAME}
+          echo ::set-output name=pr_image_name::$FULL_IMAGE_NAME
+      - uses: actions/checkout@master
+      - run: ./.github/scripts/gcr-login.sh
+      - name: pull build tag
+        env:
+          PR_TAG: ${{ steps.create_pr_tag_name.outputs.pr_image_name }}
+        run: |
+          echo "Tagging ${BUILD_TAG} as ${PR_TAG}"
+          docker pull ${BUILD_TAG}
+          docker tag ${BUILD_TAG} ${PR_TAG}
+          docker push ${PR_TAG}
+      - uses: mshick/add-pr-comment@v1
+        env:
+          PR_TAG: ${{ steps.create_pr_tag_name.outputs.pr_image_name }}
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          repo-token-user-login: 'github-actions[bot]' # The user.login for temporary GitHub tokens
+          message: |
+            Download and run this image with:
+
+            ```
+            ./scripts/run-development-server.sh -i ${{ env.PR_TAG }}
+            ```
+    outputs:
+      pr_tag_name: ${{ steps.create_pr_tag_name.outputs.image_name }}
+
+
+  # Only run this workflow when pushing to main, after all above checks have
+  # succeeded.
+  promote-deployment:
+    needs: [configure-image, validate-image-quality, build-and-push-image]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - uses: actions/checkout@master
-      - name: Deploy to uw-directory.iamdev.s.uw.edu from the 'main' branch
-        id: deploy_main_to_dev
+      - run: ./.github/scripts/gcr-login.sh
+      # TODO: These next steps could be broken out into a composite action to keep
+      # them DRY.
+      - name: Update base image to latest
+        # Once accepted into the main branch, the base image is tagged as
+        # `latest`; future builds will use `latest` requirements.
         env:
-          IMAGE_NAME: ${{ needs.configure-image.outputs.full_image_name }}
-          IMAGE_SOURCE: ${{ needs.configure-image.outputs.image_name_with_commit_tag }}
-          COMMIT_TAG: ${{ needs.configure-image.outputs.tag_name }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
-        if: github.ref == 'refs/heads/main'
-        run: ./.github/scripts/promote.sh -s "${IMAGE_SOURCE}" -d "${IMAGE_NAME}:deploy-dev.${COMMIT_TAG}"
+          BUILD_TAG: ${{ steps.configure-image.outputs.base_build_tag }}
+          HEAD_TAG: ${{ steps.configure-image.outputs.base_head_tag }}
+        run: |
+          docker pull ${BUILD_TAG}
+          docker tag ${BUILD_TAG} ${HEAD_TAG}
+          docker push ${HEAD_TAG}
+      - name: Update app deploy-dev image
+        # Once accepted into the main branch, the change is tagged for
+        # deployment as configured in our kubernetes configuration.
+        env:
+          BUILD_TAG: ${{ steps.configure-image.outputs.app_build_tag }}
+          HEAD_TAG: ${{ steps.configure-image.outputs.app_head_tag }}
+        run: |
+          docker pull ${BUILD_TAG}
+          docker tag ${BUILD_TAG} ${HEAD_TAG}
+          docker push ${HEAD_TAG}
