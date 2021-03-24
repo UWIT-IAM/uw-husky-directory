@@ -142,8 +142,8 @@ jobs:
         # Once accepted into the main branch, the base image is tagged as
         # `latest`; future builds will use `latest` requirements.
         env:
-          BUILD_TAG: ${{ steps.configure-image.outputs.base_build_tag }}
-          HEAD_TAG: ${{ steps.configure-image.outputs.base_head_tag }}
+          BUILD_TAG: ${{ needs.configure-image.outputs.base_build_tag }}
+          HEAD_TAG: ${{ needs.configure-image.outputs.base_head_tag }}
         run: |
           docker pull ${BUILD_TAG}
           docker tag ${BUILD_TAG} ${HEAD_TAG}
@@ -152,8 +152,8 @@ jobs:
         # Once accepted into the main branch, the change is tagged for
         # deployment as configured in our kubernetes configuration.
         env:
-          BUILD_TAG: ${{ steps.configure-image.outputs.app_build_tag }}
-          HEAD_TAG: ${{ steps.configure-image.outputs.app_head_tag }}
+          BUILD_TAG: ${{ needs.configure-image.outputs.app_build_tag }}
+          HEAD_TAG: ${{ needs.configure-image.outputs.app_head_tag }}
         run: |
           docker pull ${BUILD_TAG}
           docker tag ${BUILD_TAG} ${HEAD_TAG}
