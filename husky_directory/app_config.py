@@ -127,6 +127,12 @@ class SessionSettings(FlaskConfigurationSettings):
         env="FLASK_SESSION_TYPE",
         flask_config_key="SESSION_TYPE",
     )
+    filesystem_path: Optional[str] = Field(
+        # By default this uses the current working directory, which might be anywhere!
+        "/tmp/flask_session",
+        env="SESSION_FILE_DIR",
+        flask_config_key="_env",
+    )
 
     @validator("secret_key")
     def ensure_secret_key(cls, val: Optional[str]) -> str:

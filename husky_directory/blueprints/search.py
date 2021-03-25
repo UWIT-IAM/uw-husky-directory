@@ -5,6 +5,7 @@ from typing import Optional
 from flask import Blueprint, Request, jsonify, redirect, render_template
 from injector import inject, singleton
 from pydantic import validate_model
+from werkzeug.local import LocalProxy
 
 from husky_directory.models.search import (
     DirectoryBaseModel,
@@ -34,6 +35,7 @@ class RenderingContext(DirectoryBaseModel):
     error: Optional[ErrorModel]
     status_code: int = 200
     display: DisplayPreferences = DisplayPreferences()
+    uwnetid: Optional[str] = None
 
 
 @singleton
@@ -60,7 +62,12 @@ class SearchBlueprint(Blueprint):
         )
 
     @staticmethod
-    def render(request: Request, service: DirectorySearchService, logger: Logger):
+    def render(
+        request: Request,
+        service: DirectorySearchService,
+        logger: Logger,
+        session: LocalProxy,
+    ):
         # In order to make sure that even if the user input is wrong, we can still
         # re-populate the html form the way the user submitted, we bypass the
         # pydantic error-raising by using its `validate_model` function instead,
@@ -77,6 +84,7 @@ class SearchBlueprint(Blueprint):
             # We also populate any display preferences from the form data;
             # if those preferences aren't defined for some reason, the default values will be used.
             display=DisplayPreferences.parse_obj(request.form),
+            uwnetid=session.get("uwnetid"),
         )
         # Now we handle our validation errors (that pydantic would have thrown),
         # and set the error in the rendering context.
