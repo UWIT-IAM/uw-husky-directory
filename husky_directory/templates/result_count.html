@@ -10,13 +10,18 @@
                         {# when done this needs to look something lik <a href="#f1">1 Faculty/Staff</a> #}
                         {% set anchor_id = 'todo-coming-soon' %}
                         <a href="#{{ anchor_id}}">
+                            {% set population = population|externalize %}
+                            {% if result_count == 1 %}
+                                {% set population = population|singularize %}
+                            {% endif %}
                             {{ result_count }} {{ population|externalize }}
                         </a>
-                        <br>
+                        {{ ', ' if not loop.last else '' }}
                     {% endif %}
                 {% endfor %}
             {% endif %}
         {% endfor %}
+        <br>
     {% endif %}
 </div>
 <br>

@@ -1,7 +1,6 @@
 from unittest import mock
 
 import pytest
-from bs4 import BeautifulSoup
 from flask import Response
 from flask.testing import FlaskClient
 from uw_saml2.idp.uw import UwIdp
@@ -32,10 +31,11 @@ class TestSAMLBlueprint:
         """Logs in to the mock IdP just to validate the flow."""
         assert not self.mock_session
         response: Response = self.flask_client.get("/")
-        html = BeautifulSoup(response.data, "html.parser")
-        assert html.find("a", dict(id="sign-in"))
-        population_options = html.find_all("input", dict(name="population"))
-        assert len(population_options) == 1
+        with self.html_validator.validate_response(self.flask_client.get("/")) as html:
+            assert html.find("a", dict(id="sign-in"))
+            population_options = html.find_all("input", dict(name="population"))
+            assert len(population_options) == 1
+
         response: Response = self.flask_client.get("/saml/login", follow_redirects=True)
         assert response.status_code == 200
         assert "uwnetid" in self.mock_session
