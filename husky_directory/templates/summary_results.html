@@ -6,50 +6,7 @@
                 <tbody>
                     <tr>
                         <td>
-                            <table class="table table-bordered table-striped table-condensed"
-                                   summary="results" width="100%"
-                            >
-                                <tbody>
-                                    <tr>
-                                        <th>Name</th> <th>Phone</th> <th>Email</th> <th>*</th>
-                                    </tr>
-                                    {% for scenario in search_result['scenarios'] %}
-                                        {% if (scenario['people']|length) %}
-                                            <tr>
-                                                <td colspan="3"><div class="rcdescr">
-                                                    <h3><a id="f1" name="f1"></a>
-                                                    Hard Coded Faculty/Staff: {{ scenario['description'] }}</h3>
-                                                    </div>
-                                                </td>
-                                                <td>&nbsp;</td>
-                                            </tr>
-                                                {% for data in scenario['people'] %}
-                                                    <tr>
-                                                        <td valign="top">{{ data['name'] }}&nbsp;</td>
-                                                        <td valign="top" nowrap="nowrap">
-                                                            {{ data['phone_contacts']['phones']|first }}
-                                                        </td>
-                                                        <td valign="top">{{ data['email'] }}&nbsp;</td>
-                                                        <td>
-                                                            <form action="/search"
-                                                                  method="POST"
-                                                                  name="moreform">
-                                                                <input
-                                                                        type="hidden" name="name"
-                                                                        value="{{ data['name'] }}"
-                                                                >
-                                                                <input type="hidden" name="length" value="full">
-                                                                <input
-                                                                        class="btn btn-primary" type="submit"
-                                                                        name="expand0" value="More">
-                                                            </form>
-                                                        </td>
-                                                    </tr>
-                                                {% endfor %}
-                                        {% endif %}
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                            {% include "summary_results_table.html" %}
                         </td>
                     </tr>
                 </tbody>

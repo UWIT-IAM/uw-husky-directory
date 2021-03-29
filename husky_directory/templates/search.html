@@ -1,67 +1,28 @@
-               <div class="cblock row">
-                    <form action="/search" method="POST" name="dirform"
-                          enctype="multipart/form-data">
-                        <div class="col-md-6">
-                            <h3>Search by</h3>
-                            <div class="input-group">
-                                <input type="text" class="form-control"
-                                       {% if request_input is not blank %}
-                                           value="{{ request_input.values()|first }}"
-                                       {% else %}
-                                           value=""
-                                       {% endif %}
-                                       style="color:black; height:43px; z-index:0;" id="query" name="name">
-                                <input type="hidden" name="show_count" value="true">
-                                <span class="input-group-btn">
-                                    <button class="btn search" type="submit" id="search"
-                                            style="background-color:white; border: thin solid #ddd;">Search</button>
+{% set search_value = '' %}
+{% if request_input_summary is not blank %}
+    {% set search_value = request_input_summary['value'] %}
+{% endif %}
+<div class="cblock row">
+    <form action="/search" method="POST" name="dirform"
+          enctype="multipart/form-data">
+        <div class="col-md-6">
+            <h3>Search by</h3>
+            <div class="input-group">
+                <input type="text" class="form-control"
+                       value="{{ search_value }}"
+                       style="color:black; height:43px; z-index:0;" id="query"
+                       name="name">
+                <input type="hidden" name="show_count" value="true">
+                <span class="input-group-btn">
+                                    <button class="btn search"
+                                            type="submit"
+                                            id="search"
+                                            style="background-color:white; border: thin solid #ddd;"
+                                    >Search</button>
                                 </span>
-                            </div><!-- /input-group -->
-                            <select name="method"
-                                     id="method" style="width: 220px; border: 1px solid #bbb; margin: 10px 0;">
-                               {% include "search_options.html" %}
-                            </select>
-                        </div>
-                        <div id="search-population" class="col-md-3">
-                            <h3>Search options</h3>
-                            <label for="employee-population-option">
-                                <input type="radio"
-                                       id="employee-population-option"
-                                       name="population"
-                                       value="employees"
-                                       checked>
-                                Faculty/Staff Only
-                            </label>
-                            {% if uwnetid is not blank %}
-                                <label for="student-population-option">
-                                    <input type="radio"
-                                           id="student-population-option"
-                                           name="population"
-                                           value="students">
-                                    Students Only
-                                </label>
-                                <label for="all-populations-option">
-                                    <input type="radio"
-                                           id="all-populations-option"
-                                           name="population"
-                                           value="all">
-                                    Faculty/Staff and Students
-                                </label>
-                            {% else %}
-                                <a id="sign-in"
-                                   href="/saml/login">
-                                    Sign in for student search
-                                </a>
-                            {%  endif %}
-                        </div>
-                        <div class="col-md-2">
-                             <h3>Kind of listing</h3>
-                             <label for="lengthfull"><input type="radio"  name="length" value="full"
-                                  id="lengthfull" />Full</label>
-                             <label for="lengthsummary">
-                                 <input type="radio"  name="length" value="summary"
-                                        checked="checked"
-                                 id="lengthsummary" />Summary</label>
-                        </div>
-                    </form>
-               </div>
+            </div><!-- /input-group -->
+            {% include "search_attribute_selection.html" %}
+        </div>
+        {% include 'search_options.html' %}
+    </form>
+</div>

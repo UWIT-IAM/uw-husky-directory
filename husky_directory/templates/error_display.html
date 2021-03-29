@@ -2,12 +2,14 @@
     <div class="contentspacer"></div>
     <div class="contentcell">
         {% if search_result is not blank %}
+            {% if request_input_summary is not blank %}
             <p>No matches for
                 <b>
-                    {{ request_input.keys()|first|titleize }}
-                    is "{{ request_input.values()|first }}"
+                    {{ request_input_summary['field']|titleize }}
+                    is "{{ request_input_summary['value'] }}"
                 </b>.
             </p>
+            {% endif %}
         {% elif error is not blank %}
             <p>Encountered error: <b>"{{ error["msg"] }}"</b></p>
         {% endif %}

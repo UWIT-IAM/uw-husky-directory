@@ -88,6 +88,19 @@ class AppInjectorModule(Module):
         def singularize(text):
             return inflection.singularize(text)
 
+        @app.template_filter()
+        def externalize(text):
+            """
+            Some values are great for api models but not so great for humans. So, this allows for that extra layer
+            of translation where needed.
+
+            If this gets more complicated for any reason, this table of internal vs. external values should be
+            moved into its own service, or at least a dict.
+            """
+            if text == "employees":
+                return "faculty/staff"
+            return text
+
         @app.template_test()
         def blank(val):
             """

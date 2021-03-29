@@ -1,0 +1,50 @@
+<table class="table table-bordered table-striped table-condensed"
+       summary="results" width="100%">
+    <tbody>
+    <tr>
+        <th>Name</th>
+        <th>Phone</th>
+        <th>Email</th>
+        <th>*</th>
+    </tr>
+    {# scenario: models.search.DirectoryQueryScenarioOutput #}
+    {# search_result: models.search.SearchDirectoryOutput #}
+    {% for scenario in search_result['scenarios'] %}
+    {% if scenario['num_results'] > 0 %}
+    <tr>
+    {# population: models.search.DirectoryQueryPopulationOutput #}
+    {% for population_name, population in  scenario['populations'].items() %}
+    {% if population['num_results'] > 0 %}
+        <td colspan="3">
+            <div class="rcdescr">
+                {% set anchor_id = 'todo-coming-soon' %}
+                <h3><a id="{{ anchor_id }}" name="{{ anchor_id }}"></a>
+                    {{ population_name|externalize|titleize }}:
+                    {{ scenario['description'] }}
+                </h3>
+            </div>
+        </td>
+        </tr>
+        {# data: models.search.Person #}
+        {% for data in population['people'] %}
+            <tr>
+            <td valign="top">{{ data['name'] }}&nbsp;</td>
+            <td valign="top" nowrap="nowrap">
+                {{ data['phone_contacts']['phones']|first }}
+            </td>
+            <td valign="top">{{ data['email'] }}&nbsp;</td>
+            <td>
+                <form action="/search" method="POST" name="moreform">
+                    <input type="hidden" name="name" value="{{ data['name'] }}">
+                    <input type="hidden" name="length" value="full">
+                    <input class="btn btn-primary"
+                           type="submit"
+                           name="expand0" value="More">
+                </form>
+            </td>
+            </tr>
+        {% endfor %}
+    {% endif %}{% endfor %}
+    {% endif %}{% endfor %}
+    </tbody>
+</table>

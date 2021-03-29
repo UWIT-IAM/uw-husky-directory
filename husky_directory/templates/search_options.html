@@ -1,14 +1,65 @@
-{# For each of the search fields in the SearchDirectoryInput model, create
-    a dropdown option whose value matches the field name, and whose display name
-    is run through the titleize filter to make it presentable. Additionally, if the
-    request_input context is present and the attribute is defined there, we
-    automatically mark that attribute as selected.
-#}
-{% for attribute in search_attributes %}
-    <option value="{{ attribute }}"
-        {% if request_input is not blank and request_input[attribute] is not blank %}
-            selected="selected"
-        {% endif %}
-    >{{ attribute|titleize }}
-    </option>
-{% endfor %}
+{% set requested_population = None %}
+{% if request_input_summary is not blank %}
+    {% set requested_population = request_input_summary['population'] %}
+{% endif %}
+<div id="search-population" class="col-md-3">
+    <h3>Search options</h3>
+    <label for="employee-population-option">
+        <input type="radio"
+               id="employee-population-option"
+               name="population"
+               value="employees"
+               {% if requested_population is blank
+                  or requested_population == 'employees' %}
+                   checked
+               {% endif %}
+        >
+        Faculty/Staff Only
+    </label>
+    {% if uwnetid is not blank %}
+        <label for="student-population-option">
+            <input type="radio"
+                   id="student-population-option"
+                   name="population"
+                   value="students"
+                   {% if requested_population == 'students' %}
+                       checked
+                   {% endif %}
+            >
+            Students Only
+        </label>
+        <label for="all-populations-option">
+            <input type="radio"
+                   id="all-populations-option"
+                   name="population"
+                   value="all"
+                    {% if requested_population == 'all' %}
+                        checked
+                    {% endif %}
+            >
+            Faculty/Staff and Students
+        </label>
+    {% else %}
+        <a id="sign-in"
+           href="/saml/login">
+            Sign in for student search
+        </a>
+    {%  endif %}
+</div>
+
+<div class="col-md-2">
+    <h3>Kind of listing</h3>
+    <label for="lengthfull">
+        <input type="radio"
+               name="length"
+               value="full"
+               id="lengthfull"
+    />Full</label>
+    <label for="lengthsummary">
+    <input type="radio"
+           name="length"
+           value="summary"
+           checked="checked"
+           id="lengthsummary"
+    />Summary</label>
+</div>
