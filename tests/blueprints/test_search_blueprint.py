@@ -27,17 +27,18 @@ class TestSearchBlueprint:
         assert response.status_code == 200
         assert response.json["numResults"] == 1
         for scenario in response.json["scenarios"]:
-            if scenario["people"]:
-                assert (
-                    scenario["people"][0]["name"]
-                    == self.mock_people.contactable_person.display_name
-                )
-                assert (
-                    scenario["people"][0]["phoneContacts"]["phones"][0]
-                    == self.mock_people.contactable_person.affiliations.employee.directory_listing.phones[
-                        0
-                    ]
-                )
+            for population, results in scenario["populations"].items():
+                if results["people"]:
+                    assert (
+                        results["people"][0]["name"]
+                        == self.mock_people.contactable_person.display_name
+                    )
+                    assert (
+                        results["people"][0]["phoneContacts"]["phones"][0]
+                        == self.mock_people.contactable_person.affiliations.employee.directory_listing.phones[
+                            0
+                        ]
+                    )
 
     def test_render_summary_success(self):
         response = self.flask_client.post("/search", data={"name": "foo"})

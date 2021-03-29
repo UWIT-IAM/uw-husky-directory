@@ -4,20 +4,10 @@ Models for the DirectorySearchService.
 import re
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, Extra, Field, PydanticValueError, validator
+from pydantic import Field, PydanticValueError, validator
 
+from husky_directory.models.base import DirectoryBaseModel
 from husky_directory.models.enum import PopulationType
-from husky_directory.util import camelize
-
-
-class DirectoryBaseModel(BaseModel):
-    class Config:  # See https://pydantic-docs.helpmanual.io/usage/model_config/
-        extra = Extra.ignore
-        use_enum_values = True
-        allow_population_by_field_name = True
-        validate_assignment = True
-        alias_generator = camelize
-        anystr_strip_whitespace = True
 
 
 class BoxNumberValueError(PydanticValueError):
@@ -41,9 +31,12 @@ class SearchDirectoryInput(DirectoryBaseModel):
     email: Optional[str] = Field(
         None, max_length=256, search_method=True
     )  # https://tools.ietf.org/html/rfc5321#section-4.5.3
-    box_number: Optional[str] = Field(None, search_method=True)
+    box_number: Optional[str] = Field(
+        None, search_method=True, min_length=0, max_length=6, regex="^([0-9]+)?$"
+    )
     phone: Optional[str] = Field(None, search_method=True)
     population: PopulationType = PopulationType.employees
+    include_test_identities: bool = False
 
     @classmethod
     def search_methods(cls) -> List[str]:
@@ -60,17 +53,6 @@ class SearchDirectoryInput(DirectoryBaseModel):
             return re.sub("[^0-9]", "", self.phone)
         return self.phone
 
-    @validator("box_number")
-    def validate_box_number(cls, box_number: Optional[str]) -> Optional[str]:
-        if not box_number:
-            return box_number
-
-        # We don't do a lot of input validation in the legacy directory product, but
-        # this is one of them! This regex guarantees the result is a string of at most 6 digits.
-        if not re.match("^[0-9]{1,6}", box_number):
-            raise BoxNumberValueError()
-        return box_number
-
     @validator("email")
     def validate_email(cls, value: Optional[str]) -> Optional[str]:
         if value and value.startswith(
@@ -80,6 +62,12 @@ class SearchDirectoryInput(DirectoryBaseModel):
                 "Unable to search by domain only; please start with the username portion of the address."
             )
         return value
+
+    @property
+    def requested_populations(self) -> List[PopulationType]:
+        if self.population == PopulationType.all.value:
+            return [PopulationType.employees.value, PopulationType.students.value]
+        return [self.population]
 
 
 class PhoneContactMethods(DirectoryBaseModel):
@@ -101,11 +89,27 @@ class Person(DirectoryBaseModel):
     department: Optional[str]
 
 
+class DirectoryQueryPopulationOutput(DirectoryBaseModel):
+    population: PopulationType
+    people: List[Person] = []
+
+    @property
+    def num_results(self) -> int:
+        return len(self.people)
+
+
 class DirectoryQueryScenarioOutput(DirectoryBaseModel):
     description: str
-    people: List[Person] = []
+    populations: Dict[PopulationType, DirectoryQueryPopulationOutput]
+
+    @property
+    def num_results(self) -> int:
+        return sum(map(lambda p: p.num_results, self.populations.values()))
 
 
 class SearchDirectoryOutput(DirectoryBaseModel):
-    num_results: int = 0
     scenarios: List[DirectoryQueryScenarioOutput] = []
+
+    @property
+    def num_results(self) -> int:
+        return sum(map(lambda s: s.num_results, self.scenarios))

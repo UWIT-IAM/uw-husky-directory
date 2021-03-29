@@ -7,6 +7,7 @@ from injector import inject, singleton
 from pydantic import validate_model
 from werkzeug.local import LocalProxy
 
+from husky_directory.models.enum import PopulationType
 from husky_directory.models.search import (
     DirectoryBaseModel,
     SearchDirectoryInput,
@@ -29,8 +30,14 @@ class DisplayPreferences(DirectoryBaseModel):
     show_count: bool = False
 
 
+class SearchDirectoryInputSummary(DirectoryBaseModel):
+    value: str
+    field: str
+    population: PopulationType
+
+
 class RenderingContext(DirectoryBaseModel):
-    request_input: Optional[SearchDirectoryInput]
+    request_input_summary: Optional[SearchDirectoryInputSummary]
     search_result: Optional[SearchDirectoryOutput]
     error: Optional[ErrorModel]
     status_code: int = 200
@@ -57,9 +64,7 @@ class SearchBlueprint(Blueprint):
         request_input = SearchDirectoryInput.parse_obj(request.args)
         self.logger.info(f"searching for {request_input}")
         request_output = search_service.search_directory(request_input)
-        return jsonify(
-            request_output.dict(by_alias=True, exclude_none=True, exclude_unset=True)
-        )
+        return jsonify(request_output.dict(by_alias=True, exclude_none=True))
 
     @staticmethod
     def render(
@@ -78,9 +83,21 @@ class SearchBlueprint(Blueprint):
         # preserving the user input, even if it was wrong, without sacrificing
         # the actual validation we want to perform.
         request_input = SearchDirectoryInput.construct(**request.form)
+        search_term = ""
+        search_field = ""
+        for field_name in SearchDirectoryInput.search_methods():
+            value = getattr(request_input, field_name)
+            if value:
+                search_term = value
+                search_field = search_field
+            break
+
         context = RenderingContext(
-            # No matter what, we pass back the original request input.
-            request_input=request_input,
+            request_input_summary=SearchDirectoryInputSummary(
+                value=search_term,
+                field=search_field,
+                population=request_input.population,
+            ),
             # We also populate any display preferences from the form data;
             # if those preferences aren't defined for some reason, the default values will be used.
             display=DisplayPreferences.parse_obj(request.form),
