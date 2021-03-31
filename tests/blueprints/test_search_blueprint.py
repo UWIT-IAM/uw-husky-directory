@@ -99,7 +99,7 @@ class TestSearchBlueprint:
                 "b", "Something unexpected happened"
             )
 
-    def test_user_stays_logged_in(self):
+    def test_user_login_flow(self):
         with self.html_validator.validate_response(self.flask_client.get("/")):
             self.html_validator.assert_not_has_student_search_options()
             self.html_validator.assert_has_sign_in_link()
@@ -110,6 +110,22 @@ class TestSearchBlueprint:
             self.html_validator.assert_has_student_search_options()
             self.html_validator.assert_not_has_sign_in_link()
 
+    def test_user_stays_logged_in_after_search(self):
+        self.test_user_login_flow()
+        with self.html_validator.validate_response(
+            self.flask_client.post(
+                "/search",
+                data={
+                    "query": "foo",
+                    "method": "name",
+                },
+            )
+        ):
+            self.html_validator.assert_has_student_search_options()
+            self.html_validator.assert_not_has_sign_in_link()
+
+    def test_user_stays_logged_in_revisit(self):
+        self.test_user_login_flow()
         with self.html_validator.validate_response(self.flask_client.get("/")):
             self.html_validator.assert_has_student_search_options()
             self.html_validator.assert_not_has_sign_in_link()

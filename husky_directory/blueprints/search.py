@@ -60,6 +60,7 @@ class SearchBlueprint(Blueprint):
         context = RenderingContext.construct()
         try:
             simple_query = SearchDirectorySimpleInput.parse_obj(request.form)
+            context.uwnetid = session.get("uwnetid")
             context.request_input = simple_query
             request_input = SearchDirectoryInput.from_simple_input(simple_query)
             context.search_result = service.search_directory(request_input)
