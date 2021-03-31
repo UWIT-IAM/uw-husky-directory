@@ -2,6 +2,7 @@ import re
 from unittest import mock
 
 import pytest
+from inflection import titleize
 
 from husky_directory.services.pws import PersonWebServiceClient
 
@@ -41,7 +42,7 @@ class TestSearchBlueprint:
                     )
 
     def test_render_summary_success(self):
-        response = self.flask_client.post("/search", data={"name": "foo"})
+        response = self.flask_client.post("/search", data={"query": "foo"})
         assert response.status_code == 200
         profile = self.mock_people.contactable_person
         with self.html_validator.validate_response(response):
@@ -57,7 +58,7 @@ class TestSearchBlueprint:
 
     def test_render_full_success(self):
         response = self.flask_client.post(
-            "/search", data={"name": "foo", "length": "full"}
+            "/search", data={"query": "foo", "length": "full"}
         )
         profile = self.mock_people.contactable_person
         with self.html_validator.validate_response(response):
@@ -72,23 +73,27 @@ class TestSearchBlueprint:
 
     def test_render_no_results(self):
         self.mock_list_persons.return_value = self.mock_people.as_search_output()
-        response = self.flask_client.post("/search", data={"name": "foo"})
+        response = self.flask_client.post("/search", data={"query": "foo"})
         with self.html_validator.validate_response(response) as html:
             assert not html.find("table", summary="results")
             assert html.find(string=re.compile("No matches for"))
             self.html_validator.assert_has_tag_with_text("b", 'Name is "foo"')
 
     def test_render_invalid_box_number(self):
-        response = self.flask_client.post("/search", data={"box_number": "abcdef"})
+        response = self.flask_client.post(
+            "/search", data={"query": "abcdef", "method": "box_number"}
+        )
         assert response.status_code == 400
         with self.html_validator.validate_response(response) as html:
             assert not html.find("table", summary="results")
             assert html.find(string=re.compile("Encountered error"))
-            self.html_validator.assert_has_tag_with_text("b", "invalid mailbox number")
+            self.html_validator.assert_has_tag_with_text("b", "invalid box number")
 
     def test_render_unexpected_error(self):
         self.mock_list_persons.side_effect = RuntimeError
-        response = self.flask_client.post("/search", data={"box_number": "123456"})
+        response = self.flask_client.post(
+            "/search", data={"query": "123456", "method": "box_number"}
+        )
         with self.html_validator.validate_response(response):
             self.html_validator.assert_has_tag_with_text(
                 "b", "Something unexpected happened"
@@ -108,3 +113,28 @@ class TestSearchBlueprint:
         with self.html_validator.validate_response(self.flask_client.get("/")):
             self.html_validator.assert_has_student_search_options()
             self.html_validator.assert_not_has_sign_in_link()
+
+    @pytest.mark.parametrize(
+        "search_field, search_value",
+        [
+            ("name", "bugbear"),
+            ("phone", "abcdefg"),
+            ("department", "UW-IT IAM"),
+            ("box_number", "12345"),
+            ("email", "foo@bar.com"),
+        ],
+    )
+    def test_no_matches(self, search_field, search_value):
+        query_output = self.mock_people.as_search_output()
+        query_output.persons = []
+        query_output.total_count = 0
+        query_output.next = None
+        self.mock_list_persons.return_value = query_output
+        with self.html_validator.validate_response(
+            self.flask_client.post(
+                "/search", data={"method": search_field, "query": search_value}
+            )
+        ):
+            self.html_validator.assert_has_tag_with_text(
+                "p", f'no matches for {titleize(search_field)} is "{search_value}"'
+            )

@@ -19,3 +19,8 @@ class PopulationType(Enum):
     students = "students"
     employees = "employees"
     all = "all"
+
+
+class ResultDetail(Enum):
+    full = "full"
+    summary = "summary"

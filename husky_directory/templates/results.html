@@ -1,10 +1,7 @@
 {# display: blueprints.search.RenderingContext #}
-{% if display['length'] == "full" %}
-    {% if display['show_count'] %}
-        {% include "result_count.html" %}
-    {% endif %}
+{% include "result_count.html" %}
+{% if request_input['length'] == "full" %}
     {% include "full_results.html" %}
 {% else %}
-    {% include "result_count.html" %}
     {% include "summary_results.html" %}
 {% endif %}
