@@ -1,6 +1,6 @@
 {% set search_value = '' %}
-{% if request_input_summary is not blank %}
-    {% set search_value = request_input_summary['value'] %}
+{% if request_input is not blank %}
+    {% set search_value = request_input['query'] %}
 {% endif %}
 <div class="cblock row">
     <form action="/search" method="POST" name="dirform"
@@ -11,7 +11,7 @@
                 <input type="text" class="form-control"
                        value="{{ search_value }}"
                        style="color:black; height:43px; z-index:0;" id="query"
-                       name="name">
+                       name="query">
                 <input type="hidden" name="show_count" value="true">
                 <span class="input-group-btn">
                                     <button class="btn search"

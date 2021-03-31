@@ -1,13 +1,14 @@
 """
 Models for the DirectorySearchService.
 """
+from __future__ import annotations
 import re
 from typing import Dict, List, Optional
 
 from pydantic import Field, PydanticValueError, validator
 
 from husky_directory.models.base import DirectoryBaseModel
-from husky_directory.models.enum import PopulationType
+from husky_directory.models.enum import PopulationType, ResultDetail
 
 
 class BoxNumberValueError(PydanticValueError):
@@ -18,6 +19,22 @@ class BoxNumberValueError(PydanticValueError):
 
     code = "invalid_mail_box"
     msg_template = "invalid mailbox number; must be value of at most 6 digits"
+
+
+class SearchDirectorySimpleInput(DirectoryBaseModel):
+    """
+    A lightweight layer to make it easier for the existing front-end
+    to query. The backend was written with JSON in mind, but the front-end
+    is just using a simple form that it required us to use javascript
+    to correctly interact with the backend; this SimpleInput model
+    removes this necessity and makes everything a lot easier.
+    """
+
+    method: str = "name"
+    query: str = ""
+    population: PopulationType = PopulationType.employees
+    include_test_identities: bool = False
+    length: ResultDetail = ResultDetail.summary
 
 
 class SearchDirectoryInput(DirectoryBaseModel):
@@ -68,6 +85,14 @@ class SearchDirectoryInput(DirectoryBaseModel):
         if self.population == PopulationType.all.value:
             return [PopulationType.employees.value, PopulationType.students.value]
         return [self.population]
+
+    @classmethod
+    def from_simple_input(
+        cls, simple: SearchDirectorySimpleInput
+    ) -> SearchDirectoryInput:
+        args = simple.dict()
+        args[args["method"]] = args["query"]
+        return cls(**args)
 
 
 class PhoneContactMethods(DirectoryBaseModel):

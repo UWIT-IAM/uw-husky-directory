@@ -1,6 +1,6 @@
 {% set requested_population = None %}
-{% if request_input_summary is not blank %}
-    {% set requested_population = request_input_summary['population'] %}
+{% if request_input is not blank %}
+    {% set requested_population = request_input['population'] %}
 {% endif %}
 <div id="search-population" class="col-md-3">
     <h3>Search options</h3>
@@ -47,19 +47,24 @@
     {%  endif %}
 </div>
 
+{% set selected_length = 'summary' %}
+{% if request_input is not blank %}
+    {% set selected_length = request_input['length'] %}
+{% endif %}
 <div class="col-md-2">
     <h3>Kind of listing</h3>
-    <label for="lengthfull">
+    <label for="length-full">
         <input type="radio"
                name="length"
                value="full"
-               id="lengthfull"
+               id="length-full"
+               {{ 'checked="checked"' if selected_length == 'full' else ''}}
     />Full</label>
-    <label for="lengthsummary">
+    <label for="length-summary">
     <input type="radio"
            name="length"
            value="summary"
-           checked="checked"
-           id="lengthsummary"
+           id="length-summary"
+            {{ 'checked="checked"' if selected_length == 'summary' else ''}}
     />Summary</label>
 </div>

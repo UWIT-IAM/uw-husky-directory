@@ -9,6 +9,7 @@
                     {% if result_count > 0 %}
                         {# when done this needs to look something lik <a href="#f1">1 Faculty/Staff</a> #}
                         {% set anchor_id = 'todo-coming-soon' %}
+                        {{ ', ' if not loop.first else '' }}
                         <a href="#{{ anchor_id}}">
                             {% set population = population|externalize %}
                             {% if result_count == 1 %}
@@ -16,9 +17,9 @@
                             {% endif %}
                             {{ result_count }} {{ population|externalize }}
                         </a>
-                        {{ ', ' if not loop.last else '' }}
                     {% endif %}
                 {% endfor %}
+                <br>
             {% endif %}
         {% endfor %}
         <br>

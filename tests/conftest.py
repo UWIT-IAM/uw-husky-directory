@@ -1,4 +1,5 @@
 import os
+import re
 from contextlib import contextmanager
 from typing import Any, Optional
 
@@ -223,7 +224,7 @@ class HTMLValidator:
         scope_ = self.html.find(tag, *args, **kwargs)
         if not scope_:
             raise ValueError(
-                f"Could not find tag {tag} with args={args} and kwargs={kwargs}"
+                f"Could not find tag <{tag}> with args={args} and kwargs={kwargs}"
             )
         self._html = scope_
         try:
@@ -235,26 +236,108 @@ class HTMLValidator:
     def html(self) -> Optional[BeautifulSoup]:
         return self._html
 
+    def clean_bs4_text(self, text: str) -> str:
+        """
+        BeautifulSoup's text property preserves newlines
+        from HTML indents. This makes it very  hard to search for matching
+        text. So, this method does a passable job of cleaning up text to make
+        it more parseable.
+
+        This is heavily documented because it took a bit of
+        tweaking to get right, and when dealing with tracking
+        multiple indexes even I (@tomthorogood) get lost.
+
+        Please expand this if you find more edge cases that block you.
+
+        ----
+
+        Example:
+
+            <html>
+                <b>
+                    "Hello, fair knight,"
+                </b> said the prince
+                    ,
+                who took a sip of
+                    <a href="/wine">
+                        wine
+                    </a>.
+
+        . . . would usually wind up looking something like this:
+
+                "Hello fair knight,"
+                said the prince
+                ,
+            who took a sip of
+                    wine
+                    .
+
+        The output of this method is:
+            "Hello fair knight," said the prince, who took a sip of wine.
+
+
+        :param text: Text to clean up.
+        :return: Cleaned up text. Read above.
+        """
+        # This is what will be used to create the result string
+        # split() removes all whitespace, which is half the problem.
+        sanitized = text.split()
+        # The other half of the problem is that if punctuation
+        # is on its own line, our resulting space-joined string would look like this:
+        #   "Hello fair knight," said the prince , who took a sip of wine .
+
+        # Tracks drift in the indexes for the sanitized words
+        # vs. the not-quite sanitized copy.
+        deletion_offset = 0
+        # list(sanitized) creates a copy of the current state of sanitized,
+        # which might include punctuation as separate items:
+        #   [ . . . "the", "prince", ",", "who", . . . ]
+        for index, word in enumerate(list(sanitized)):
+            # Looks for punctuation-only "words"
+            if index > 0 and not re.findall("[a-z0-9]", word):
+                # The sanitized index is needed because every time
+                # we perform this if-clause, we change the size
+                # of `sanitized`, reducing it by 1 item.
+                sanitized_index = index - deletion_offset
+                # Our goal is to concatenate the punctuation into the
+                # text of the previous word, so that "prince ," becomes
+                # "prince,".
+                preceding_word = sanitized[sanitized_index - 1]
+                sanitized[sanitized_index - 1] = f"{preceding_word}{word}"
+
+                # After we do this, we have to remove the offending
+                # lone punctuation, otherwise we end up with
+                #   "prince, ,"
+                sanitized.pop(sanitized_index)
+
+                # Finally, we increment the deletion offset
+                # to make sure future iterations keep the two
+                # models aligned.
+                deletion_offset += 1
+        return " ".join(sanitized)
+
     def has_tag_with_text(
-        self, tag: str, text: str, assert_=False, assert_expected_=True
+        self, target_tag: str, search_text: str, assert_=False, assert_expected_=True
     ):
         """
         Searching substrings within elements is hard because of the way that BS4 parses HTML (i.e.,
         they include newlines that are in the HTML, but are not visible to the user.)
 
         This makes it easier by looping through all elements of a
-        :param tag:
-        :param text:
+        :param target_tag:
+        :param search_text:
         :param assert_:
         :param assert_expected_:
         :return:
         """
         result = False
-        for element in self.html.find_all(tag):
-            for word in text.split():
-                if word not in element.text:
-                    continue
-            result = True
+        search_text = search_text.lower()
+
+        for element in self.html.find_all(target_tag):
+            target_text = self.clean_bs4_text(element.text.lower())
+            if search_text in target_text:
+                result = True
+                break
 
         if not assert_:
             return result
@@ -262,7 +345,7 @@ class HTMLValidator:
         if assert_expected_ != result:
             raise AssertionError(
                 f"Expected {'not ' if not assert_expected_ else ''}"
-                f"to find tags with text matching {text}"
+                f"to find tags with search_text matching {search_text}"
             )
         return False
 

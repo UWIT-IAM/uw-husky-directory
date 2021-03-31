@@ -5,8 +5,8 @@
     automatically mark that attribute as selected.
 #}
 {% set default_selection = "name" %}
-{% if request_input_summary is not blank %}
-    {% set default_selection = request_input_summary['field'] %}
+{% if request_input is not blank %}
+    {% set default_selection = request_input['method'] %}
 {% endif %}
 <select name="method"
         id="method" style="width: 220px; border: 1px solid #bbb; margin: 10px 0;">
