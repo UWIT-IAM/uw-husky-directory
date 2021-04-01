@@ -21,7 +21,7 @@ class BoxNumberValueError(PydanticValueError):
     msg_template = "invalid mailbox number; must be value of at most 6 digits"
 
 
-class SearchDirectorySimpleInput(DirectoryBaseModel):
+class SearchDirectoryFormInput(DirectoryBaseModel):
     """
     A lightweight layer to make it easier for the existing front-end
     to query. The backend was written with JSON in mind, but the front-end
@@ -33,8 +33,49 @@ class SearchDirectorySimpleInput(DirectoryBaseModel):
     method: str = "name"
     query: str = ""
     population: PopulationType = PopulationType.employees
-    include_test_identities: bool = False
     length: ResultDetail = ResultDetail.summary
+
+    # render_ fields are provided as a way to search one thing,
+    # but provide a different context to the rendering engine
+    # when populating the user interface. If render_ options
+    # are provided in the form input, those fields will be
+    # rendered with the values provided, even if the query was
+    # for a different set of options.
+    # render_ fields must be declared after the above, so that these
+    # fields can derive their default from their "first-class"
+    # parameter name.
+    render_method: Optional[str]
+    render_query: Optional[str]
+    render_population: Optional[PopulationType]
+    render_length: Optional[ResultDetail]
+
+    include_test_identities: bool = False  # Not currently supported
+
+    # These methods ensure that, by default, the render_ fields have
+    # the same value as the query value.
+    @validator("render_method", always=True)
+    def populate_render_method(cls, method: Optional[str], values):
+        if not method:
+            return values.get("method")
+        return method
+
+    @validator("render_query", always=True)
+    def populate_render_query(cls, query: Optional[str], values):
+        if not query:
+            return values.get("query")
+        return query
+
+    @validator("render_population", always=True)
+    def populate_render_population(cls, population: Optional[str], values):
+        if not population:
+            return values.get("population")
+        return population
+
+    @validator("render_length", always=True)
+    def populate_render_length(cls, length: Optional[str], values):
+        if not length:
+            return values.get("length")
+        return length
 
 
 class SearchDirectoryInput(DirectoryBaseModel):
@@ -87,9 +128,7 @@ class SearchDirectoryInput(DirectoryBaseModel):
         return [self.population]
 
     @classmethod
-    def from_simple_input(
-        cls, simple: SearchDirectorySimpleInput
-    ) -> SearchDirectoryInput:
+    def from_form_input(cls, simple: SearchDirectoryFormInput) -> SearchDirectoryInput:
         args = simple.dict()
         args[args["method"]] = args["query"]
         return cls(**args)

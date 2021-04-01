@@ -11,7 +11,7 @@ from husky_directory.models.search import (
     DirectoryBaseModel,
     SearchDirectoryInput,
     SearchDirectoryOutput,
-    SearchDirectorySimpleInput,
+    SearchDirectoryFormInput,
 )
 from husky_directory.services.search import DirectorySearchService
 
@@ -21,7 +21,7 @@ class ErrorModel(DirectoryBaseModel):
 
 
 class RenderingContext(DirectoryBaseModel):
-    request_input: Optional[SearchDirectorySimpleInput]
+    request_input: Optional[SearchDirectoryFormInput]
     search_result: Optional[SearchDirectoryOutput]
     error: Optional[ErrorModel]
     status_code: int = 200
@@ -59,11 +59,13 @@ class SearchBlueprint(Blueprint):
     ):
         context = RenderingContext.construct()
         try:
-            simple_query = SearchDirectorySimpleInput.parse_obj(request.form)
+            form_input = SearchDirectoryFormInput.parse_obj(request.form)
             context.uwnetid = session.get("uwnetid")
-            context.request_input = simple_query
-            request_input = SearchDirectoryInput.from_simple_input(simple_query)
+            context.request_input = form_input
+
+            request_input = SearchDirectoryInput.from_form_input(form_input)
             context.search_result = service.search_directory(request_input)
+
         except Exception as e:
             # But if we meet an exception here, we probably aren't expecting it,
             # and should give the user a next step (as well as emit an error
@@ -72,7 +74,6 @@ class SearchBlueprint(Blueprint):
             logger.exception(str(e))
             if isinstance(e, ValidationError):
                 context.status_code = 400
-
                 bad_fields = [humanize(underscore(err["loc"][0])) for err in e.errors()]
                 context.error = ErrorModel(msg=f"Invalid {', '.join(bad_fields)}")
                 logger.error("WTF")
