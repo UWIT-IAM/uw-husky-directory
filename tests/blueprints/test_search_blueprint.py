@@ -45,7 +45,7 @@ class TestSearchBlueprint:
         response = self.flask_client.post("/search", data={"query": "foo"})
         assert response.status_code == 200
         profile = self.mock_people.contactable_person
-        with self.html_validator.validate_response(response):
+        with self.html_validator.validate_response(response) as html:
             with self.html_validator.scope("table", summary="results"):
                 self.html_validator.assert_has_tag_with_text(
                     "td",
@@ -55,6 +55,7 @@ class TestSearchBlueprint:
                     "td",
                     profile.affiliations.employee.directory_listing.emails[0],
                 )
+            assert "autofocus" not in html.find("input", attrs={"name": "query"}).attrs
 
     def test_render_full_success(self):
         response = self.flask_client.post(

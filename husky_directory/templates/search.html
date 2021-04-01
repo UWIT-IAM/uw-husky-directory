@@ -11,6 +11,7 @@
                 <input type="text" class="form-control"
                        value="{{ search_value }}"
                        style="color:black; height:43px; z-index:0;" id="query"
+                       {{ 'autofocus' if request_input is blank }}
                        name="query">
                 <input type="hidden" name="show_count" value="true">
                 <span class="input-group-btn">
