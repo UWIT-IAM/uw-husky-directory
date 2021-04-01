@@ -1,10 +1,28 @@
 <div class="rsummary" id="rsummary">
-    {% for scenario in search_result['scenarios'] %}
-        {% if (scenario['people']|length) %}
-            {# when done this needs to look something lik <a href="#f1">1 Faculty/Staff</a> #}
-            {{ scenario['description']}}: {{ scenario['people']|length }}
-            <br>
-        {% endif %}
-    {% endfor %}
+    {% if search_result['num_results'] > 0 %}
+        {% for scenario in search_result['scenarios'] %}
+            {% if scenario['num_results'] > 0 %}
+                {%  set description = scenario['description'] %}
+                {{ description }}:
+                {% for population, query_output in scenario['populations'].items() %}
+                    {% set result_count = query_output['num_results'] %}
+                    {% if result_count > 0 %}
+                        {# when done this needs to look something lik <a href="#f1">1 Faculty/Staff</a> #}
+                        {% set anchor_id = 'todo-coming-soon' %}
+                        {{ ', ' if not loop.first else '' }}
+                        <a href="#{{ anchor_id}}">
+                            {% set population = population|externalize %}
+                            {% if result_count == 1 %}
+                                {% set population = population|singularize %}
+                            {% endif %}
+                            {{ result_count }} {{ population|externalize }}
+                        </a>
+                    {% endif %}
+                {% endfor %}
+                <br>
+            {% endif %}
+        {% endfor %}
+        <br>
+    {% endif %}
 </div>
 <br>

@@ -1,23 +1,14 @@
 """
 Models for the DirectorySearchService.
 """
+from __future__ import annotations
 import re
 from typing import Dict, List, Optional
 
-from pydantic import BaseModel, Extra, Field, PydanticValueError, validator
+from pydantic import Field, PydanticValueError, validator
 
-from husky_directory.models.enum import PopulationType
-from husky_directory.util import camelize
-
-
-class DirectoryBaseModel(BaseModel):
-    class Config:  # See https://pydantic-docs.helpmanual.io/usage/model_config/
-        extra = Extra.ignore
-        use_enum_values = True
-        allow_population_by_field_name = True
-        validate_assignment = True
-        alias_generator = camelize
-        anystr_strip_whitespace = True
+from husky_directory.models.base import DirectoryBaseModel
+from husky_directory.models.enum import PopulationType, ResultDetail
 
 
 class BoxNumberValueError(PydanticValueError):
@@ -28,6 +19,22 @@ class BoxNumberValueError(PydanticValueError):
 
     code = "invalid_mail_box"
     msg_template = "invalid mailbox number; must be value of at most 6 digits"
+
+
+class SearchDirectorySimpleInput(DirectoryBaseModel):
+    """
+    A lightweight layer to make it easier for the existing front-end
+    to query. The backend was written with JSON in mind, but the front-end
+    is just using a simple form that it required us to use javascript
+    to correctly interact with the backend; this SimpleInput model
+    removes this necessity and makes everything a lot easier.
+    """
+
+    method: str = "name"
+    query: str = ""
+    population: PopulationType = PopulationType.employees
+    include_test_identities: bool = False
+    length: ResultDetail = ResultDetail.summary
 
 
 class SearchDirectoryInput(DirectoryBaseModel):
@@ -41,9 +48,12 @@ class SearchDirectoryInput(DirectoryBaseModel):
     email: Optional[str] = Field(
         None, max_length=256, search_method=True
     )  # https://tools.ietf.org/html/rfc5321#section-4.5.3
-    box_number: Optional[str] = Field(None, search_method=True)
+    box_number: Optional[str] = Field(
+        None, search_method=True, min_length=0, max_length=6, regex="^([0-9]+)?$"
+    )
     phone: Optional[str] = Field(None, search_method=True)
     population: PopulationType = PopulationType.employees
+    include_test_identities: bool = False
 
     @classmethod
     def search_methods(cls) -> List[str]:
@@ -60,17 +70,6 @@ class SearchDirectoryInput(DirectoryBaseModel):
             return re.sub("[^0-9]", "", self.phone)
         return self.phone
 
-    @validator("box_number")
-    def validate_box_number(cls, box_number: Optional[str]) -> Optional[str]:
-        if not box_number:
-            return box_number
-
-        # We don't do a lot of input validation in the legacy directory product, but
-        # this is one of them! This regex guarantees the result is a string of at most 6 digits.
-        if not re.match("^[0-9]{1,6}", box_number):
-            raise BoxNumberValueError()
-        return box_number
-
     @validator("email")
     def validate_email(cls, value: Optional[str]) -> Optional[str]:
         if value and value.startswith(
@@ -80,6 +79,20 @@ class SearchDirectoryInput(DirectoryBaseModel):
                 "Unable to search by domain only; please start with the username portion of the address."
             )
         return value
+
+    @property
+    def requested_populations(self) -> List[PopulationType]:
+        if self.population == PopulationType.all.value:
+            return [PopulationType.employees.value, PopulationType.students.value]
+        return [self.population]
+
+    @classmethod
+    def from_simple_input(
+        cls, simple: SearchDirectorySimpleInput
+    ) -> SearchDirectoryInput:
+        args = simple.dict()
+        args[args["method"]] = args["query"]
+        return cls(**args)
 
 
 class PhoneContactMethods(DirectoryBaseModel):
@@ -101,11 +114,27 @@ class Person(DirectoryBaseModel):
     department: Optional[str]
 
 
+class DirectoryQueryPopulationOutput(DirectoryBaseModel):
+    population: PopulationType
+    people: List[Person] = []
+
+    @property
+    def num_results(self) -> int:
+        return len(self.people)
+
+
 class DirectoryQueryScenarioOutput(DirectoryBaseModel):
     description: str
-    people: List[Person] = []
+    populations: Dict[PopulationType, DirectoryQueryPopulationOutput]
+
+    @property
+    def num_results(self) -> int:
+        return sum(map(lambda p: p.num_results, self.populations.values()))
 
 
 class SearchDirectoryOutput(DirectoryBaseModel):
-    num_results: int = 0
     scenarios: List[DirectoryQueryScenarioOutput] = []
+
+    @property
+    def num_results(self) -> int:
+        return sum(map(lambda s: s.num_results, self.scenarios))

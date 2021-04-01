@@ -1,30 +1,24 @@
+{# scenario: models.search.DirectoryQueryScenarioOutput #}
 {% for scenario in search_result["scenarios"]%}
-    {#
-    See models/search.py#SearchDirectoryOutput for full shape of model.
-    The data will look like this:
-        {
-            "description": "First name is \"kurle\"",
-            "people": [{...}]
-        }
-    #}
-    {% if (scenario['people']|length) %}
+    {% if scenario['num_results'] > 0 %}
         <p>
-            <h4>{{scenario['description']}}</h4>
-                {% for data in scenario['people'] %}
-                    <h3>{{ data['name'] }}</h3>
-                    <ul class="dir-listing">
-                        <li>{{ data['email'] }}</li>
-                        {%
-                            for contact_method, numbers in
-                                data['phone_contacts'].items()
-                        %}
-                            {% if numbers|length %}
-                                <li>{{ contact_method|singularize|titleize }}:
-                                    {{ numbers|join(', ') }}</li>
-                            {%  endif %}
-                        {% endfor %}
-                    </ul>
-                {% endfor %}
+        <h4>{{scenario['description']}}</h4>
+        {# population: models.search.DirectoryQueryPopulationOutput #}
+        {% for population, results in scenario['populations'].items() %}
+            {% for data in results['people'] %}
+                <h3>{{ data['name'] }}</h3>
+                <ul class="dir-listing">
+                    <li>{{ data['email'] }}</li>
+                    {% for contact_method, numbers in
+                       data['phone_contacts'].items() %}
+                        {% if numbers|length %}
+                            <li>{{ contact_method|singularize|titleize }}:
+                                {{ numbers|join(', ') }}</li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            {% endfor %}
+        {% endfor %}
         </p>
     {% endif %}
 {% endfor %}

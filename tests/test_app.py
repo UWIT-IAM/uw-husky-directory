@@ -1,5 +1,8 @@
-def test_get_index(client):
-    assert client.get("/").status_code == 200
+def test_get_index(client, html_validator):
+    response = client.get("/")
+    assert response.status_code == 200
+    with html_validator.validate_response(response) as html:
+        assert "autofocus" in html.find("input", attrs={"name": "query"}).attrs
 
 
 def test_get_health(client):

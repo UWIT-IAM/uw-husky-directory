@@ -1,0 +1,6 @@
+{# population: models.search.DirectoryQueryPopulationOutput #}
+{% for population_name, population in  scenario['populations'].items() %}
+    {% if population['num_results'] > 0 %}
+        {% include 'summary_results_table/scenario_population_block.html' %}
+    {% endif %}
+{% endfor %}

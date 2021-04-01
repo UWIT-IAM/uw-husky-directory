@@ -1,0 +1,33 @@
+{# One row to summarize the results that follow,
+and then 1 or more rows of results. #}
+<tr>
+    <td colspan="3">
+        <div class="rcdescr">
+            {% set anchor_id = 'todo-coming-soon' %}
+            <h3><a id="{{ anchor_id }}" name="{{ anchor_id }}"></a>
+                {{ population_name|externalize|titleize }}:
+                {{ scenario['description'] }}
+            </h3>
+        </div>
+    </td>
+</tr>
+
+{# data: models.search.Person #}
+{% for data in population['people'] %}
+    <tr>
+        <td valign="top">{{ data['name'] }}&nbsp;</td>
+        <td valign="top" nowrap="nowrap">
+            {{ data['phone_contacts']['phones']|first }}
+        </td>
+        <td valign="top">{{ data['email'] }}&nbsp;</td>
+        <td>
+            <form action="/search" method="POST" name="moreform">
+                <input type="hidden" name="name" value="{{ data['name'] }}">
+                <input type="hidden" name="length" value="full">
+                <input class="btn btn-primary"
+                       type="submit"
+                       name="expand0" value="More">
+            </form>
+        </td>
+    </tr>
+{% endfor %}

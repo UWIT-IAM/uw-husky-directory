@@ -1,0 +1,20 @@
+{# For each of the search fields in the SearchDirectoryInput model, create
+    a dropdown option whose value matches the field name, and whose display name
+    is run through the titleize filter to make it presentable. Additionally, if the
+    request_input context is present and the attribute is defined there, we
+    automatically mark that attribute as selected.
+#}
+{% set default_selection = "name" %}
+{% if request_input is not blank %}
+    {% set default_selection = request_input['method'] %}
+{% endif %}
+<select name="method"
+        id="method" style="width: 220px; border: 1px solid #bbb; margin: 10px 0;">
+    {% for attribute in search_attributes %}
+        <option value="{{ attribute }}"
+                {% if default_selection == attribute %}
+                    selected="selected"
+                {% endif %}
+        >{{ attribute|titleize }}</option>
+    {% endfor %}
+</select>

@@ -1,13 +1,15 @@
 <div class="contenttable">
     <div class="contentspacer"></div>
     <div class="contentcell">
-        {% if search_result is not blank %}
-            <p>No matches for
+        {% if search_result is not blank and search_result['num_results'] == 0 %}
+            {% if request_input is not blank %}
+            <p id="no-matches">No matches for
                 <b>
-                    {{ request_input.keys()|first|titleize }}
-                    is "{{ request_input.values()|first }}"
+                    {{ request_input['method']|titleize }}
+                    is "{{ request_input['query'] }}"
                 </b>.
             </p>
+            {% endif %}
         {% elif error is not blank %}
             <p>Encountered error: <b>"{{ error["msg"] }}"</b></p>
         {% endif %}
