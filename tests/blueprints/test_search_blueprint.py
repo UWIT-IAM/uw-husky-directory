@@ -2,12 +2,15 @@ import re
 from unittest import mock
 
 import pytest
+from bs4 import BeautifulSoup
 from inflection import titleize
 
+from husky_directory.models.enum import PopulationType, ResultDetail
+from husky_directory.models.search import SearchDirectoryInput, SearchDirectoryFormInput
 from husky_directory.services.pws import PersonWebServiceClient
 
 
-class TestSearchBlueprint:
+class BlueprintSearchTestBase:
     @pytest.fixture(autouse=True)
     def initialize(self, client, mock_people, injector, html_validator):
         self.pws_client = injector.get(PersonWebServiceClient)
@@ -23,6 +26,8 @@ class TestSearchBlueprint:
         self.mock_get_next.return_value = mock_people.as_search_output()
         self.html_validator = html_validator
 
+
+class TestSearchBlueprint(BlueprintSearchTestBase):
     def test_json_success(self):
         response = self.flask_client.get("/search?name=foo")
         assert response.status_code == 200
@@ -141,7 +146,7 @@ class TestSearchBlueprint:
             ("email", "foo@bar.com"),
         ],
     )
-    def test_no_matches(self, search_field, search_value):
+    def test_render_no_matches(self, search_field, search_value):
         query_output = self.mock_people.as_search_output()
         query_output.persons = []
         query_output.total_count = 0
@@ -155,3 +160,149 @@ class TestSearchBlueprint:
             self.html_validator.assert_has_tag_with_text(
                 "p", f'no matches for {titleize(search_field)} is "{search_value}"'
             )
+
+    def assert_form_fields_match_expected(
+        self,
+        response,
+        expected: SearchDirectoryFormInput,
+        signed_in: bool,
+        recurse: bool = True,
+    ):
+        """
+        Given a query response, ensures that the user flow thereafter is as expected; if
+        the query resulted in summary results with a "more" button, this also simulates
+        the button request to ensure that the same state is preserved through
+        the next search request.
+        """
+        with self.html_validator.validate_response(response) as html:
+            # Someone not signed in who posts a different population will not
+            # have the population options displayed that they selected,
+            # so we skip this check. (No actual user that is using
+            # our website normally will encounter this situation,
+            # but it's technically a possibility.)
+            if signed_in or expected.population == "employees":
+                assert (
+                    "checked"
+                    in html.find(
+                        "input",
+                        attrs={"id": f"population-option-{expected.population}"},
+                    ).attrs
+                )
+
+            # Ensure that the sign in link is (or is not) visible, based on whether the user
+            # is signed in.
+            self.html_validator.has_sign_in_link(
+                assert_=True, assert_expected_=not signed_in
+            )
+
+            # Ensure that the form field is filled in with the same information as was input.
+            assert (
+                html.find("input", attrs={"name": "query"}).attrs.get("value")
+                == expected.query
+            )
+
+            # Ensure that the result detail option is preserved
+            assert (
+                "checked"
+                in html.find("input", attrs={"id": f"length-{expected.length}"}).attrs
+            )
+
+            # Ensure that the search field is selected in the form dropdown
+            assert (
+                "selected"
+                in html.find("option", attrs={"value": expected.method}).attrs
+            )
+
+            # We don't always expect results. For our current test ecosystem,
+            # we won't see results if:
+            results_expected = all(
+                [
+                    # A user is not auth'd, but searches for students only.
+                    signed_in or (expected.population != "students"),
+                    # Someone searches by department (which is still not implemented)
+                    expected.method != "department",
+                ]
+            )
+
+            # If we don't expect results, we do expect a message telling us
+            # that there are no results.
+            if not results_expected:
+                self.html_validator.assert_has_tag_with_text(
+                    "p",
+                    f'No matches for {titleize(expected.method)} is "{expected.query}"',
+                )
+            # If we have "More" buttons, we simulate clicking on them to ensure that
+            # the buttons properly set render_ options.
+            elif recurse and expected.length == "summary":
+                # Ensure that the same values are carried into the "More" render
+                more_button = html.find("form", id="more-form-1")
+                assert more_button, str(html)
+                request_input = self._get_request_input_from_more_button(more_button)
+                self.assert_form_fields_match_expected(
+                    self.flask_client.post("/search", data=request_input.dict()),
+                    expected,
+                    signed_in=signed_in,
+                    recurse=False,
+                )
+
+    @staticmethod
+    def _get_request_input_from_more_button(
+        button: BeautifulSoup,
+    ) -> SearchDirectoryFormInput:
+        """This iterates through the hidden input elements that make up our
+        "more form", which is a form masquerading as a button for the time being.
+        The element values are serialized into the same request input that
+        clicking on the button would generate, so that we can validate the
+        correct options were set, and that the server renders those
+        overrides correctly.
+        """
+
+        def get_field_value(field):
+            return button.find("input", attrs=dict(name=field)).attrs.get("value")
+
+        return SearchDirectoryFormInput(
+            population=get_field_value("population"),
+            query=get_field_value("query"),
+            method=get_field_value("method"),
+            length=get_field_value("length"),
+            render_query=get_field_value("render_query"),
+            render_method=get_field_value("render_method"),
+            render_length=get_field_value("render_length"),
+        )
+
+    @pytest.mark.parametrize("search_field", SearchDirectoryInput.search_methods())
+    @pytest.mark.parametrize("population", ("employees", "students", "all"))
+    @pytest.mark.parametrize("sign_in", (True, False))
+    @pytest.mark.parametrize("result_detail", ("full", "summary"))
+    def test_render_form_option_stickiness(
+        self, search_field, population, sign_in, result_detail
+    ):
+        """
+        This uses combinatoric parametrize calls to run through every combination of
+        options and ensure that, after rendering, everything is rendered as we expect
+        based on the search parameters.
+
+        This generates tests for every combination of the parametrized fields listed above,
+        so that we can have a great deal of confidence that the page is rendering as expected
+        based on its input.
+        """
+        query_value = (
+            "abcdefg" if search_field not in ("phone", "box_number") else "12345"
+        )
+
+        request = SearchDirectoryFormInput(
+            method=search_field,
+            population=PopulationType(population),
+            length=ResultDetail(result_detail),
+            query=query_value,
+        )
+
+        if sign_in:
+            with self.html_validator.validate_response(
+                self.flask_client.get("/saml/login", follow_redirects=True)
+            ) as html:
+                self.html_validator.assert_not_has_sign_in_link()
+                assert html.find("label", attrs={"for": "population-option-students"})
+
+        response = self.flask_client.post("/search", data=request.dict())
+        self.assert_form_fields_match_expected(response, request, sign_in, recurse=True)

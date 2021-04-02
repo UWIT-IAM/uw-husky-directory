@@ -21,12 +21,37 @@ and then 1 or more rows of results. #}
         </td>
         <td valign="top">{{ data['email'] }}&nbsp;</td>
         <td>
-            <form action="/search" method="POST" name="moreform">
-                <input type="hidden" name="name" value="{{ data['name'] }}">
-                <input type="hidden" name="length" value="full">
+            {% set form_id = "more-form-" ~ loop.index  %}
+            <form action="/search" id="{{ form_id }}"
+                  method="POST" name="{{ form_id }}">
+                <!-- We are running a different query than we are displaying in the
+                  -- UI here. We don't want to actually reset the UI with
+                  -- the values we're using for our search.
+                  -- Therefore, we set the "return_" overrides to carry the
+                  -- user's actual query, so that they don't have to
+                  -- re-type it in, or use their back button.
+                  -->
+                <input id="{{ form_id }}-query"
+                       type="hidden" name="query" value="{{ data['name'] }}">
+                <input id="{{ form_id }}-render-query" type="hidden"
+                       name="render_query" value="{{ request_input['query'] }}">
+                <!-- TODO: Use the user href query instead, see EDS-566 -->
+                <input id="{{ form_id }}-method"
+                       type="hidden" name="method" value="name">
+                <input id="{{ form_id }}-render-method" type="hidden"
+                       name="render_method" value="{{ request_input['method'] }}">
+                <input id="{{ form_id }}-length"
+                       type="hidden" name="length" value="full">
+                <input id="{{ form_id }}-render-length"
+                       type="hidden" name="render_length"
+                       value="{{ request_input['length'] }}">
+                <!-- This option doesn't affect the query so can stay as-is -->
+                <input id="{{ form_id }}-population"
+                       type="hidden" name="population"
+                       value="{{ request_input['population'] }}">
                 <input class="btn btn-primary"
                        type="submit"
-                       name="expand0" value="More">
+                       name="expand-{{ loop.index }}" value="More">
             </form>
         </td>
     </tr>

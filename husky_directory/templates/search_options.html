@@ -4,9 +4,9 @@
 {% endif %}
 <div id="search-population" class="col-md-3">
     <h3>Search options</h3>
-    <label for="employee-population-option">
+    <label for="population-option-employees">
         <input type="radio"
-               id="employee-population-option"
+               id="population-option-employees"
                name="population"
                value="employees"
                {% if requested_population is blank
@@ -17,9 +17,9 @@
         Faculty/Staff Only
     </label>
     {% if uwnetid is not blank %}
-        <label for="student-population-option">
+        <label for="population-option-students">
             <input type="radio"
-                   id="student-population-option"
+                   id="population-option-students"
                    name="population"
                    value="students"
                    {% if requested_population == 'students' %}
@@ -28,9 +28,9 @@
             >
             Students Only
         </label>
-        <label for="all-populations-option">
+        <label for="population-option-all">
             <input type="radio"
-                   id="all-populations-option"
+                   id="population-option-all"
                    name="population"
                    value="all"
                     {% if requested_population == 'all' %}
@@ -49,7 +49,7 @@
 
 {% set selected_length = 'summary' %}
 {% if request_input is not blank %}
-    {% set selected_length = request_input['length'] %}
+    {% set selected_length = request_input['render_length'] %}
 {% endif %}
 <div class="col-md-2">
     <h3>Kind of listing</h3>

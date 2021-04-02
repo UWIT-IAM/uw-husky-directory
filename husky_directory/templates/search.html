@@ -1,6 +1,6 @@
 {% set search_value = '' %}
 {% if request_input is not blank %}
-    {% set search_value = request_input['query'] %}
+    {% set search_value = request_input['render_query'] %}
 {% endif %}
 <div class="cblock row">
     <form action="/search" method="POST" name="dirform"
@@ -13,14 +13,13 @@
                        style="color:black; height:43px; z-index:0;" id="query"
                        {{ 'autofocus' if request_input is blank }}
                        name="query">
-                <input type="hidden" name="show_count" value="true">
                 <span class="input-group-btn">
-                                    <button class="btn search"
-                                            type="submit"
-                                            id="search"
-                                            style="background-color:white; border: thin solid #ddd;"
-                                    >Search</button>
-                                </span>
+                    <button class="btn search"
+                            type="submit"
+                            id="search"
+                            style="background-color:white; border: thin solid #ddd;"
+                    >Search</button>
+                </span>
             </div><!-- /input-group -->
             {% include "search_attribute_selection.html" %}
         </div>

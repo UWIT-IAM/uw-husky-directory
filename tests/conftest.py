@@ -117,7 +117,12 @@ def mock_people(generate_person):
                         touch_dials=["+19999499911"],
                         emails=["dawg@uw.edu"],
                     )
-                )
+                ),
+                student=StudentPersonAffiliation(
+                    directory_listing=StudentDirectoryListing(
+                        publish_in_directory=True, phone="19999674222"
+                    )
+                ),
             )
         )
 
@@ -345,7 +350,7 @@ class HTMLValidator:
         if assert_expected_ != result:
             raise AssertionError(
                 f"Expected {'not ' if not assert_expected_ else ''}"
-                f"to find tags with search_text matching {search_text}"
+                f"to find a <{target_tag}> tag with text including '{search_text}' in {self.html}"
             )
         return False
 
@@ -360,10 +365,10 @@ class HTMLValidator:
 
     def has_student_search_options(self, assert_=True, assert_expected_=True) -> bool:
         students_only = self.html.find(
-            "label", attrs={"for": "student-population-option"}
+            "label", attrs={"for": "population-option-students"}
         )
         all_populations = self.html.find(
-            "label", attrs={"for": "all-populations-option"}
+            "label", attrs={"for": "population-option-all"}
         )
         result = bool(students_only and all_populations)
         if not assert_:
