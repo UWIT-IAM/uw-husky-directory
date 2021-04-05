@@ -1,16 +1,19 @@
 import os
 from collections import namedtuple
 from logging import Logger
-from typing import Dict, Optional
+from typing import Dict, Optional, Type, TypeVar
 
 import requests
 from devtools import PrettyFormat
 from injector import inject, singleton
 
 from husky_directory.app_config import ApplicationConfig
-from husky_directory.models.pws import ListPersonsInput, ListPersonsOutput
+from husky_directory.models.pws import ListPersonsInput, ListPersonsOutput, PWSBaseModel
 
 RequestsCertificate = namedtuple("RequestsCertificate", ["cert_path", "key_path"])
+
+
+OutputReturnType = TypeVar("OutputReturnType", bound=PWSBaseModel)
 
 
 @singleton
@@ -38,29 +41,37 @@ class PersonWebServiceClient:
         return f"{self.host}{self.default_path}"
 
     def _get_search_request_output(
-        self, url: str, params: Optional[Dict] = None
-    ) -> ListPersonsOutput:
+        self,
+        url: str,
+        params: Optional[Dict] = None,
+        output_type: Type[OutputReturnType] = ListPersonsOutput,
+    ) -> OutputReturnType:
         response = requests.get(
             url, cert=self.cert, params=params, headers={"Accept": "application/json"}
         )
         self.logger.info(f"[GET] {response.url} : {response.status_code}")
         response.raise_for_status()
         data = response.json()
-        output = ListPersonsOutput.parse_obj(data)
+        output = output_type.parse_obj(data)
+        self.logger.debug(data)
         return output
 
-    def get_next(self, page_url: str) -> ListPersonsOutput:
+    def get_explicit_href(
+        self, page_url: str, output_type: Type[OutputReturnType] = ListPersonsOutput
+    ) -> OutputReturnType:
         """
         Given the page url (vended by PWS), returns the contents as a ListPersonsOutput. This makes it easier to
         consume multi-page results from PWS.
-            Example: get_next('/identity/v2/person?name=*foo*')
+            Example: get_explicit_href('/identity/v2/person?name=*foo*')
 
             Better Example:
                 list_persons_output = pws.list_persons(request_input)
                 while list_persons_output.next:
-                    list_persons_output = get_next(list_persons_output.next.href)
+                    list_persons_output = get_explicit_href(list_persons_output.next.href)
         """
-        return self._get_search_request_output(f"{self.host}{page_url}")
+        return self._get_search_request_output(
+            f"{self.host}{page_url}", output_type=output_type
+        )
 
     def list_persons(self, request_input: ListPersonsInput) -> ListPersonsOutput:
         """
