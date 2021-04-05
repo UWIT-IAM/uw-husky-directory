@@ -2,6 +2,7 @@
 Models for the DirectorySearchService.
 """
 from __future__ import annotations
+import base64
 import re
 from typing import Dict, List, Optional
 
@@ -33,6 +34,7 @@ class SearchDirectoryFormInput(DirectoryBaseModel):
     method: str = "name"
     query: str = ""
     population: PopulationType = PopulationType.employees
+    include_test_identities: bool = False
     length: ResultDetail = ResultDetail.summary
 
     # render_ fields are provided as a way to search one thing,
@@ -151,6 +153,11 @@ class Person(DirectoryBaseModel):
     email: Optional[str]
     box_number: Optional[str]
     department: Optional[str]
+    href: str
+
+    @validator("href")
+    def b64_encode_href(cls, value: str) -> str:
+        return base64.b64encode(value.encode("UTF-8")).decode("UTF-8")
 
 
 class DirectoryQueryPopulationOutput(DirectoryBaseModel):
