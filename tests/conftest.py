@@ -1,5 +1,7 @@
 import os
+import random
 import re
+import string
 from contextlib import contextmanager
 from typing import Any, Optional
 
@@ -55,6 +57,8 @@ def app(
 
 @pytest.fixture
 def generate_person():
+    random_string = "".join(random.choice(string.ascii_lowercase) for _ in range(24))
+
     def inner(**attrs: Any) -> PersonOutput:
         default = PersonOutput(
             display_name="Ada Lovelace",
@@ -64,6 +68,7 @@ def generate_person():
             whitepages_publish=True,
             is_test_entity=False,
             netid="ada",
+            href=f"person/{random_string}",
         )
         return default.copy(update=attrs)
 

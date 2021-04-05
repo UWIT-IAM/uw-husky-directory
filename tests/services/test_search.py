@@ -12,6 +12,8 @@ from husky_directory.models.search import SearchDirectoryInput
 from husky_directory.services.pws import PersonWebServiceClient
 from husky_directory.services.search import (
     DirectorySearchService,
+)
+from husky_directory.services.translator import (
     ListPersonsOutputTranslator,
     PersonOutputFilter,
 )
@@ -25,7 +27,9 @@ class TestDirectorySearchService:
         self.pws: PersonWebServiceClient = injector.get(PersonWebServiceClient)
 
         self.mock_list_persons = mock.patch.object(self.pws, "list_persons").start()
-        self.mock_get_next = mock.patch.object(self.pws, "get_next").start()
+        self.mock_get_explicit_href = mock.patch.object(
+            self.pws, "get_explicit_href"
+        ).start()
 
         self.set_list_persons_output(
             mock_people.as_search_output(mock_people.published_employee)
@@ -37,7 +41,7 @@ class TestDirectorySearchService:
 
     def set_get_next_output(self, output: ListPersonsOutput):
         self.get_next_output = output
-        self.mock_get_next.return_value = output
+        self.mock_get_explicit_href.return_value = output
 
     def test_search_directory_happy(self):
         request_input = SearchDirectoryInput(name="foo")

@@ -19,6 +19,7 @@ from husky_directory.services.translator import (
 
 class VCardService:
     """Generates vcards from PWS output."""
+
     @inject
     def __init__(
         self,

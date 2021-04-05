@@ -1,3 +1,4 @@
+import base64
 import re
 from unittest import mock
 
@@ -19,11 +20,13 @@ class BlueprintSearchTestBase:
         self.mock_list_persons = mock.patch.object(
             self.pws_client, "list_persons"
         ).start()
-        self.mock_get_next = mock.patch.object(self.pws_client, "get_next").start()
+        self.mock_get_explicit_href = mock.patch.object(
+            self.pws_client, "get_explicit_href"
+        ).start()
         self.mock_list_persons.return_value = mock_people.as_search_output(
             self.mock_people.contactable_person
         )
-        self.mock_get_next.return_value = mock_people.as_search_output()
+        self.mock_get_explicit_href.return_value = mock_people.as_search_output()
         self.html_validator = html_validator
 
 
@@ -306,3 +309,24 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
 
         response = self.flask_client.post("/search", data=request.dict())
         self.assert_form_fields_match_expected(response, request, sign_in, recurse=True)
+
+    def test_get_person_bad_request(self):
+        response = self.flask_client.get(
+            "/search/person/foo/html", follow_redirects=True
+        )
+        assert response.status_code == 400
+
+    def test_get_person_vcard(self):
+        """
+        Tests that the blueprint returns the right result, but does not test
+        permutations of vcards; for that see, tests/services/vcard.py
+        """
+        person = self.mock_people.published_employee
+        href = base64.b64encode("foo".encode("UTF-8")).decode("UTF-8")
+        self.mock_get_explicit_href.return_value = person
+        response = self.flask_client.get(f"/search/person/{href}/vcard")
+        assert response.status_code == 200
+        assert response.mimetype == "text/vcard"
+        vcard = response.data.decode("UTF-8")
+        assert vcard.startswith("BEGIN:VCARD")
+        assert vcard.endswith("END:VCARD")
