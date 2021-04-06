@@ -1,6 +1,6 @@
 from collections import defaultdict
 from io import BytesIO
-from typing import Dict, NoReturn, Set
+from typing import Dict, List, NoReturn, Set, Tuple
 
 from flask import Flask, render_template
 from injector import Injector, inject
@@ -8,7 +8,7 @@ from werkzeug.exceptions import Forbidden
 from werkzeug.local import LocalProxy
 
 from husky_directory.models.enum import PopulationType
-from husky_directory.models.pws import PersonOutput
+from husky_directory.models.pws import NamedIdentity, PersonOutput
 from husky_directory.models.vcard import VCard, VCardPhone, VCardPhoneType
 from husky_directory.services.pws import PersonWebServiceClient
 from husky_directory.services.translator import (
@@ -89,6 +89,58 @@ class VCardService:
             vcard.email = employee.emails[0]
 
     @staticmethod
+    def parse_person_name(person: NamedIdentity) -> Tuple[str, List[str]]:
+        """
+        Naming is hard, and we can't necessarily rely on a sanitized data set every time.
+        So, we'll apply the following heuristic:
+
+         - If preferred name is set, always fill preferred values first
+         - Otherwise, default to registered values
+         - Otherwise(?), guess based on the display name, which is _likely_ the same values
+            as the registered values, so this might not ever happen, but
+            we don't control the data, so this use case is thus accounted for.
+
+        :param person:
+        :return: A tuple whose first value is the "Last" name, and whose second value is a list of "extra" names,
+        that are in the order of ["<first>", "<middle>", "extra +1", "extra +2", . . . ]
+        """
+        first = person.preferred_first_name
+        middle = person.preferred_middle_name
+        last = person.preferred_last_name
+
+        if not first:
+            middles = None
+            rfm = person.registered_first_middle_name
+            if rfm:
+                # 'A B C' becomes 'A', ['B', 'C']
+                first, *middles_ = rfm.split()
+                if not middle:
+                    # In case the middle name is already set, don't automatically override
+                    middles = middles_
+            else:
+                first, *middles = person.display_name.split()
+
+            if middles:
+                middle = " ".join(middles)
+
+        if not last:
+            if person.registered_surname:
+                last = person.registered_surname
+            else:
+                last = person.display_name.split()[-1]
+
+        # When we explode the display name to calculate this value
+        # "Firsty First Middly Last" might set "middle names" to
+        # "First Middly Last", but still with a "Last" surname, so the
+        # entry looks like: "Last;Firsty;First;Middly;Last".
+        # this block prevents the the second occurence of `Last`
+        if middle and last in middle:
+            middle = middle.replace(last, "").strip()
+
+        extras = list(filter(bool, [first, middle]))
+        return last, extras
+
+    @staticmethod
     def set_student_vcard_attrs(vcard: VCard, person: PersonOutput) -> NoReturn:
         student = person.affiliations.student
         # If there is no student directory data, then return an empty dict.
@@ -121,12 +173,11 @@ class VCardService:
             # but the request isn't authenticated
             raise Forbidden(href)
 
-        # "Mary Shelly" becomes ["Shelley", "Mary"]
-        name_parts = list(reversed(person.display_name.split()))
+        last_name, other_names = self.parse_person_name(person)
         vcard = VCard.construct(
-            last_name=name_parts.pop(0),  # "Shelley"
-            name_extras=name_parts,  # ["Mary"]
-            display_name=person.display_name,  # "Mary Shelley"
+            last_name=last_name,
+            name_extras=other_names,
+            display_name=person.display_name,
         )
         self.set_student_vcard_attrs(vcard, person)
         self.set_employee_vcard_attrs(vcard, person)

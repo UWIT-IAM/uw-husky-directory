@@ -6,17 +6,15 @@
     Model: husky_directory.models.vcard.VCard
 #}
 BEGIN:VCARD
-{# woofington;dawg;husky #}
-N:{{ last_name }};{% for e in name_extras %}{{ e }}{{
-        ';' if not loop.last else '' }}
-{% endfor %}
+{# "Husky Dawg Woofington" becomes "woofington;husky;dawg" #}
+N:{{ last_name }};{% for e in name_extras %}{{ e }}{{';' if not loop.last else '' }}{% endfor %}
 {# Husky Dawg Woofington #}
 FN:{{ display_name }}
 {% for title in titles %}
 TITLE:{{ title }}
 {% endfor %}
 {% for dept in departments %}
-ORG:{{ dept }}
+ORG:University of Washington;{{ dept }}
 {% endfor %}
 {% if not email is blank %}
 {# EMAIL;type=INTERNET;type=WORK:dawg@uw.edu #}

@@ -153,17 +153,20 @@ class PersonAffiliations(PWSBaseModel):
     )
 
 
-class PersonOutput(PWSBaseModel):
-    display_name: str = Field(..., alias="DisplayName")
-    affiliations: PersonAffiliations = Field(
-        PersonAffiliations(), alias="PersonAffiliations"
-    )
-    registered_name: str
-    registered_surname: str
+class NamedIdentity(PWSBaseModel):
+    display_name: Optional[str] = Field(..., alias="DisplayName")
+    registered_name: Optional[str]
+    registered_surname: Optional[str]
     registered_first_middle_name: Optional[str]
     preferred_first_name: Optional[str]
     preferred_middle_name: Optional[str]
     preferred_last_name: Optional[str]
+
+
+class PersonOutput(NamedIdentity):
+    affiliations: PersonAffiliations = Field(
+        PersonAffiliations(), alias="PersonAffiliations"
+    )
     pronouns: Optional[str]
     regid: Optional[str] = Field(None, alias="UWRegID")
     netid: Optional[str] = Field(None, alias="UWNetID")

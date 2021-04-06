@@ -10,6 +10,7 @@ from husky_directory.models.pws import (
     EmployeeDirectoryListing,
     EmployeePersonAffiliation,
     EmployeePosition,
+    NamedIdentity,
     PersonAffiliations,
     PersonOutput,
     StudentDirectoryListing,
@@ -145,8 +146,8 @@ class TestVCardServiceVCardGeneration:
             "FN:Ada Lovelace",
             "TITLE:Chief of Kibble Testing",
             "TITLE:Assistant Snuggler",
-            "ORG:Snack Eating",
-            "ORG:Napping",
+            "ORG:University of Washington;Snack Eating",
+            "ORG:University of Washington;Napping",
             "EMAIL;type=WORK:employee@uw.edu",
             'TEL;type="pager,text,voice":1111111',
             'TEL;type="textphone":3333333',
@@ -163,6 +164,85 @@ class TestVCardServiceVCardGeneration:
         for i, line in enumerate(result):
             assert line == self.expected_employee_vcard[i]
 
+    @pytest.mark.parametrize(
+        "name_attrs, expected_last, expected_extras",
+        [
+            # Standard guessing
+            (
+                NamedIdentity(display_name="Alpha Beta Gamma"),
+                "Gamma",
+                ["Alpha", "Beta"],
+            ),
+            # Not sure how this would happen, but just in case, ensure we honor
+            # preferences and registered names before resorting to making
+            # guesses about the display name that is somehow different.
+            (
+                NamedIdentity(
+                    preferred_first_name="Alpha",
+                    display_name="Foo Bar Baz",
+                    registered_first_middle_name="Alpha Beta",
+                    registered_surname="Gamma",
+                ),
+                "Gamma",
+                ["Alpha"],
+            ),
+            # Using first name prefs to filter the rest; aka the 'Ana Mari' case.
+            (
+                NamedIdentity(
+                    display_name="Alpha Beta Gamma", preferred_first_name="Alpha Beta"
+                ),
+                "Gamma",
+                ["Alpha Beta"],
+            ),
+            # Using preferences to override all fields;
+            (
+                NamedIdentity(
+                    display_name="Alpha Beta Gamma Delta",
+                    preferred_first_name="Alpha",
+                    preferred_middle_name="Gamma",
+                    preferred_last_name="Delta",
+                ),
+                "Delta",
+                ["Alpha", "Gamma"],
+            ),
+            # Similar to a combined first name, but for last names.
+            (
+                NamedIdentity(
+                    display_name="Alpha Beta St. Gamma", preferred_last_name="St. Gamma"
+                ),
+                "St. Gamma",
+                ["Alpha", "Beta"],
+            ),
+            # Partial overrides for first and middle, leaving last alone.
+            (
+                NamedIdentity(
+                    display_name="Alpha Beta Gamma",
+                    preferred_first_name="Iota",
+                    preferred_middle_name="Kappa",
+                ),
+                "Gamma",
+                ["Iota", "Kappa"],
+            ),
+            # This person gets tired of correcting their middle name, but leaves the
+            # rest alone; we can deal with that.
+            (
+                NamedIdentity(
+                    display_name="Alpha Beta Gamma Delta",
+                    preferred_middle_name="Beta Gamma",
+                ),
+                "Delta",
+                ["Alpha", "Beta Gamma"],
+            ),
+        ],
+    )
+    def test_parse_person_name(
+        self, name_attrs, expected_last, expected_extras, generate_person
+    ):
+        person = generate_person(**name_attrs.dict())
+        last, extras = self.service.parse_person_name(person)
+        assert last == expected_last
+        assert extras == expected_extras
+
     @pytest.mark.parametrize("log_in", (True, False))
     def test_student_vcard(self, student, client, log_in):
         expected = [
@@ -170,7 +250,7 @@ class TestVCardServiceVCardGeneration:
             "N:Lovelace;Ada",
             "FN:Ada Lovelace",
             "TITLE:Goodboi",
-            "ORG:Barkochemical Engineering",
+            "ORG:University of Washington;Barkochemical Engineering",
             "EMAIL;type=WORK:student@uw.edu",
             'TEL;type="voice":4444444',
             "END:VCARD",
@@ -203,9 +283,9 @@ class TestVCardServiceVCardGeneration:
             "TITLE:Goodboi",
             "TITLE:Chief of Kibble Testing",
             "TITLE:Assistant Snuggler",
-            "ORG:Barkochemical Engineering",
-            "ORG:Snack Eating",
-            "ORG:Napping",
+            "ORG:University of Washington;Barkochemical Engineering",
+            "ORG:University of Washington;Snack Eating",
+            "ORG:University of Washington;Napping",
             "EMAIL;type=WORK:employee@uw.edu",
             'TEL;type="pager,text,voice":1111111',
             'TEL;type="textphone":3333333',
