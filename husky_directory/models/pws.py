@@ -7,7 +7,7 @@ These are not 1:1 models of that API; only fields we care about are declared her
 
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Extra, Field
+from pydantic import BaseModel, Extra, Field, validator
 
 from .enum import AffiliationState
 from ..util import camelize
@@ -131,7 +131,7 @@ class StudentDirectoryListing(PWSBaseModel):
     email: Optional[str]
     # "class" is a reserved keyword, so we have to name this field somethign else.
     class_level: Optional[str] = Field(default=None, alias="Class")
-    departments: List = []  # TODO: Find department model
+    departments: List[str] = []
 
 
 class EmployeePersonAffiliation(PWSBaseModel):
@@ -153,21 +153,38 @@ class PersonAffiliations(PWSBaseModel):
     )
 
 
-class PersonOutput(PWSBaseModel):
-    display_name: str = Field(..., alias="DisplayName")
-    affiliations: PersonAffiliations = Field(
-        PersonAffiliations(), alias="PersonAffiliations"
-    )
-    registered_name: str
-    registered_surname: str
+class NamedIdentity(PWSBaseModel):
+    display_name: Optional[str] = Field(..., alias="DisplayName")
+    registered_name: Optional[str]
+    registered_surname: Optional[str]
     registered_first_middle_name: Optional[str]
     preferred_first_name: Optional[str]
     preferred_middle_name: Optional[str]
     preferred_last_name: Optional[str]
+
+
+class PersonOutput(NamedIdentity):
+    affiliations: PersonAffiliations = Field(
+        PersonAffiliations(), alias="PersonAffiliations"
+    )
     pronouns: Optional[str]
+    regid: Optional[str] = Field(None, alias="UWRegID")
     netid: Optional[str] = Field(None, alias="UWNetID")
     whitepages_publish: bool
     is_test_entity: bool
+    href: Optional[str]
+
+    @validator("href", always=True)
+    def populate_href(cls, href: Optional[str], values: Dict):
+        """
+        While abbreviated surch results include the href, the full
+        results do not, so it has to be generated.
+        """
+        if not href:
+            regid = values.get("regid")
+            if regid:
+                return f"/identity/v2/person/{regid}/full.json"
+        return href
 
 
 class ListPersonsOutput(ListResponsesOutputWrapper):

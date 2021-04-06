@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 import requests
 
-from husky_directory.models.pws import ListPersonsInput
+from husky_directory.models.pws import ListPersonsInput, ListPersonsOutput
 from husky_directory.services.pws import PersonWebServiceClient
 
 
@@ -21,11 +21,13 @@ class TestPersonWebServiceClient:
     def test_pws_url(self):
         assert self.client.pws_url.endswith("identity/v2")
 
-    def test_get_next(self):
+    def test_get_explicit_href(self):
         expected_url = f"{self.client.pws_url}/foobar"
 
-        self.client.get_next("/identity/v2/foobar")
-        self.mock_send_request.assert_called_once_with(expected_url)
+        self.client.get_explicit_href("/identity/v2/foobar")
+        self.mock_send_request.assert_called_once_with(
+            expected_url, output_type=ListPersonsOutput
+        )
 
     def test_list_persons(self):
         request_input = ListPersonsInput(display_name="test")
