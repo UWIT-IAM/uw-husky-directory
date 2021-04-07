@@ -6,6 +6,7 @@ from typing import List
 from devtools import PrettyFormat
 from injector import inject, singleton
 
+from husky_directory.models.enum import AffiliationState, PopulationType
 from husky_directory.models.search import (
     DirectoryQueryScenarioOutput,
     SearchDirectoryInput,
@@ -47,7 +48,13 @@ class DirectorySearchService:
             include_test_identities=request_input.include_test_identities,
         )
 
-        for query_description, query in self.query_generator.generate(request_input):
+        for query_description, query in self.query_generator.generate(
+            request_input, filter_parameters
+        ):
+            self.logger.info(
+                f"Querying: {query_description} with "
+                f"{query.dict(exclude_unset=True, exclude_defaults=True)}"
+            )
             pws_output = self._pws.list_persons(query)
             aggregate_output = pws_output
             while pws_output.next and pws_output.next.href:

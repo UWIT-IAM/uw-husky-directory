@@ -72,7 +72,7 @@ class TestSearchQueryGenerator:
         generated = list(
             self.query_generator.generate(SearchDirectoryInput(name="foo"))
         )
-        assert len(generated) == 5  # 1 global query, 4 from query_templates[1]
+        assert len(generated) == 5  # 1 global query, 4 from name_query_templates[1]
         expected_queries = [
             dict(display_name="foo"),
             dict(last_name="foo"),
@@ -90,7 +90,7 @@ class TestSearchQueryGenerator:
         generated = list(
             self.query_generator.generate(SearchDirectoryInput(name="foo bar"))
         )
-        assert len(generated) == 6  # 1 global query, 5 fro query_templates[2]
+        assert len(generated) == 6  # 1 global query, 5 fro name_query_templates[2]
         expected_queries = [
             dict(display_name="foo bar"),
             dict(first_name="foo", last_name="bar"),
@@ -197,6 +197,50 @@ class TestSearchQueryGenerator:
     )
     def test_email_input(self, input_value, expected_snippets):
         request_input = SearchDirectoryInput(email=input_value)
+        queries = list(self.query_generator.generate(request_input))
+        assert len(queries) == len(expected_snippets)
+        for i, snippet in enumerate(expected_snippets):
+            description, _ = queries[i]
+            assert snippet in description
+
+    @pytest.mark.parametrize(
+        "input_value, expected_snippets",
+        [
+            (
+                "foo",
+                [
+                    'matches "foo"',
+                    'begins with "foo"',
+                    'contains "foo"',
+                ],
+            ),
+            ("foo*", ['matches "foo*"']),
+            (
+                "foo & bar",
+                [
+                    'matches "foo & bar"',
+                    'begins with "foo & bar"',
+                    'contains "foo & bar"',
+                    'matches "foo and bar"',
+                    'begins with "foo and bar"',
+                    'contains "foo and bar"',
+                ],
+            ),
+            (
+                "foo and bar",
+                [
+                    'matches "foo and bar"',
+                    'begins with "foo and bar"',
+                    'contains "foo and bar"',
+                    'matches "foo & bar"',
+                    'begins with "foo & bar"',
+                    'contains "foo & bar"',
+                ],
+            ),
+        ],
+    )
+    def test_department_input(self, input_value, expected_snippets):
+        request_input = SearchDirectoryInput(department=input_value)
         queries = list(self.query_generator.generate(request_input))
         assert len(queries) == len(expected_snippets)
         for i, snippet in enumerate(expected_snippets):
