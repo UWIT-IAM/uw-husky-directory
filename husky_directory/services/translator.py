@@ -138,8 +138,6 @@ class ListPersonsOutputTranslator:
         request_output: ListPersonsOutput,
         person_filter_parameters: PersonOutputFilter,
     ) -> Dict[PopulationType, DirectoryQueryPopulationOutput]:
-        # TODO: positions, departments, majors -- fill in jira gaps
-
         results = {
             PopulationType.employees: DirectoryQueryPopulationOutput(
                 population=PopulationType.employees

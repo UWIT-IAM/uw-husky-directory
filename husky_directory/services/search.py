@@ -6,7 +6,6 @@ from typing import List
 from devtools import PrettyFormat
 from injector import inject, singleton
 
-from husky_directory.models.enum import AffiliationState, PopulationType
 from husky_directory.models.search import (
     DirectoryQueryScenarioOutput,
     SearchDirectoryInput,

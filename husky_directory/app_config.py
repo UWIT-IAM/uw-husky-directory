@@ -209,14 +209,6 @@ class ApplicationConfig(FlaskConfigurationSettings):
             return RedisSettings()
         return redis_settings
 
-    @property
-    def uwca_certificate_path(self):
-        return os.path.join(self.uwca_cert_path, f"{self.uwca_cert_name}.crt")
-
-    @property
-    def uwca_certificate_key(self):
-        return os.path.join(self.uwca_cert_path, f"{self.uwca_cert_name}.crt")
-
 
 class ApplicationConfigInjectorModule(Module):
     @provider

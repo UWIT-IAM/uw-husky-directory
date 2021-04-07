@@ -53,7 +53,6 @@ class PersonWebServiceClient:
         response.raise_for_status()
         data = response.json()
         output = output_type.parse_obj(data)
-        self.logger.debug(data)
         return output
 
     def get_explicit_href(
