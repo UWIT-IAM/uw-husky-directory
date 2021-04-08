@@ -4,7 +4,8 @@ from logging import Logger
 from typing import List
 
 from devtools import PrettyFormat
-from injector import inject, singleton
+from flask_injector import request
+from injector import inject
 
 from husky_directory.models.search import (
     DirectoryQueryScenarioOutput,
@@ -19,7 +20,7 @@ from husky_directory.services.translator import (
 )
 
 
-@singleton
+@request
 class DirectorySearchService:
     @inject
     def __init__(
