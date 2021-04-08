@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Extra, Field, validator
 
+from .common import UWDepartmentRole
 from .enum import AffiliationState
 from ..util import camelize
 
@@ -18,6 +19,7 @@ class PWSBaseModel(BaseModel):
         use_enum_values = True
         allow_population_by_field_name = True
         validate_assignment = True
+        validate_all = True
         # 'extra.Ignore' allows us to consume extra data from PWS without
         # declaring it here, so that our model doesn't have to match theirs
         # 1 for 1. Undeclared values are ignored on import; declare them
@@ -105,10 +107,14 @@ class ListPersonsInput(PWSBaseModel):
     )
 
 
-class EmployeePosition(PWSBaseModel):
+class EmployeePosition(PWSBaseModel, UWDepartmentRole):
+    """
+    Expands the UWDepartmentRole by adding PWS defaults and providing
+    aliases to match the PWS output.
+    """
+
     department: Optional[str] = Field(None, alias="EWPDept")
     title: Optional[str] = Field(None, alias="EWPTitle")
-    primary: bool
 
 
 class EmployeeDirectoryListing(PWSBaseModel):
@@ -135,7 +141,6 @@ class StudentDirectoryListing(PWSBaseModel):
 
 
 class EmployeePersonAffiliation(PWSBaseModel):
-    department: Optional[str]
     mail_stop: Optional[str]
     directory_listing: EmployeeDirectoryListing = Field(..., alias="EmployeeWhitePages")
 

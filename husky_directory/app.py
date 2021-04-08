@@ -2,9 +2,9 @@ import logging
 from logging.config import dictConfig
 from typing import List, NoReturn, Optional, Type, cast
 
+import inflection
 from flask import Flask, session as flask_session
 from flask_injector import FlaskInjector, request
-import inflection
 from flask_session import Session
 from injector import Injector, Module, provider, singleton
 from jinja2.tests import test_undefined

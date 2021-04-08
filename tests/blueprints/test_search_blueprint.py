@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from inflection import titleize
 
 from husky_directory.models.enum import PopulationType, ResultDetail
-from husky_directory.models.search import SearchDirectoryInput, SearchDirectoryFormInput
+from husky_directory.models.search import SearchDirectoryFormInput, SearchDirectoryInput
 from husky_directory.services.pws import PersonWebServiceClient
 
 
@@ -218,18 +218,11 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
 
             # We don't always expect results. For our current test ecosystem,
             # we won't see results if:
-            results_expected = all(
-                [
-                    # A user is not auth'd, but searches for students only.
-                    signed_in or (expected.population != "students"),
-                    # Someone searches by department (which is still not implemented)
-                    expected.method != "department",
-                ]
-            )
+            expect_results = signed_in or expected.population != "students"
 
             # If we don't expect results, we do expect a message telling us
             # that there are no results.
-            if not results_expected:
+            if not expect_results:
                 self.html_validator.assert_has_tag_with_text(
                     "p",
                     f'No matches for {titleize(expected.method)} is "{expected.query}"',

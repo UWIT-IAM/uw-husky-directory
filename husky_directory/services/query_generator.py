@@ -7,6 +7,7 @@ from pydantic import BaseModel, EmailError, validate_email
 
 from husky_directory.models.pws import ListPersonsInput
 from husky_directory.models.search import SearchDirectoryInput
+from husky_directory.services.translator import PersonOutputFilter
 
 
 class QueryTemplate(BaseModel):
@@ -110,7 +111,7 @@ class SearchQueryGenerator:
     # These are just hard-coded templates for the 1- and 2-arg scenarios ("Madonna," "Retta," "Jeff Goldbum")
     # We could add hard-coded templates for higher-cardinality searches, but instead, it's better to just
     # autogenerate them. See also: _generate_sliced_name_queries().
-    query_templates = {
+    name_query_templates = {
         1: [
             QueryTemplate(
                 description_fmt='Last name is "{}"',
@@ -246,8 +247,8 @@ class SearchQueryGenerator:
         name_parts = name.split()
         cardinality = len(name_parts)
 
-        if cardinality in self.query_templates:
-            for template in self.query_templates[cardinality]:
+        if cardinality in self.name_query_templates:
+            for template in self.name_query_templates[cardinality]:
                 yield template.get_description(name_parts), template.get_query(
                     name_parts
                 )
@@ -255,6 +256,50 @@ class SearchQueryGenerator:
 
         for template in self._generate_sliced_name_queries(cardinality):
             yield template.get_description(name_parts), template.get_query(name_parts)
+
+    def generate_department_queries(
+        self, department: str, include_alt_queries: bool = True
+    ) -> Tuple[str, ListPersonsInput]:
+        """
+        Generates queries for department.
+        :param department:  The department query.
+        :param include_alt_queries:  If set to True, will expand the search beyond the user input in an attempt to
+        return all relevant results. Currently, this will simply sub "&" for "and" and vice versa, so that users
+        don't need to keep track of this themselves.
+        :return:
+        """
+        yield f'Department matches "{department}"', ListPersonsInput(
+            department=department
+        )
+        if (
+            "*" in department
+        ):  # If the user provides a wildcard, we'll let PWS do the rest of the work.
+            return
+
+        yield f'Department begins with "{department}"', ListPersonsInput(
+            department=ArgFmt.begins_with(department)
+        )
+        yield f'Department contains "{department}"', ListPersonsInput(
+            department=ArgFmt.contains(department)
+        )
+
+        if not include_alt_queries:
+            return
+
+        # Add spaces to account for words with 'and' in them.
+        if " and " in department:
+            department = department.replace(" and ", " & ")
+        elif "&" in department:
+            department = department.replace("&", " and ")
+        else:
+            return  # Don't run additional queries if an 'and' isn't included in the q.
+
+        # Remove any extra whitespace between words.
+        department = " ".join(filter(bool, department.split()))
+        for description, query in self.generate_department_queries(
+            department, include_alt_queries=False
+        ):
+            yield description, query
 
     @staticmethod
     def generate_phone_queries(phone: str) -> Tuple[str, ListPersonsInput]:
@@ -328,7 +373,9 @@ class SearchQueryGenerator:
             )
 
     def generate(
-        self, request_input: SearchDirectoryInput
+        self,
+        request_input: SearchDirectoryInput,
+        constraints: Optional[PersonOutputFilter] = None,
     ) -> Iterable[Tuple[str, ListPersonsInput]]:
         if request_input.name:
             for description, query in self.generate_name_queries(request_input.name):
@@ -345,4 +392,9 @@ class SearchQueryGenerator:
                 yield description, query
         elif request_input.email:
             for description, query in self.generate_email_queries(request_input.email):
+                yield description, query
+        elif request_input.department:
+            for description, query in self.generate_department_queries(
+                request_input.department
+            ):
                 yield description, query

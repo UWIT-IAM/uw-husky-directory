@@ -4,6 +4,7 @@ from injector import inject
 from werkzeug.local import LocalProxy
 
 from husky_directory.models.base import DirectoryBaseModel
+from husky_directory.models.common import UWDepartmentRole
 from husky_directory.models.enum import PopulationType
 from husky_directory.models.pws import (
     EmployeePersonAffiliation,
@@ -138,8 +139,6 @@ class ListPersonsOutputTranslator:
         request_output: ListPersonsOutput,
         person_filter_parameters: PersonOutputFilter,
     ) -> Dict[PopulationType, DirectoryQueryPopulationOutput]:
-        # TODO: positions, departments, majors -- fill in jira gaps
-
         results = {
             PopulationType.employees: DirectoryQueryPopulationOutput(
                 population=PopulationType.employees
@@ -158,28 +157,37 @@ class ListPersonsOutputTranslator:
             student = person.affiliations.student
             employee = person.affiliations.employee
 
-            person_args = {"name": person.display_name, "href": person.href}
-            person_args.update(
-                {
-                    "phone_contacts": self._resolve_phones(
-                        employee_affiliation=employee, student_affiliation=student
-                    )
-                }
+            result = Person(
+                name=person.display_name,
+                phone_contacts=self._resolve_phones(employee, student),
+                **person.dict()
             )
 
-            result = Person.parse_obj(person_args)
+            if student:
+                result.email = student.directory_listing.email
+                result.departments.extend(
+                    UWDepartmentRole(
+                        title=student.directory_listing.class_level, department=dept
+                    )
+                    for dept in student.directory_listing.departments
+                    if dept  # Ignore data with holes in it.
+                )
+                results[PopulationType.students].people.append(result)
 
             if employee:
-                if employee.directory_listing.emails:
-                    result.email = employee.directory_listing.emails[0]
-                results[PopulationType.employees].people.append(result)
-
-            if student:
                 # Email will usually be the same, but just in case, we'll prefer the
                 # employee email address and not overwrite it with the student's if
                 # it's already set.
-                if not result.email:
-                    result.email = student.directory_listing.email
-                results[PopulationType.students].people.append(result)
+                if employee.directory_listing.emails:
+                    result.email = employee.directory_listing.emails[0]
+                result.departments.extend(
+                    UWDepartmentRole.from_orm(position)
+                    for position in employee.directory_listing.positions
+                    # Sometimes the data we get has holes in it;
+                    # we ignore holey data.
+                    if position.department and position.title
+                )
+                results[PopulationType.employees].people.append(result)
+
             person_filter_parameters.duplicate_netids.add(person.netid)
         return results

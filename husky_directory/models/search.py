@@ -2,6 +2,7 @@
 Models for the DirectorySearchService.
 """
 from __future__ import annotations
+
 import base64
 import re
 from typing import Dict, List, Optional
@@ -9,6 +10,7 @@ from typing import Dict, List, Optional
 from pydantic import Field, PydanticValueError, validator
 
 from husky_directory.models.base import DirectoryBaseModel
+from husky_directory.models.common import UWDepartmentRole
 from husky_directory.models.enum import PopulationType, ResultDetail
 
 
@@ -152,7 +154,8 @@ class Person(DirectoryBaseModel):
     phone_contacts: PhoneContactMethods = PhoneContactMethods()
     email: Optional[str]
     box_number: Optional[str]
-    department: Optional[str]
+    departments: List[UWDepartmentRole] = []
+
     href: str
 
     @validator("href")

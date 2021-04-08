@@ -1,9 +1,11 @@
 import typing
-from husky_directory.util import camelize
+
 from pydantic import BaseModel, Extra
 
+from husky_directory.util import camelize
+
 # This is only to make flake8 happy, we can skip this at runtime
-if typing.TYPE_CHECKING:
+if typing.TYPE_CHECKING:  # pragma: no cover
     from pydantic.typing import AbstractSetIntStr, DictStrAny, MappingIntStrAny
 
 

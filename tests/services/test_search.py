@@ -1,9 +1,12 @@
+from contextlib import ExitStack
 from typing import Any, Dict, List, Union
 from unittest import mock
 
 import pytest
 from werkzeug.local import LocalProxy
 
+from husky_directory.models.common import UWDepartmentRole
+from husky_directory.models.enum import PopulationType
 from husky_directory.models.pws import (
     ListPersonsInput,
     ListPersonsOutput,
@@ -21,19 +24,35 @@ from husky_directory.services.translator import (
 
 class TestDirectorySearchService:
     @pytest.fixture(autouse=True)
-    def configure_base(self, injector, mock_people):
+    def configure_base(self, injector, mock_people, mock_injected):
         self.mock_people = mock_people
-        self.client: DirectorySearchService = injector.get(DirectorySearchService)
         self.pws: PersonWebServiceClient = injector.get(PersonWebServiceClient)
+        self.session = {}
 
-        self.mock_list_persons = mock.patch.object(self.pws, "list_persons").start()
-        self.mock_get_explicit_href = mock.patch.object(
-            self.pws, "get_explicit_href"
-        ).start()
+        # We have to mock a lot here in order to avoid replicating
+        # an entire mock backend. The ExitStack allows us to add
+        # several layers of nested contexts without having to indent
+        # each time. Essentially, here, the stack just flattens
+        # out the view of our nest.
+        #
+        # TODO: This _does_ smell like too many mocks, but another
+        #       refactor seems like a "down the road" thing.
+        with ExitStack() as stack:
+            # Allows us to
+            stack.enter_context(mock_injected(PersonWebServiceClient, self.pws))
+            stack.enter_context(mock_injected(LocalProxy, self.session))
+            self.mock_list_persons = stack.enter_context(
+                mock.patch.object(self.pws, "list_persons")
+            )
+            self.mock_get_explicit_href = stack.enter_context(
+                mock.patch.object(self.pws, "get_explicit_href")
+            )
 
-        self.set_list_persons_output(
-            mock_people.as_search_output(mock_people.published_employee)
-        )
+            self.set_list_persons_output(
+                mock_people.as_search_output(mock_people.published_employee)
+            )
+            self.client: DirectorySearchService = injector.get(DirectorySearchService)
+            yield
 
     def set_list_persons_output(self, output: ListPersonsOutput):
         self.list_persons_output = output
@@ -46,7 +65,6 @@ class TestDirectorySearchService:
     def test_search_directory_happy(self):
         request_input = SearchDirectoryInput(name="foo")
         output = self.client.search_directory(request_input)
-        # The same data was returned a total of 10 times:
 
         assert output.num_results
         assert output.scenarios
@@ -79,32 +97,116 @@ class TestDirectorySearchService:
                 == val
             ), field_name
 
+    @pytest.mark.parametrize(
+        "person, expected_departments",
+        [
+            (
+                "published_employee",
+                [
+                    # We could easily automate this lookup,
+                    # but then we'd never know if something unexpected changes.
+                    # (Note to future self.)
+                    # See conftest::mock_people::published_employee
+                    UWDepartmentRole(
+                        department="Aeronautics & Astronautics",
+                        title="Senior Orbital Inclinator",
+                    )
+                ],
+            ),
+            (
+                "published_student",
+                [
+                    # See conftest::mock_people::publisehd_student
+                    UWDepartmentRole(
+                        department="Quantum Physiology",
+                        title="Senior",
+                    ),
+                    UWDepartmentRole(
+                        department="Transdimensional Studies",
+                        title="Senior",
+                    ),
+                ],
+            ),
+            (
+                "published_student_employee",
+                [
+                    # See conftest::mock_people::publisehd_student
+                    UWDepartmentRole(
+                        department="Quantum Physiology",
+                        title="Senior",
+                    ),
+                    UWDepartmentRole(
+                        department="Transdimensional Studies",
+                        title="Senior",
+                    ),
+                    UWDepartmentRole(
+                        department="Aeronautics & Astronautics",
+                        title="Senior Orbital Inclinator",
+                    ),
+                ],
+            ),
+        ],
+    )
+    def test_output_includes_department(self, person: str, expected_departments):
+        self.session["uwnetid"] = "foo"
+        input_population = None
+        expected_populations = []
+
+        if "student" in person:
+            input_population = PopulationType.students
+            expected_populations.append(input_population)
+
+        if "employee" in person:
+            if input_population:
+                input_population = PopulationType.all
+            else:
+                input_population = PopulationType.employees
+            expected_populations.append(PopulationType.employees)
+
+        input_population = PopulationType(input_population)
+        person = getattr(self.mock_people, person)
+        self.list_persons_output.persons = [person]
+        request_input = SearchDirectoryInput(
+            name="whatever", population=input_population
+        )
+        output = self.client.search_directory(request_input)
+        assert output.scenarios, output.dict()
+        for population in expected_populations:
+            assert (
+                output.scenarios[0].populations[population.value].people[0].departments
+                == expected_departments
+            )
+
+    def test_department_ignores_invalid_data(self):
+        person = self.mock_people.published_employee
+        person.affiliations.employee.directory_listing.positions[0].department = None
+        self.list_persons_output.persons = [person]
+        request_input = SearchDirectoryInput(
+            name="whatever", population=PopulationType.employees
+        )
+        output = self.client.search_directory(request_input)
+        output_person = output.scenarios[0].populations["employees"].people[0]
+        assert not output_person.departments
+
 
 class TestPersonOutputTranslator:
     @pytest.fixture(autouse=True)
-    def initialize(self, injector, mock_people):
+    def initialize(self, injector, mock_people, mock_injected):
         self.injector = injector
         self.mock_people = mock_people
+        self.session = {}
+
+        with mock_injected(LocalProxy, self.session):
+            yield
 
     @property
     def translator(self) -> ListPersonsOutputTranslator:
         return self.injector.get(ListPersonsOutputTranslator)
 
-    def mock_authentication(self):
-        orig_get = self.injector.get
-
-        def _get(class_):
-            if class_ == LocalProxy:
-                return {"uwnetid": "authuser"}
-            return orig_get(class_)
-
-        patch = mock.patch.object(self.injector, "get").start()
-        patch.side_effect = _get
-
     @pytest.mark.parametrize("should_be_authed", (True, False))
     def test_current_request_is_authenticated(self, should_be_authed):
         if should_be_authed:
-            self.mock_authentication()
+            self.session["uwnetid"] = "foo"
         assert self.translator.current_request_is_authenticated == should_be_authed
 
     @pytest.mark.parametrize(
@@ -154,7 +256,7 @@ class TestPersonOutputTranslator:
         expected_result: bool,
     ):
         if request_is_authenticated:
-            self.mock_authentication()
+            self.session["uwnetid"] = "authuser"
 
         if isinstance(profile, str):
             person = getattr(self.mock_people, profile)
