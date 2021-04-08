@@ -2,7 +2,9 @@ from typing import Dict, Optional
 
 import pytest
 from injector import Injector
+from werkzeug.local import LocalProxy
 
+from husky_directory.models.enum import PopulationType
 from husky_directory.models.search import SearchDirectoryInput
 from husky_directory.services.query_generator import (
     Query,
@@ -55,9 +57,12 @@ def test_wildcard_format(fmt, expected):
 
 class TestSearchQueryGenerator:
     @pytest.fixture(autouse=True)
-    def initialize(self, injector: Injector):
+    def initialize(self, injector: Injector, mock_injected):
         self.injector = injector
-        self.query_generator = injector.get(SearchQueryGenerator)
+        self.session = {}
+        with mock_injected(LocalProxy, self.session):
+            self.query_generator = injector.get(SearchQueryGenerator)
+            yield
 
     def test_wildcard_input(self):
         generated = list(
@@ -246,3 +251,37 @@ class TestSearchQueryGenerator:
         for i, snippet in enumerate(expected_snippets):
             description, _ = queries[i]
             assert snippet in description
+
+    @pytest.mark.parametrize("authenticate", (True, False))
+    def test_query_all_populations(self, authenticate: bool):
+        """Ensures that, depending on the population and the authentication context,
+        the correct queries are emitted.
+        """
+        if authenticate:
+            self.session["uwnetid"] = "foo"
+        request_input = SearchDirectoryInput(
+            name="*whatever", population=PopulationType.all
+        )
+        queries = list(self.query_generator.generate(request_input))
+
+        assert queries[0][1].employee_affiliation_state == "current"
+        assert queries[0][1].student_affiliation_state is None
+        if authenticate:
+            assert queries[1][1].student_affiliation_state == "current"
+            assert queries[1][1].employee_affiliation_state is None
+
+    @pytest.mark.parametrize("authenticate", (True, False))
+    def test_query_student_population(self, authenticate: bool):
+        if authenticate:
+            self.session["uwnetid"] = "foo"
+        request_input = SearchDirectoryInput(
+            name="*whatever", population=PopulationType.students
+        )
+
+        queries = list(self.query_generator.generate(request_input))
+        if authenticate:
+            assert len(queries) == 1
+            assert queries[0][1].employee_affiliation_state is None
+            assert queries[0][1].student_affiliation_state == "current"
+        else:
+            assert not queries

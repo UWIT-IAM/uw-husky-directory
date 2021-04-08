@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from logging import Logger
-from typing import List
+from typing import Dict, List
 
 from devtools import PrettyFormat
 from flask_injector import request
@@ -48,6 +48,8 @@ class DirectorySearchService:
             include_test_identities=request_input.include_test_identities,
         )
 
+        scenario_description_indexes: Dict[str, int] = {}
+
         for query_description, query in self.query_generator.generate(
             request_input, filter_parameters
         ):
@@ -67,6 +69,23 @@ class DirectorySearchService:
                     aggregate_output, filter_parameters
                 ),
             )
-            scenarios.append(scenario_output)
+
+            # Merges populations when a scenario is spread
+            # over multiple queries. This is not my favorite thing,
+            # and smells of a future API refactor.
+            # TODO Brainstorm a better way to handle this, then create a Jira once
+            # you know what the problem (and hopefully solution) is.
+            if query_description in scenario_description_indexes:
+                index = scenario_description_indexes[query_description]
+                existing_scenario = scenarios[index]
+                for population, results in scenario_output.populations.items():
+                    if population not in existing_scenario.populations:
+                        existing_scenario.populations[population].people = []
+                    existing_scenario.populations[population].people.extend(
+                        results.people
+                    )
+            else:
+                scenarios.append(scenario_output)
+                scenario_description_indexes[query_description] = len(scenarios) - 1
 
         return SearchDirectoryOutput(scenarios=scenarios)
