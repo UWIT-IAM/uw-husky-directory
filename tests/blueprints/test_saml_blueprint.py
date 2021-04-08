@@ -1,5 +1,3 @@
-from unittest import mock
-
 import pytest
 from flask import Response
 from flask.testing import FlaskClient
@@ -9,28 +7,17 @@ from werkzeug.local import LocalProxy
 
 class TestSAMLBlueprint:
     @pytest.fixture(autouse=True)
-    def initialize(self, injector, client: FlaskClient, html_validator):
+    def initialize(self, injector, client: FlaskClient, html_validator, mock_injected):
         self.mock_session = {}
         self.flask_client = client
         self.html_validator = html_validator
 
-        # Mock out the LocalProxy so that we can test its state
-        # before and after SAML calls.
-        orig_get = injector.get
-
-        def _injector_get(cls):
-            if cls is LocalProxy:
-                return self.mock_session
-            return orig_get(cls)
-
-        with mock.patch.object(injector, "get") as mock_injector_get:
-            mock_injector_get.side_effect = _injector_get
+        with mock_injected(LocalProxy, self.mock_session):
             yield
 
     def test_login(self):
         """Logs in to the mock IdP just to validate the flow."""
         assert not self.mock_session
-        response: Response = self.flask_client.get("/")
         with self.html_validator.validate_response(self.flask_client.get("/")) as html:
             assert html.find("a", dict(id="sign-in"))
             population_options = html.find_all("input", dict(name="population"))

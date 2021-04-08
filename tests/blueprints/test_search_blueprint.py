@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from inflection import titleize
 
 from husky_directory.models.enum import PopulationType, ResultDetail
-from husky_directory.models.search import SearchDirectoryInput, SearchDirectoryFormInput
+from husky_directory.models.search import SearchDirectoryFormInput, SearchDirectoryInput
 from husky_directory.services.pws import PersonWebServiceClient
 
 
