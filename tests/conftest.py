@@ -3,7 +3,8 @@ import random
 import re
 import string
 from contextlib import contextmanager
-from typing import Any, Optional
+from typing import Any, Dict, Optional
+from unittest import mock
 
 import flask
 import pytest
@@ -16,6 +17,7 @@ from husky_directory.app_config import ApplicationConfig
 from husky_directory.models.pws import (
     EmployeeDirectoryListing,
     EmployeePersonAffiliation,
+    EmployeePosition,
     ListPersonsInput,
     ListPersonsOutput,
     PersonAffiliations,
@@ -89,7 +91,14 @@ def mock_people(generate_person):
             affiliations=PersonAffiliations(
                 employee=EmployeePersonAffiliation(
                     directory_listing=EmployeeDirectoryListing(
-                        publish_in_directory=True
+                        publish_in_directory=True,
+                        positions=[
+                            EmployeePosition(
+                                department="Aeronautics & Astronautics",
+                                title="Senior Orbital Inclinator",
+                                primary=True,
+                            )
+                        ],
                     )
                 )
             )
@@ -106,10 +115,15 @@ def mock_people(generate_person):
         published_student = generate_person(
             affiliations=PersonAffiliations(
                 student=StudentPersonAffiliation(
-                    directory_listing=StudentDirectoryListing(publish_in_directory=True)
+                    directory_listing=StudentDirectoryListing(
+                        publish_in_directory=True,
+                        departments=["Quantum Physiology", "Transdimensional Studies"],
+                        class_level="Senior",
+                    )
                 )
             )
         )
+
         contactable_person = generate_person(
             affiliations=PersonAffiliations(
                 employee=EmployeePersonAffiliation(
@@ -144,7 +158,15 @@ def mock_people(generate_person):
                 next=next_,
             )
 
-    return People
+        @property
+        def published_student_employee(self) -> PersonOutput:
+            published_student_employee = self.published_employee.copy()
+            published_student_employee.affiliations.student = (
+                self.published_student.affiliations.student
+            )
+            return published_student_employee
+
+    return People()
 
 
 class HTMLValidator:
@@ -402,3 +424,27 @@ class HTMLValidator:
 @pytest.fixture(scope="session")
 def html_validator() -> HTMLValidator:
     return HTMLValidator()
+
+
+@pytest.fixture
+def mocked_injections() -> Dict[Any, Any]:
+    return {}
+
+
+@pytest.fixture
+def mock_injected(injector, mocked_injections):
+    injector_get = injector.get
+
+    def get_(cls):
+        if cls in mocked_injections:
+            return mocked_injections[cls]
+        return injector_get(cls)
+
+    @contextmanager
+    def inner(cls, mocked_instance):
+        mocked_injections[cls] = mocked_instance
+
+        with mock.patch.object(injector, "get", get_):
+            yield injector.get(cls)
+
+    return inner

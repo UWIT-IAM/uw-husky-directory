@@ -37,10 +37,10 @@ def test_bad_request_error(client):
     assert response.status_code == 400
 
 
-def test_internal_server_error(client, injector):
-    with mock.patch.object(
-        injector.get(DirectorySearchService), "search_directory"
-    ) as mock_search:
+def test_internal_server_error(client, injector, mock_injected):
+    service = injector.get(DirectorySearchService)
+    with mock_injected(DirectorySearchService, service):
+        mock_search = mock.patch.object(service, "search_directory").start()
         mock_search.side_effect = RuntimeError
         response = client.get("/search?boxNumber=123456")
         assert response.status_code == 500

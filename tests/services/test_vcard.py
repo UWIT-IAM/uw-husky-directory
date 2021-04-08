@@ -110,21 +110,15 @@ class TestVCardServiceAttributeResolution:
 
 class TestVCardServiceVCardGeneration:
     @pytest.fixture(autouse=True)
-    def initialize(self, injector: Injector):
+    def initialize(self, injector: Injector, mock_injected):
         self.service = injector.get(VCardService)
         self.pws = injector.get(PersonWebServiceClient)
         self.session = cast(LocalProxy, {})
 
-        orig_get = injector.get
+        with mock_injected(LocalProxy, self.session):
+            with mock_injected(PersonWebServiceClient, self.pws):
+                yield
 
-        def mock_get(cls_):
-            if cls_ == PersonWebServiceClient:
-                return self.pws
-            if cls_ == LocalProxy:
-                return self.session
-            return orig_get(cls_)
-
-        mock.patch.object(injector, "get").start().side_effect = mock_get
         self.mock_pws_person: Optional[PersonOutput] = None
 
     def prepare_pws(self):
