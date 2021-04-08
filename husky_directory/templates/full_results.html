@@ -17,6 +17,11 @@
                         {% endif %}
                     {% endfor %}
                 </ul>
+                <ul class="multiaddr">
+                    {% for entry in data['departments'] %}
+                    <li>{{entry.title}}, {{entry.department}}</li>
+                    {% endfor %}
+                </ul>
                 <button class="btn btn-primary" name="vcard-{{ loop.index }}">
                     <a href="/search/person/{{ data['href'] }}/vcard"
                        style="color:white;"
