@@ -170,6 +170,7 @@ class ListPersonsOutputTranslator:
                         title=student.directory_listing.class_level, department=dept
                     )
                     for dept in student.directory_listing.departments
+                    if dept  # Ignore data with holes in it.
                 )
                 results[PopulationType.students].people.append(result)
 
@@ -182,6 +183,9 @@ class ListPersonsOutputTranslator:
                 result.departments.extend(
                     UWDepartmentRole.from_orm(position)
                     for position in employee.directory_listing.positions
+                    # Sometimes the data we get has holes in it;
+                    # we ignore holey data.
+                    if position.department and position.title
                 )
                 results[PopulationType.employees].people.append(result)
 

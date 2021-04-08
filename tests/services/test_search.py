@@ -177,6 +177,17 @@ class TestDirectorySearchService:
                 == expected_departments
             )
 
+    def test_department_ignores_invalid_data(self):
+        person = self.mock_people.published_employee
+        person.affiliations.employee.directory_listing.positions[0].department = None
+        self.list_persons_output.persons = [person]
+        request_input = SearchDirectoryInput(
+            name="whatever", population=PopulationType.employees
+        )
+        output = self.client.search_directory(request_input)
+        output_person = output.scenarios[0].populations["employees"].people[0]
+        assert not output_person.departments
+
 
 class TestPersonOutputTranslator:
     @pytest.fixture(autouse=True)

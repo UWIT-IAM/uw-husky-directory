@@ -141,7 +141,6 @@ class StudentDirectoryListing(PWSBaseModel):
 
 
 class EmployeePersonAffiliation(PWSBaseModel):
-    department: Optional[str]
     mail_stop: Optional[str]
     directory_listing: EmployeeDirectoryListing = Field(..., alias="EmployeeWhitePages")
 
