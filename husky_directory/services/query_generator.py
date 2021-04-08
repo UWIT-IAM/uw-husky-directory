@@ -1,10 +1,13 @@
 from itertools import product
-from typing import Callable, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Iterable, List, Optional, Tuple, Union
 
 import inflection
-from injector import singleton
+from flask_injector import request
+from injector import inject
 from pydantic import BaseModel, EmailError, validate_email
+from werkzeug.local import LocalProxy
 
+from husky_directory.models.enum import AffiliationState, PopulationType
 from husky_directory.models.pws import ListPersonsInput
 from husky_directory.models.search import SearchDirectoryInput
 from husky_directory.services.translator import PersonOutputFilter
@@ -91,7 +94,7 @@ Query = ListPersonsInput  # Aliasing this for brevity in the below definitions.
 ArgFmt = WildcardFormat  # An uglier, but shorter name
 
 
-@singleton
+@request
 class SearchQueryGenerator:
     """
     This is a really heavy, un-fun, hard-coded class that should not be maintained long-term. It only exists
@@ -164,6 +167,14 @@ class SearchQueryGenerator:
             ),
         ],
     }
+
+    @inject
+    def __init__(self, session: LocalProxy):
+        self.session = session
+
+    @property
+    def request_is_authenticated(self) -> bool:
+        return bool(self.session.get("uwnetid"))
 
     @staticmethod
     def _build_sliced_name_query_template(
@@ -302,7 +313,7 @@ class SearchQueryGenerator:
             yield description, query
 
     @staticmethod
-    def generate_phone_queries(phone: str) -> Tuple[str, ListPersonsInput]:
+    def generate_sanitized_phone_queries(phone: str) -> Tuple[str, ListPersonsInput]:
         """
         Attempts to match the phone exactly as provided; if the phone number was very long, we'll also try to match
         only the last 10 digits.
@@ -320,7 +331,7 @@ class SearchQueryGenerator:
             )
 
     @staticmethod
-    def generate_mail_box_queries(box_number: str) -> Tuple[str, ListPersonsInput]:
+    def generate_box_number_queries(box_number: str) -> Tuple[str, ListPersonsInput]:
         # PWS only ever returns "begins with" results for mailstop.
         yield f'Mailstop begins with "{box_number}"', ListPersonsInput(
             mail_stop=box_number
@@ -372,29 +383,35 @@ class SearchQueryGenerator:
                 email=WildcardFormat.contains(partial)
             )
 
+    def generate_field_queries(
+        self, field_name: str, query_value: Any, population: Union[PopulationType, str]
+    ):
+        if isinstance(population, str):
+            population = PopulationType(population)
+
+        query_method = f"generate_{field_name}_queries"
+        query: ListPersonsInput
+        for description, query in getattr(self, query_method)(query_value):
+            if population in (PopulationType.all, PopulationType.employees):
+                yield description, query
+            if (
+                population in (PopulationType.all, PopulationType.students)
+                and self.request_is_authenticated
+            ):
+                yield description, query.copy(
+                    update=dict(
+                        employee_affiliation_state=None,
+                        student_affiliation_state=AffiliationState.current.value,
+                    )
+                )
+
     def generate(
         self,
         request_input: SearchDirectoryInput,
         constraints: Optional[PersonOutputFilter] = None,
     ) -> Iterable[Tuple[str, ListPersonsInput]]:
-        if request_input.name:
-            for description, query in self.generate_name_queries(request_input.name):
-                yield description, query
-        elif request_input.sanitized_phone:
-            for description, query in self.generate_phone_queries(
-                request_input.sanitized_phone
-            ):
-                yield description, query
-        elif request_input.box_number:
-            for description, query in self.generate_mail_box_queries(
-                request_input.box_number
-            ):
-                yield description, query
-        elif request_input.email:
-            for description, query in self.generate_email_queries(request_input.email):
-                yield description, query
-        elif request_input.department:
-            for description, query in self.generate_department_queries(
-                request_input.department
-            ):
-                yield description, query
+        population = request_input.population
+        for field in ("name", "sanitized_phone", "box_number", "email", "department"):
+            val = getattr(request_input, field, None)
+            if val:
+                yield from self.generate_field_queries(field, val, population)
