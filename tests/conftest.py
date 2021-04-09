@@ -90,16 +90,16 @@ def mock_people(generate_person):
         published_employee = generate_person(
             affiliations=PersonAffiliations(
                 employee=EmployeePersonAffiliation(
+                    mail_stop="351234",
                     directory_listing=EmployeeDirectoryListing(
                         publish_in_directory=True,
                         positions=[
                             EmployeePosition(
                                 department="Aeronautics & Astronautics",
                                 title="Senior Orbital Inclinator",
-                                primary=True,
                             )
                         ],
-                    )
+                    ),
                 )
             )
         )

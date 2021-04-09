@@ -11,7 +11,7 @@ from husky_directory.models.pws import (
     ListPersonsInput,
     ListPersonsOutput,
 )
-from husky_directory.models.search import SearchDirectoryInput
+from husky_directory.models.search import Person, SearchDirectoryInput
 from husky_directory.services.pws import PersonWebServiceClient
 from husky_directory.services.search import (
     DirectorySearchService,
@@ -185,8 +185,17 @@ class TestDirectorySearchService:
             name="whatever", population=PopulationType.employees
         )
         output = self.client.search_directory(request_input)
-        output_person = output.scenarios[0].populations["employees"].people[0]
+        output_person: Person = output.scenarios[0].populations["employees"].people[0]
         assert not output_person.departments
+
+    def test_output_includes_box_number(self):
+        person = self.mock_people.published_employee
+        self.list_persons_output.persons = [person]
+        output = self.client.search_directory(
+            SearchDirectoryInput(name="*blah", population=PopulationType.employees)
+        )
+        output_person: Person = output.scenarios[0].populations["employees"].people[0]
+        assert output_person.box_number == "351234"
 
 
 class TestPersonOutputTranslator:

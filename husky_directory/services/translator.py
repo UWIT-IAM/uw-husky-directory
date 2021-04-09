@@ -180,6 +180,7 @@ class ListPersonsOutputTranslator:
                 # it's already set.
                 if employee.directory_listing.emails:
                     result.email = employee.directory_listing.emails[0]
+                result.box_number = employee.mail_stop
                 result.departments.extend(
                     UWDepartmentRole.from_orm(position)
                     for position in employee.directory_listing.positions
