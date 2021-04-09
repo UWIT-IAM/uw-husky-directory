@@ -16,10 +16,11 @@
                                 {{ numbers|join(', ') }}</li>
                         {% endif %}
                     {% endfor %}
+                    <li class="dir-boxstuff">Box {{ data['box_number'] }}</li>
                 </ul>
                 <ul class="multiaddr">
                     {% for entry in data['departments'] %}
-                    <li>{{entry.title}}, {{entry.department}}</li>
+                        <li>{{ entry.title }}, {{ entry.department }}</li>
                     {% endfor %}
                 </ul>
                 <button class="btn btn-primary" name="vcard-{{ loop.index }}">
