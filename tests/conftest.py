@@ -127,6 +127,7 @@ def mock_people(generate_person):
         contactable_person = generate_person(
             affiliations=PersonAffiliations(
                 employee=EmployeePersonAffiliation(
+                    mail_stop="351234",
                     directory_listing=EmployeeDirectoryListing(
                         publish_in_directory=True,
                         phones=["2068675309 Ext. 4242"],
@@ -135,7 +136,7 @@ def mock_people(generate_person):
                         mobiles=["+1 999 (967)-4222", "+1 999 (967) 4999"],
                         touch_dials=["+19999499911"],
                         emails=["dawg@uw.edu"],
-                    )
+                    ),
                 ),
                 student=StudentPersonAffiliation(
                     directory_listing=StudentDirectoryListing(
