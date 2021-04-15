@@ -16,7 +16,9 @@
                                 {{ numbers|join(', ') }}</li>
                         {% endif %}
                     {% endfor %}
-                    <li class="dir-boxstuff">Box {{ data['box_number'] }}</li>
+                    {% if data['box_number'] %}
+                        <li class="dir-boxstuff">Box {{ data['box_number'] }}</li>
+                    {% endif %}
                 </ul>
                 <ul class="multiaddr">
                     {% for entry in data['departments'] %}

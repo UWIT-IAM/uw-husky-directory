@@ -79,6 +79,9 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
                 self.html_validator.assert_has_tag_with_text(
                     "li", profile.affiliations.employee.directory_listing.phones[0]
                 )
+                self.html_validator.assert_has_tag_with_text(
+                    "li", str(profile.affiliations.employee.mail_stop)
+                )
 
     def test_render_no_results(self):
         self.mock_list_persons.return_value = self.mock_people.as_search_output()
@@ -97,6 +100,25 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
             assert not html.find("table", summary="results")
             assert html.find(string=re.compile("Encountered error"))
             self.html_validator.assert_has_tag_with_text("b", "invalid box number")
+
+    def test_render_full_no_box_number(self):
+        self.mock_list_persons.return_value = self.mock_people.as_search_output(
+            self.mock_people.published_student
+        )
+        self.flask_client.get("/saml/login", follow_redirects=True)
+        with self.html_validator.validate_response(
+            self.flask_client.post(
+                "/search",
+                data={
+                    "query": "foo",
+                    "length": "full",
+                    "population": "students",
+                },
+            )
+        ) as html:
+            assert not html.find_all("li", class_="dir-boxstuff")
+            with self.html_validator.scope("div", class_="usebar"):
+                self.html_validator.assert_has_tag_with_text("button", "Download vcard")
 
     def test_render_unexpected_error(self):
         self.mock_list_persons.side_effect = RuntimeError
