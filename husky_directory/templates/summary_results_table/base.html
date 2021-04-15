@@ -1,12 +1,14 @@
 <table class="table table-bordered table-striped table-condensed"
        summary="results" width="100%">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>*</th>
+        </tr>
+    </thead>
     <tbody>
-    <tr>
-        <th>Name</th>
-        <th>Phone</th>
-        <th>Email</th>
-        <th>*</th>
-    </tr>
     {% for scenario in search_result['scenarios'] %}
         {% if scenario['num_results'] > 0 %}
             {% include 'summary_results_table/scenario_block.html' %}

@@ -1,5 +1,17 @@
 /* Not in our normal CSS; custom */
 
+.table-striped > tbody > tr:nth-child(odd) {
+  background-color: white;
+}
+
+.table-striped > tbody > tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.table-striped > thead > tr > th{
+  background-color: #f9f9f9;
+}
+
 body #uw-container {
   font-size: 17px;
   line-height: 1.72222;
