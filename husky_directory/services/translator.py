@@ -111,27 +111,19 @@ class ListPersonsOutputTranslator:
 
         return True
 
+    @staticmethod
     def _resolve_phones(
-        self,
         employee_affiliation: Optional[EmployeePersonAffiliation],
         student_affiliation: Optional[StudentPersonAffiliation],
     ) -> PhoneContactMethods:
-        model = PhoneContactMethods()
         if employee_affiliation:
-            model = model.copy(
-                update=employee_affiliation.directory_listing.dict(
-                    include={
-                        "phones",
-                        "pagers",
-                        "voice_mails",
-                        "touch_dials",
-                        "faxes",
-                        "mobiles",
-                    },
-                )
-            )
+            model = PhoneContactMethods.from_orm(employee_affiliation.directory_listing)
+        else:
+            model = PhoneContactMethods()
+
         if student_affiliation:
             model.phones.append(student_affiliation.directory_listing.phone)
+
         return model
 
     def translate_scenario(

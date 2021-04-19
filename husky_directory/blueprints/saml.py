@@ -1,6 +1,5 @@
 import getpass
 from logging import Logger
-from urllib.parse import urljoin
 
 import uw_saml2
 from flask import Blueprint, Request, redirect

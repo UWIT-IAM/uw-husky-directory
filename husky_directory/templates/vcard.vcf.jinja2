@@ -17,8 +17,8 @@ TITLE:{{ title }}
 ORG:University of Washington;{{ dept }}
 {% endfor %}
 {% if not email is blank %}
-{# EMAIL;type=INTERNET;type=WORK:dawg@uw.edu #}
-EMAIL;type=WORK:{{ email }}
+{# EMAIL;type=INTERNET,type=WORK:dawg@uw.edu #}
+EMAIL;type=INTERNET,type=WORK:{{ email }}
 {% endif %}
 {% for phone in phones %}
 {# TEL;type="pager,voice":5558675309 #}
