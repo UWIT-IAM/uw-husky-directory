@@ -24,12 +24,8 @@ from husky_directory.services.vcard import VCardService
 @pytest.fixture
 def employee(generate_person) -> PersonOutput:
     positions = [
-        EmployeePosition(
-            department="Snack Eating", title="Chief of Kibble Testing", primary=True
-        ),
-        EmployeePosition(
-            department="Napping", title="Assistant Snuggler", primary=False
-        ),
+        EmployeePosition(department="Snack Eating", title="Chief of Kibble Testing"),
+        EmployeePosition(department="Napping", title="Assistant Snuggler"),
     ]
 
     return generate_person(
@@ -88,10 +84,10 @@ class TestVCardServiceAttributeResolution:
 
         assert vcard.phones == [
             VCardPhone(
-                types=["pager", "text", "voice"],
+                types=["cell", "pager", "work"],
                 value="1111111",
             ),
-            VCardPhone(types=["textphone"], value="3333333"),
+            VCardPhone(types=["TTY-TDD"], value="3333333"),
             VCardPhone(types=["fax"], value="2222222"),
         ]
 
@@ -102,7 +98,7 @@ class TestVCardServiceAttributeResolution:
     def test_set_student_vcard_attrs(self, student):
         vcard = VCard.construct()
         self.service.set_student_vcard_attrs(vcard, student)
-        assert vcard.phones == [VCardPhone(types=["voice"], value="4444444")]
+        assert vcard.phones == [VCardPhone(types=["home"], value="4444444")]
         assert vcard.email == "student@uw.edu"
         assert vcard.titles == ["Goodboi"]
         assert vcard.departments == ["Barkochemical Engineering"]
@@ -142,9 +138,9 @@ class TestVCardServiceVCardGeneration:
             "TITLE:Assistant Snuggler",
             "ORG:University of Washington;Snack Eating",
             "ORG:University of Washington;Napping",
-            "EMAIL;type=WORK:employee@uw.edu",
-            'TEL;type="pager,text,voice":1111111',
-            'TEL;type="textphone":3333333',
+            "EMAIL;type=INTERNET,type=WORK:employee@uw.edu",
+            'TEL;type="cell,pager,work":1111111',
+            'TEL;type="TTY-TDD":3333333',
             'TEL;type="fax":2222222',
             "END:VCARD",
         ]
@@ -245,8 +241,8 @@ class TestVCardServiceVCardGeneration:
             "FN:Ada Lovelace",
             "TITLE:Goodboi",
             "ORG:University of Washington;Barkochemical Engineering",
-            "EMAIL;type=WORK:student@uw.edu",
-            'TEL;type="voice":4444444',
+            "EMAIL;type=INTERNET,type=WORK:student@uw.edu",
+            'TEL;type="home":4444444',
             "END:VCARD",
         ]
 
@@ -280,9 +276,10 @@ class TestVCardServiceVCardGeneration:
             "ORG:University of Washington;Barkochemical Engineering",
             "ORG:University of Washington;Snack Eating",
             "ORG:University of Washington;Napping",
-            "EMAIL;type=WORK:employee@uw.edu",
-            'TEL;type="pager,text,voice":1111111',
-            'TEL;type="textphone":3333333',
+            "EMAIL;type=INTERNET,type=WORK:employee@uw.edu",
+            'TEL;type="home":4444444',
+            'TEL;type="cell,pager,work":1111111',
+            'TEL;type="TTY-TDD":3333333',
             'TEL;type="fax":2222222',
             "END:VCARD",
         ]

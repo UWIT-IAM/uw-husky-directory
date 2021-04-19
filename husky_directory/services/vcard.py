@@ -46,8 +46,10 @@ class VCardService:
     def set_employee_vcard_attrs(vcard: VCard, person: PersonOutput) -> NoReturn:
         """
         Based on a person's employee attributes, sets appropriate vcard values.
-        For people who are both students and employees, employee phones and email
-        selections will override student selections, if they differ.
+        For people who are both students and employees email values will override
+        student values, if they differ.
+
+        Student phones will not interfere, as they are treated as "home".
         """
         employee = person.affiliations.employee
         if not employee or not employee.directory_listing:
@@ -58,30 +60,35 @@ class VCardService:
             vcard.titles.append(position.title)
             vcard.departments.append(position.department)
 
+        # Populates a dictionary whose keys are phone numbers and
+        # whose default values are empty sets that are later populated
+        # to include the various tags attached to the number.
         phones: Dict[str, Set[VCardPhoneType]] = defaultdict(lambda: set())
 
         for pager in employee.pagers:
             phones[pager].add(VCardPhoneType.pager)
         for tdd in employee.touch_dials:
-            phones[tdd].add(VCardPhoneType.textphone)
+            phones[tdd].add(VCardPhoneType.tdd)
         for fax in employee.faxes:
             phones[fax].add(VCardPhoneType.fax)
-        for phone in employee.mobiles:
-            phones[phone].add(VCardPhoneType.text)
-            phones[phone].add(VCardPhoneType.voice)
-        for phone in employee.voice_mails + employee.phones:
-            phones[phone].add(VCardPhoneType.voice)
+        for mobile in employee.mobiles:
+            phones[mobile].add(VCardPhoneType.cell)
+        for vm in employee.voice_mails:
+            phones[vm].add(VCardPhoneType.message)
+        for work_phone in employee.phones:
+            phones[work_phone].add(VCardPhoneType.work)
 
-        # If student phones exist, we prefer employee phones, so we overwrite.
         if phones:
-            vcard.phones = [
-                # Sort the types based on their stringified values
-                # so that our vcard ordering is deterministic.
-                VCardPhone(
-                    types=sorted(list(types), key=lambda t: t.value), value=phone
-                )
-                for phone, types in phones.items()
-            ]
+            vcard.phones.extend(
+                [
+                    # Sort the types based on their stringified values
+                    # so that our vcard ordering is deterministic.
+                    VCardPhone(
+                        types=sorted(list(types), key=lambda t: t.value), value=phone
+                    )
+                    for phone, types in phones.items()
+                ]
+            )
 
         # If student email exists, we prefer employee email (in case they are different),
         # so we overwrite.
@@ -151,7 +158,7 @@ class VCardService:
 
         if student.phone:
             vcard.phones.append(
-                VCardPhone(types=[VCardPhoneType.voice], value=student.phone)
+                VCardPhone(types=[VCardPhoneType.home], value=student.phone)
             )
         if student.email:
             vcard.email = student.email

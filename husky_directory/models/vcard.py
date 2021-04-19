@@ -5,12 +5,13 @@ from husky_directory.models.base import DirectoryBaseModel
 
 
 class VCardPhoneType(Enum):
-    text = "text"
-    voice = "voice"
+    work = "work"
+    home = "home"
     fax = "fax"
-    cell = "cell"
     pager = "pager"
-    textphone = "textphone"  # TDD
+    cell = "cell"
+    tdd = "TTY-TDD"
+    message = "MSG"
 
 
 class VCardPhone(DirectoryBaseModel):

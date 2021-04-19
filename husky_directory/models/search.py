@@ -5,13 +5,18 @@ from __future__ import annotations
 
 import base64
 import re
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, TYPE_CHECKING
 
 from pydantic import Field, PydanticValueError, validator
 
 from husky_directory.models.base import DirectoryBaseModel
 from husky_directory.models.common import UWDepartmentRole
 from husky_directory.models.enum import PopulationType, ResultDetail
+
+# There is no direct dependency on the model here, we only need it for type checking;
+# this protects us from accidentally creating a cyclic dependency between the modules.
+if TYPE_CHECKING:
+    pass
 
 
 class BoxNumberValueError(PydanticValueError):
@@ -139,8 +144,9 @@ class SearchDirectoryInput(DirectoryBaseModel):
 
 
 class PhoneContactMethods(DirectoryBaseModel):
-    # These aliases are for humans, instead of for computers, so use
-    # human conventions for the front end to display.
+    class Config(DirectoryBaseModel.Config):
+        orm_mode = True
+
     phones: List[str] = []
     faxes: List[str] = []
     voice_mails: List[str] = []

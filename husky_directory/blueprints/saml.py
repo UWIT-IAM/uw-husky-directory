@@ -1,6 +1,5 @@
 import getpass
 from logging import Logger
-from urllib.parse import urljoin
 
 import uw_saml2
 from flask import Blueprint, Request, redirect
@@ -30,12 +29,6 @@ class SAMLBlueprint(Blueprint):
         session["uwnetid"] = attributes["uwnetid"]
         self.logger.info(f"Signed in user {session['uwnetid']}")
         relay_state = request.form.get("RelayState")
-
-        if relay_state:
-            if not relay_state.startswith("http"):
-                if not relay_state.startswith("/"):
-                    relay_state = f"/{relay_state}"
-                relay_state = urljoin(request.url_root, relay_state)
         return redirect(relay_state or "/")
 
     def login(self, request: Request, session: LocalProxy):
