@@ -7,6 +7,7 @@ These are not 1:1 models of that API; only fields we care about are declared her
 
 from typing import Any, Dict, List, Optional
 
+from inflection import titleize
 from pydantic import BaseModel, Extra, Field, validator
 
 from .common import UWDepartmentRole
@@ -118,7 +119,6 @@ class EmployeePosition(PWSBaseModel, UWDepartmentRole):
 
 
 class EmployeeDirectoryListing(PWSBaseModel):
-    name: Optional[str]
     publish_in_directory: bool
     phones: List[str] = []
     emails: List[str] = Field(default=[], alias="EmailAddresses")
@@ -131,7 +131,6 @@ class EmployeeDirectoryListing(PWSBaseModel):
 
 
 class StudentDirectoryListing(PWSBaseModel):
-    name: Optional[str]
     publish_in_directory: bool
     phone: Optional[str]
     email: Optional[str]
@@ -166,6 +165,20 @@ class NamedIdentity(PWSBaseModel):
     preferred_first_name: Optional[str]
     preferred_middle_name: Optional[str]
     preferred_last_name: Optional[str]
+
+    @validator(
+        "display_name",
+        "registered_name",
+        "registered_first_middle_name",
+        "registered_surname",
+        "preferred_first_name",
+        "preferred_middle_name",
+        "preferred_last_name",
+    )
+    def humanize_name_field(cls, value: Optional[str]) -> Optional[str]:
+        if value:
+            return titleize(value)
+        return value
 
 
 class PersonOutput(NamedIdentity):
