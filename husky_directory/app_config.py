@@ -199,7 +199,7 @@ class ApplicationConfig(FlaskConfigurationSettings):
     def validate_redis_settings(
         cls, redis_settings: Optional[RedisSettings], values: Dict
     ) -> Optional[RedisSettings]:
-        """Ensurues that, if redis is the selected session type, a redis setting object is created if it is not
+        """Ensures that, if redis is the selected session type, a redis setting object is created if it is not
         already passed in."""
         if (
             cast(SessionSettings, values.get("session_settings")).session_type

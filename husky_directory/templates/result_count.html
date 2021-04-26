@@ -26,8 +26,8 @@
                          #}
                         {% if state.update({'matched': True}) %}{% endif %}
                         {# when done this needs to look something lik <a href="#f1">1 Faculty/Staff</a> #}
-                        {% set anchor_id = 'todo-coming-soon' %}
-                        <a href="#{{ anchor_id}}">
+                        {% set anchor_id = population ~ '-' ~ description|linkify %}
+                        <a class='scenario-anchor-reference' href="#{{ anchor_id}}">
                             {% set population = population|externalize %}
                             {% if result_count == 1 %}
                                 {% set population = population|singularize %}
@@ -42,4 +42,3 @@
         <br>
     {% endif %}
 </div>
-

@@ -71,7 +71,11 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
         )
         profile = self.mock_people.contactable_person
         with self.html_validator.validate_response(response):
-            self.html_validator.assert_has_tag_with_text("h3", profile.display_name)
+            self.html_validator.assert_has_tag_with_text("h4", profile.display_name)
+            self.html_validator.assert_has_scenario_anchor("employees-name-matches-foo")
+            self.html_validator.assert_not_has_scenario_anchor(
+                "students-name-matches-foo"
+            )
             with self.html_validator.scope("ul", class_="dir-listing"):
                 self.html_validator.assert_has_tag_with_text(
                     "li", profile.affiliations.employee.directory_listing.emails[0]
@@ -87,6 +91,12 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
         self.mock_list_persons.return_value = self.mock_people.as_search_output()
         response = self.flask_client.post("/search", data={"query": "foo"})
         with self.html_validator.validate_response(response) as html:
+            self.html_validator.assert_not_has_scenario_anchor(
+                "employees-name-matches-foo"
+            )
+            self.html_validator.assert_not_has_scenario_anchor(
+                "students-name-matches-foo"
+            )
             assert not html.find("table", summary="results")
             assert html.find(string=re.compile("No matches for"))
             self.html_validator.assert_has_tag_with_text("b", 'Name is "foo"')
@@ -112,11 +122,15 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
                 data={
                     "query": "foo",
                     "length": "full",
-                    "population": "students",
+                    "population": "all",
                 },
             )
         ) as html:
             assert not html.find_all("li", class_="dir-boxstuff")
+            self.html_validator.assert_has_scenario_anchor("students-name-matches-foo")
+            self.html_validator.assert_not_has_scenario_anchor(
+                "employees-name-matches-foo"
+            )
             with self.html_validator.scope("div", class_="usebar"):
                 self.html_validator.assert_has_tag_with_text("button", "Download vcard")
 

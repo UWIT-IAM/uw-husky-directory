@@ -3,7 +3,7 @@ import random
 import re
 import string
 from contextlib import contextmanager
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, cast
 from unittest import mock
 
 import flask
@@ -405,6 +405,39 @@ class HTMLValidator:
             raise AssertionError(
                 f"Expected student search options {'not ' if not assert_expected_ else ''}"
                 f"to be visible."
+            )
+
+    def has_scenario_anchor(
+        self, anchor_id: str, assert_=True, assert_expected_=True
+    ) -> bool:
+        """
+        Validates that the html has both an an anchor _and_ a reference to the anchor.
+        The anchor _must_ have the 'scenario-anchor' class, and any reference links must have the
+        'scenario-anchor-reference' class.
+
+        :param anchor_id: The id of the anchor to look for. If the population is "employees" and the scenario is
+        "last name is 'foo'", then the anchor id is "employees-last-name-is-foo". See app.py#linkify
+        """
+        anchors = cast(
+            List[BeautifulSoup], self.html.find_all(class_="scenario-anchor")
+        )
+        references = cast(
+            List[BeautifulSoup],
+            self.html.find_all("a", class_="scenario-anchor-reference"),
+        )
+        result = False
+        for anchor in anchors:
+            if anchor.attrs["id"] == anchor_id:
+                for ref in references:
+                    if ref.attrs["href"] == f"#{anchor_id}":
+                        result = True
+                        break  # exit for 'ref in references'
+                break  # exit 'for anchor in anchors'
+        if not assert_:
+            return result
+        if assert_expected_ != result:
+            raise AssertionError(
+                f"Expected to find an element with an id '{anchor_id}' as well as a link with 'href=#{anchor_id}'."
             )
 
     @contextmanager
