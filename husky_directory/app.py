@@ -85,8 +85,22 @@ class AppInjectorModule(Module):
             return inflection.titleize(text)
 
         @app.template_filter()
-        def singularize(text):
+        def singularize(text: str):
+            """
+            Takes something plural and makes it singular.
+            Use: {{ "parrots"|singularize }}
+            """
             return inflection.singularize(text)
+
+        @app.template_filter()
+        def linkify(text: str):
+            """
+            Replaces all non alphanum characters with '-' and lowercases
+            everything.
+                "foo: bar baz st. claire" => "foo-bar-baz-st-claire"
+            use: {{ "Foo Bar Baz St. Claire"|linkify }}
+            """
+            return inflection.parameterize(text)
 
         @app.template_filter()
         def externalize(text):

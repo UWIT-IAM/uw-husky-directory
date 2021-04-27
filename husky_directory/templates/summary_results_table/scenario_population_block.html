@@ -3,8 +3,10 @@ and then 1 or more rows of results. #}
 <tr>
     <td colspan="3">
         <div class="rcdescr">
-            {% set anchor_id = 'todo-coming-soon' %}
-            <h3><a id="{{ anchor_id }}" name="{{ anchor_id }}"></a>
+            {% set scenario_desc = scenario['description'] %}
+            {% set anchor_id = population_name ~ '-' ~ scenario_desc|linkify %}
+            <h3 class='scenario-anchor-reference'
+                id="{{ anchor_id }}">
                 {{ population_name|externalize|titleize }}:
                 {{ scenario['description'] }}
             </h3>
