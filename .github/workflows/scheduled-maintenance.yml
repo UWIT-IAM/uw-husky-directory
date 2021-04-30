@@ -13,7 +13,7 @@ env:
   SLACK_BOT_TOKEN: ${{ secrets.ACTIONS_SLACK_BOT_TOKEN }}
   SLACK_CANVAS_ID: "${{ github.run_id }}.${{ github.run_number }}"
   BASE_IMAGE_REPO: gcr.io/${{ secrets.IAM_GCR_REPO }}/husky-directory-base
-  SLACK_CHANNEL: '#iam-bot-sandbox'
+  SLACK_CHANNEL: '#iam-bots'
 
 jobs:
   configure-workflow:
@@ -101,12 +101,16 @@ jobs:
           export_default_credentials: true
         uses: google-github-actions/setup-gcloud@master
       - with:
-          command: finalize-workflow
+          command: update-workflow
           workflow-status: succeeded
         if: success()
         uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
       - with:
-          command: finalize-workflow
+          command: update-workflow
           workflow-status: failed
         if: failure()
+        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
+      - with:
+          command: finalize-workflow
+        if: always()
         uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
