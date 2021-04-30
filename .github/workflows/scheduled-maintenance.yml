@@ -1,0 +1,116 @@
+name: Weekly uw-husky-directory scheduled maintenance
+
+on:
+  schedule:
+    - cron: '0 4 * * 1'  # Run at 4am every Monday.
+  push:
+    # This supports the ability to force push to run for testing purposes,
+    # or if you want to force a rebuild for any reason! Go for it!
+    branches:
+      - run-scheduled-maintenance-workflow
+
+env:
+  SLACK_BOT_TOKEN: ${{ secrets.ACTIONS_SLACK_BOT_TOKEN }}
+  SLACK_CANVAS_ID: "${{ github.run_id }}.${{ github.run_number }}"
+  BASE_IMAGE_REPO: gcr.io/${{ secrets.IAM_GCR_REPO }}/husky-directory-base
+  SLACK_CHANNEL: '#iam-bots'
+
+jobs:
+  configure-workflow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+      - with:
+          project_id: ${{ secrets.IAM_GCR_REPO }}
+          service_account_key: ${{ secrets.GCR_TOKEN }}
+          export_default_credentials: true
+        uses: google-github-actions/setup-gcloud@master
+      - name: Create SEMVER-like version string from the date and time
+        run: echo "VERSION=$(date +%Y.%-j.%-I.%-M)" >> $GITHUB_ENV
+      - name: Initialize workflow canvas
+        with:
+          command: create-canvas
+          channel: ${{ env.SLACK_CHANNEL }}
+          description: ${{ github.workflow }}
+        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
+      - with:
+          command: create-step
+          step-id: rebuild-base-image
+          workflow-status: in progress
+          description: >
+            Re-build <https://${{ env.BASE_IMAGE_REPO }} | husky-directory-base>
+        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
+      - with:
+          command: create-step
+          step-id: push-base-image
+          description: >
+            Push version
+            <https://${{ env.BASE_IMAGE_REPO }}:${{ env.VERSION }} | ${{ env.VERSION }}>
+        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
+      - with:
+          command: add-artifact
+          description: >
+            *Event*:
+            <https://www.github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            | ${{ github.event_name }}>
+        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
+      - with:
+          project_id: ${{ secrets.IAM_GCR_REPO }}
+          service_account_key: ${{ secrets.GCR_TOKEN }}
+          export_default_credentials: true
+        uses: google-github-actions/setup-gcloud@master
+      - with:
+          command: update-workflow
+          step-id: rebuild-base-image
+          step-status: in progress
+        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
+      - name: Rebuild husky-directory-base
+        run: |
+          gcloud auth configure-docker
+          docker build -f docker/husky-directory-base.dockerfile . -t base
+      - with:
+          command: update-workflow
+          step-id: rebuild-base-image
+          step-status: succeeded
+        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
+      - with:
+          command: update-workflow
+          step-id: push-base-image
+          step-status: in progress
+        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
+      - run: |
+          docker tag base ${{ env.BASE_IMAGE_REPO }}:$VERSION
+          docker tag base ${{ env.BASE_IMAGE_REPO }}:edge
+          docker push ${{ env.BASE_IMAGE_REPO }}:$VERSION
+          docker push ${{ env.BASE_IMAGE_REPO }}:edge
+      - with:
+          command: update-workflow
+          step-id: push-base-image
+          step-status: failed
+        if: failure()
+        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
+      - with:
+          command: update-workflow
+          step-id: push-base-image
+          step-status: succeeded
+        if: success()
+        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
+      - with:
+          project_id: ${{ secrets.IAM_GCR_REPO }}
+          service_account_key: ${{ secrets.GCR_TOKEN }}
+          export_default_credentials: true
+        uses: google-github-actions/setup-gcloud@master
+      - with:
+          command: update-workflow
+          workflow-status: succeeded
+        if: success()
+        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
+      - with:
+          command: update-workflow
+          workflow-status: failed
+        if: failure()
+        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
+      - with:
+          command: finalize-workflow
+        if: always()
+        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
