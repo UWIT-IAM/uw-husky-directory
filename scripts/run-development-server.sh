@@ -5,9 +5,8 @@
 set -e
 
 unset MOUNTLOCAL
-UWCA_CERT_PATH="${UWCA_CERT_PATH}"
-UWCA_KEY_PATH="${UWCA_KEY_PATH}"
-UWCA_CERT_NAME=${UWCA_CERT_NAME:-uwca}
+export UWCA_CERT_PATH="${UWCA_CERT_PATH}"
+export UWCA_CERT_NAME=${UWCA_CERT_NAME:-uwca}
 APP_ENV_FILE=${APP_ENV_FILE:-husky_directory/settings/local.dotenv}
 RUNENV="${RUNENV}"
 USE_TEST_IDP=1
@@ -23,14 +22,19 @@ do
     # See docs/running-the-app.md
     -c|--cert-path)
       shift
-      UWCA_CERT_PATH=$1
+      export UWCA_CERT_PATH=$1
       ;;
     # The name of the certificate (before the .crt/.key suffixes) located on the
     # declared path above.
     --cert-name)
       shift
-      UWCA_CERT_NAME=$1
+      export UWCA_CERT_NAME=$1
       RUNENV="${RUNENV} -e UWCA_CERT_NAME=${UWCA_CERT_NAME}"
+      ;;
+    --rebuild-base)  # Use this if your dependencies differ from `edge`
+      docker build -f docker/husky-directory-base.dockerfile \
+        -t gcr.io/uwit-mci-iam/husky-directory-base:local .
+      export BASE_VERSION=local
       ;;
     # You can provide environment variable arguments here to pass into Docker.
     -e)
@@ -43,6 +47,9 @@ do
       ;;
     --idp)
       USE_TEST_IDP=0
+      ;;
+    --with-redis|-r)
+      USE_COMPOSE=1
       ;;
   esac
   shift
@@ -81,9 +88,16 @@ fi
 if test -z "${IMAGE}"
 then
   IMAGE="uw-husky-directory-local"
-  docker build -f docker/development-server.dockerfile -t "${IMAGE}" .
+  docker build --build-arg BASE_VERSION -f docker/development-server.dockerfile \
+    -t "${IMAGE}" .
 else
   docker pull "${IMAGE}"
 fi
 
-docker run ${RUNENV} -p 8000:8000 ${MOUNTLOCAL} -it "${IMAGE}"
+if [[ "$USE_COMPOSE" = "1" ]]
+then
+  export APP_IMAGE="${IMAGE}"
+  docker-compose -f docker/docker-compose.app-with-redis.yaml up
+else
+  docker run ${RUNENV} -p 8000:8000 ${MOUNTLOCAL} -it "${IMAGE}"
+fi

@@ -1,0 +1,22 @@
+# If you want to run a local instance with redis, you can use this directly, but
+# it's probably better to use:
+#     ./scripts/run-development-server.sh --with-redis
+#
+
+services:
+  app:
+    env_file:
+      - ${PWD}/husky_directory/settings/compose-with-redis.dotenv
+    environment:
+      UWCA_MOUNT_PATH: "${UWCA_CERT_PATH}"
+      REDIS_NAMESPACE: directory
+    image: ${APP_IMAGE}
+    ports: ["8000:8000"]
+    volumes:
+      - ${UWCA_CERT_PATH}:/app/certificates:ro
+      - ${PWD}/husky_directory:/app/husky_directory
+  redis:
+    image: redis:latest
+    command: redis-server --requirepass supersecret
+    ports:
+      - "6379:6379"

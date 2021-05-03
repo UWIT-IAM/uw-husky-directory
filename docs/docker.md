@@ -12,15 +12,25 @@ These build images, when attached to a pull request, will also be tagged with
 reflect the latest build of the pull request; previous builds will still be 
 accessible by their commit tag above.
 
-Images tagged with `deploy-dev.commit-X` are images that were tagged for deployment 
+Images tagged with `deploy-dev.X` (where X is the first 9 chars of the commit SHA) 
+are images that were tagged for deployment 
 to our [development environment](https://github.com/uwit-iam/gcp-k8/tree/master/dev/uw-directory).
 
-Images tagged with a [sem ver](https://www.semver.org) `X.Y.Z` will be automatically 
-deployed to our eval environment. (Which is not currently configured.)
+Images tagged with a `deploy-eval.X` (where X is the first 9 chars of the commit SHA)
+automatically deployed to our eval environment. 
+Currently this requires a manual promotion that can be done like so:
 
-Images tagged with both `prod` and a released sem ver tag (i.e., when one of those 
-sem ver tags is also tagged with `prod`), then it will also be deployed to prod. 
-(The prod environment is not currently configured.)
+```
+# Get the currently deployed build id in dev
+BUILD_ID=$(curl -k https://uw-directory.iamdev.s.uw.edu/health | jq '.build_id' | sed s/\"//g )
+# Truncate it to just the first 10 digits
+BUILD_ID=${BUILD_ID:0:10}
+SOURCE=gcr.io/uwit-mci-iam/husky-directory:deploy-dev.$BUILD_ID
+DEST=gcr.io/uwit-mci-iam/husky-directory:deploy-eval.$BUILD_ID
+docker pull $SOURCE
+docker tag $SOURCE $DEST
+docker push $DEST
+```
 
 ## Image Retention
 
@@ -47,11 +57,16 @@ has access to the project IAM configuration._
 
 ## Running images
 
-Refer to docker documentation for advanced use cases.
+See [Running the app](running-the-app.md).
 
-You can run any published tag:
+## husky-directory-base 
 
-`./scripts/run-development-server.sh -i gcr.io/uwit-mci-iam/husky-directory:${TAG}`
+The application image is built on the [base image](../docker/husky-directory-base.dockerfile).
+Once per week, the base image is rebuilt by default, and tagged with `:edge`.
+
+If you ever want to know what base image was used, you can get that information from 
+the application image's 'HUSKY_DIRECTORY_BASE_VERSION' environment variable. 
+
 
 
 ## development-server dockerfile
