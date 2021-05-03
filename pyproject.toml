@@ -19,6 +19,7 @@ devtools = "^0.6.1"
 python-dotenv = "^0.15.0"
 uw-saml = {version = "^1.0.19"}
 Flask-Session = "^0.3.2"
+redis = "^3.5.3"
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"

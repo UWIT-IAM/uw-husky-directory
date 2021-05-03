@@ -7,6 +7,7 @@ from injector import Injector
 from husky_directory.app_config import (
     ApplicationConfig,
     ApplicationSecrets,
+    RedisSettings,
     YAMLSettingsLoader,
 )
 
@@ -64,3 +65,13 @@ class TestYAMLSettingsLoader:
         self.loader.app_config.stage = "error"
         with pytest.raises(KeyError):
             self.test_yaml_settings_loader()
+
+
+class TestRedisSettings:
+    def test_flask_config_values(self):
+        settings = RedisSettings(host="redis", namespace="directory")
+        assert settings.flask_config_values == {
+            "SESSION_KEY_PREFIX": "directory:session:",
+            "SESSION_REDIS": "redis:6379",
+            "SESSION_PERMANENT": False,
+        }

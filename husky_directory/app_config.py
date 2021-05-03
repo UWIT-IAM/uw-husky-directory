@@ -111,6 +111,7 @@ class RedisSettings(FlaskConfigurationSettings):
         return {
             "SESSION_KEY_PREFIX": f"{self.namespace}:session:",
             "SESSION_REDIS": f"{self.host}:{self.port}",
+            "SESSION_PERMANENT": False,
         }
 
 

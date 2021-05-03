@@ -5,10 +5,11 @@ from typing import List, NoReturn, Optional, Type, cast
 import inflection
 from flask import Flask, session as flask_session
 from flask_injector import FlaskInjector, request
-from flask_session import Session
+from flask_session import RedisSessionInterface, Session
 from injector import Injector, Module, provider, singleton
 from jinja2.tests import test_undefined
 from pydantic import ValidationError
+from redis import Redis
 from uw_saml2 import mock, python3_saml
 from werkzeug.exceptions import BadRequest, HTTPException, InternalServerError
 from werkzeug.local import LocalProxy
@@ -168,10 +169,34 @@ class AppInjectorModule(Module):
         # Bind an injector to the app itself to manage the scopes of
         # our dependencies appropriate for each request.
         FlaskInjector(app=app, injector=injector)
-        Session(app)
+        self._configure_app_session(app, app_settings)
         attach_app_error_handlers(app)
         self.register_jinja_extensions(app)
         return app
+
+    @staticmethod
+    def _configure_app_session(app: Flask, app_settings: ApplicationConfig) -> NoReturn:
+        app.logger.info(f"Session Type: {app.config.get('SESSION_TYPE')}")
+        # There is something wrong with the flask_session implementation that
+        # is supposed to translate flask config values into redis settings;
+        # also, it doesn't support authorization (what?!) so we have to
+        # use their model to explicitly set the interface instead of relying
+        # on the magic.
+        # TODO: It seems like flask_sessions is actually an abandoned project, so it might
+        # be better to just remove it and implement our own session
+        # interface based on their work. But this is fine for now.
+        if app.config["SESSION_TYPE"] == "redis":
+            redis_settings = app_settings.redis_settings
+            app.session_interface = RedisSessionInterface(
+                redis=Redis(
+                    host=redis_settings.host,
+                    port=redis_settings.port,
+                    password=redis_settings.password.get_secret_value(),
+                ),
+                key_prefix=redis_settings.flask_config_values["SESSION_KEY_PREFIX"],
+            )
+        else:
+            Session(app)
 
 
 def create_app(injector: Optional[Injector] = None) -> Flask:
