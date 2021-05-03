@@ -20,7 +20,7 @@ on:
 env:
   APP_NAME: husky-directory
   REPO_HOST: gcr.io
-  REPO_PROJECT: uwit-mci-iam
+  REPO_PROJECT: ${{ secrets.IAM_GCR_REPO }}
   GCR_TOKEN: ${{ secrets.GCR_TOKEN }}
 jobs:
   # This job simply builds and outputs some variables used in other contexts
@@ -28,13 +28,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
-      - # Creates a full image name from the above tag and environment variables
-        # It will be something like: uwitiam/husky-directory:commit-abcde12345
+      - uses: ./.github/actions/calculate-base-fingerprint
+        id: calculate-fingerprint
+      - env:
+          BASE_FINGERPRINT=${{ steps.calculate-fingerprint.outputs.fingerprint }}
         name: Set up build variables
         id: set_vars
-        env:
-          POETRY_LOCK_MD5: ${{ hashFiles('pyproject.toml', 'docker/husky-directory-base.dockerfile') }}
-        run: ./.github/scripts/set-workflow-vars.sh
+        run: ./.github/scripts/set-post-push-workflow-vars.sh
     outputs:
       # These are all set by the set-workflow-vars.sh script.
       app_repo: ${{ steps.set_vars.outputs.app_repo }}
@@ -45,6 +45,7 @@ jobs:
       base_build_version: ${{ steps.set_vars.outputs.base_build_version }}
       base_build_tag: ${{ steps.set_vars.outputs.base_build_tag }}
       base_head_tag: ${{ steps.set_vars.outputs.base_head_tag }}
+      base_build_fingerprint: ${{ steps.calculate-fingerprint.outputs.fingerprint }}
 
   # This job is responsible for building an image and uploading it to our repository. This image can later be
   # tested, deployed, and/or have other tags applied.
@@ -129,7 +130,7 @@ jobs:
 
   # Only run this workflow when pushing to main, after all above checks have
   # succeeded.
-  promote-deployment:
+  promote-deployment-to-dev:
     needs: [configure-image, validate-image-quality, build-and-push-image]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -140,10 +141,10 @@ jobs:
       # them DRY.
       - name: Update base image to latest
         # Once accepted into the main branch, the base image is tagged as
-        # `latest`; future builds will use `latest` requirements.
+        # `dev`; future builds will use `latest` requirements.
         env:
-          BUILD_TAG: ${{ needs.configure-image.outputs.base_build_tag }}
-          HEAD_TAG: ${{ needs.configure-image.outputs.base_head_tag }}
+          BUILD_TAG: ${{ needs.calculate-fingerprint.outputs.fingerprint }}
+          HEAD_TAG: dev
         run: |
           docker pull ${BUILD_TAG}
           docker tag ${BUILD_TAG} ${HEAD_TAG}

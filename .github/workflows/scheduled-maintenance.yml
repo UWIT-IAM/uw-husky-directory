@@ -20,6 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
+      - id: calculate-fingerprint
+        uses: ./.github/actions/calculate-base-fingerprint
       - with:
           project_id: ${{ secrets.IAM_GCR_REPO }}
           service_account_key: ${{ secrets.GCR_TOKEN }}
@@ -65,9 +67,11 @@ jobs:
           step-status: in progress
         uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
       - name: Rebuild husky-directory-base
+        env:
+          FINGERPRINT=${{ steps.calculate-fingerprint.outputs.fingerprint }}
         run: |
           gcloud auth configure-docker
-          docker build -f docker/husky-directory-base.dockerfile . -t base
+          docker build --build-arg FINGERPRINT docker/husky-directory-base .dockerfile . -t base
       - with:
           command: update-workflow
           step-id: rebuild-base-image

@@ -1,4 +1,4 @@
-ARG BASE_VERSION=latest
+ARG BASE_VERSION=edge
 FROM gcr.io/uwit-mci-iam/husky-directory-base:${BASE_VERSION} as poetry-base
 ARG ENV_FILE=husky_directory/settings/base.dotenv
 WORKDIR /scripts
