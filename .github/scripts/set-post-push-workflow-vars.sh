@@ -1,7 +1,7 @@
 # Sets up variables that are used in the rest of the workflow.
 # Expects the following variables to be set by the workflow yml:
 # REPO_HOST -- e.g., gcr.io
-# REPO_PROJECT -- e.g., uwit-mci-iam
+# REPO_PROJECT
 # APP_NAME -- e.g., husky-directory
 # DEPLOY_TARGET -- e.g., 'dev'
 # BASE_FINGERPRINT -- The SHA256 fingerprint of the poetry lock file and the
@@ -13,6 +13,8 @@
 #     history after it is merged. That's a Github problem.
 
 set -ex
+
+test -n "$BASE_FINGERPRINT"
 
 #!/usr/bin/env bash
 

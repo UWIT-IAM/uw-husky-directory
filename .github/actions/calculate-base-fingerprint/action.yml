@@ -1,8 +1,0 @@
-name: Calculate base image fingerprint
-runs:
-  using: 'composite'
-  shell: bash
-  run: |
-    FINGERPRINT=${{ hashFiles('poetry.lock', 'docker/husky-directory-base.dockerfile') }}
-    echo ::set-output name=fingerprint::$FINGERPRINT
-    echo "FINGERPRINT=$FINGERPRINT" >> $GITHUB_ENV

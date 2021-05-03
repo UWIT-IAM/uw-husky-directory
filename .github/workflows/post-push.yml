@@ -20,7 +20,7 @@ on:
 env:
   APP_NAME: husky-directory
   REPO_HOST: gcr.io
-  REPO_PROJECT: ${{ secrets.IAM_GCR_REPO }}
+  REPO_PROJECT: uwit-mci-iam
   GCR_TOKEN: ${{ secrets.GCR_TOKEN }}
 jobs:
   # This job simply builds and outputs some variables used in other contexts
@@ -28,10 +28,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
-      - uses: ./.github/actions/calculate-base-fingerprint
-        id: calculate-fingerprint
       - env:
-          BASE_FINGERPRINT=${{ steps.calculate-fingerprint.outputs.fingerprint }}
+          # Despite my best efforts, this cannot currently be
+          # factored into a common action. See # https://github.com/actions/runner/issues/991
+          BASE_FINGERPRINT: ${{ hashFiles('poetry.lock', 'docker/husky-directory-base.dockerfile') }}
         name: Set up build variables
         id: set_vars
         run: ./.github/scripts/set-post-push-workflow-vars.sh
@@ -45,7 +45,6 @@ jobs:
       base_build_version: ${{ steps.set_vars.outputs.base_build_version }}
       base_build_tag: ${{ steps.set_vars.outputs.base_build_tag }}
       base_head_tag: ${{ steps.set_vars.outputs.base_head_tag }}
-      base_build_fingerprint: ${{ steps.calculate-fingerprint.outputs.fingerprint }}
 
   # This job is responsible for building an image and uploading it to our repository. This image can later be
   # tested, deployed, and/or have other tags applied.
@@ -143,7 +142,7 @@ jobs:
         # Once accepted into the main branch, the base image is tagged as
         # `dev`; future builds will use `latest` requirements.
         env:
-          BUILD_TAG: ${{ needs.calculate-fingerprint.outputs.fingerprint }}
+          BUILD_TAG: ${{ needs.configure-image.outputs.base_build_tag }}
           HEAD_TAG: dev
         run: |
           docker pull ${BUILD_TAG}

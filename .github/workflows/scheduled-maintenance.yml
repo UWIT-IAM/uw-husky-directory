@@ -20,8 +20,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
-      - id: calculate-fingerprint
-        uses: ./.github/actions/calculate-base-fingerprint
       - with:
           project_id: ${{ secrets.IAM_GCR_REPO }}
           service_account_key: ${{ secrets.GCR_TOKEN }}
@@ -68,7 +66,9 @@ jobs:
         uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
       - name: Rebuild husky-directory-base
         env:
-          FINGERPRINT=${{ steps.calculate-fingerprint.outputs.fingerprint }}
+          # Despite my best efforts, this cannot currently be
+          # factored into a common action. See # https://github.com/actions/runner/issues/991
+          FINGERPRINT: ${{ hashFiles('poetry.lock', 'docker/husky-directory-base.dockerfile') }}
         run: |
           gcloud auth configure-docker
           docker build --build-arg FINGERPRINT docker/husky-directory-base .dockerfile . -t base
