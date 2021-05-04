@@ -9,7 +9,6 @@ services:
       - ${PWD}/husky_directory/settings/compose-with-redis.dotenv
     environment:
       UWCA_MOUNT_PATH: "${UWCA_CERT_PATH}"
-      REDIS_NAMESPACE: directory
     image: ${APP_IMAGE}
     ports: ["8000:8000"]
     volumes:
@@ -17,6 +16,6 @@ services:
       - ${PWD}/husky_directory:/app/husky_directory
   redis:
     image: redis:latest
-    command: redis-server --requirepass supersecret
+    command: redis-server --user uw-directory on +@all -@dangerous ~uw-directory:* >supersecret
     ports:
       - "6379:6379"
