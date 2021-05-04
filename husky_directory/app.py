@@ -183,14 +183,18 @@ class AppInjectorModule(Module):
         # use their model to explicitly set the interface instead of relying
         # on the magic.
         # TODO: It seems like flask_sessions is actually an abandoned project, so it might
-        # be better to just remove it and implement our own session
-        # interface based on their work. But this is fine for now.
+        #       be better to just remove it and implement our own session
+        #       interface based on their work. But this is fine for now.
         if app.config["SESSION_TYPE"] == "redis":
             redis_settings = app_settings.redis_settings
+            app.logger.info(
+                f"Setting up redis cache with settings: {redis_settings.flask_config_values}"
+            )
             app.session_interface = RedisSessionInterface(
                 redis=Redis(
                     host=redis_settings.host,
                     port=redis_settings.port,
+                    username=redis_settings.namespace,
                     password=redis_settings.password.get_secret_value(),
                 ),
                 key_prefix=redis_settings.flask_config_values["SESSION_KEY_PREFIX"],
