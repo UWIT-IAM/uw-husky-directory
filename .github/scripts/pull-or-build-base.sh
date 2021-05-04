@@ -12,6 +12,7 @@ if [[ "${PULL_FAILED}" = "1" ]]
 then
   echo "${BASE_TAG_NAME} pull failed; building it, instead."
   set -ex
-  docker build -f docker/husky-directory-base.dockerfile -t ${BASE_TAG_NAME} .
+  docker build -f docker/husky-directory-base.dockerfile \
+    --build-arg FINGERPRINT -t ${BASE_TAG_NAME} .
   set +x
 fi
