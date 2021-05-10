@@ -71,7 +71,7 @@ jobs:
           FINGERPRINT: ${{ hashFiles('poetry.lock', 'docker/husky-directory-base.dockerfile') }}
         run: |
           gcloud auth configure-docker
-          docker build --build-arg FINGERPRINT docker/husky-directory-base -f .dockerfile -t base .
+          docker build --build-arg FINGERPRINT -f docker/husky-directory-base.dockerfile -t base .
       - with:
           command: update-workflow
           step-id: rebuild-base-image
