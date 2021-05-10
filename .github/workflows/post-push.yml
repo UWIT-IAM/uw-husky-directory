@@ -143,7 +143,7 @@ jobs:
         # `dev`; future builds will use `latest` requirements.
         env:
           BUILD_TAG: ${{ needs.configure-image.outputs.base_build_tag }}
-          HEAD_TAG: dev
+          HEAD_TAG: ${{ needs.configure-image.outputs.base_head_tag }}
         run: |
           docker pull ${BUILD_TAG}
           docker tag ${BUILD_TAG} ${HEAD_TAG}
