@@ -32,6 +32,7 @@ def employee(generate_person) -> PersonOutput:
         netid="employee",
         affiliations=PersonAffiliations.construct(
             employee=EmployeePersonAffiliation(
+                mail_stop="381234",
                 directory_listing=EmployeeDirectoryListing(
                     publish_in_directory=True,
                     phones=["1111111"],
@@ -41,7 +42,8 @@ def employee(generate_person) -> PersonOutput:
                     touch_dials=["3333333"],
                     emails=["employee@uw.edu"],
                     positions=positions,
-                )
+                    addresses=["123 Main St. Anytown, WA 98123"],
+                ),
             )
         ),
     )
@@ -142,6 +144,8 @@ class TestVCardServiceVCardGeneration:
             'TEL;type="cell,pager,work":1111111',
             'TEL;type="TTY-TDD":3333333',
             'TEL;type="fax":2222222',
+            "item1.X-ABADR:us",
+            "item1.ADR;type=WORK:Box 381234;;123 Main St.;Anytown;WA;98123;US;",
             "END:VCARD",
         ]
 
@@ -281,6 +285,8 @@ class TestVCardServiceVCardGeneration:
             'TEL;type="cell,pager,work":1111111',
             'TEL;type="TTY-TDD":3333333',
             'TEL;type="fax":2222222',
+            "item1.X-ABADR:us",
+            "item1.ADR;type=WORK:Box 381234;;123 Main St.;Anytown;WA;98123;US;",
             "END:VCARD",
         ]
 

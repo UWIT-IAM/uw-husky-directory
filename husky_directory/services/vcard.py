@@ -9,7 +9,7 @@ from werkzeug.local import LocalProxy
 
 from husky_directory.models.enum import PopulationType
 from husky_directory.models.pws import NamedIdentity, PersonOutput
-from husky_directory.models.vcard import VCard, VCardPhone, VCardPhoneType
+from husky_directory.models.vcard import VCard, VCardAddress, VCardPhone, VCardPhoneType
 from husky_directory.services.pws import PersonWebServiceClient
 from husky_directory.services.translator import (
     ListPersonsOutputTranslator,
@@ -94,6 +94,14 @@ class VCardService:
         # so we overwrite.
         if employee.emails:
             vcard.email = employee.emails[0]
+
+        if employee.addresses:
+            vcard.addresses = [
+                VCardAddress.from_string(
+                    a, box_number=person.affiliations.employee.mail_stop
+                ).vcard_format
+                for a in employee.addresses
+            ]
 
     @staticmethod
     def parse_person_name(person: NamedIdentity) -> Tuple[str, List[str]]:
@@ -191,9 +199,7 @@ class VCardService:
         # Render the vcard template with the user's data,
         content = render_template("vcard.vcf.jinja2", **vcard.dict())
         # Remove all the extra lines that jinja2 leaves in there. (ugh.)
-        content = "\n".join(
-            filter(lambda line: bool(line.strip()), content.split("\n"))
-        )
+        content = "\n".join([line.lstrip() for line in content.split("\n")])
         # Create a file-like object to send to the client
         file_ = BytesIO()
         file_.write(content.encode("UTF-8"))
