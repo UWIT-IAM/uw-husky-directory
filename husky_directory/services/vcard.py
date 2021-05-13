@@ -2,45 +2,22 @@ from collections import defaultdict
 from io import BytesIO
 from typing import Dict, List, NoReturn, Set, Tuple
 
-from flask import Flask, render_template
-from injector import Injector, inject
-from werkzeug.exceptions import Forbidden
-from werkzeug.local import LocalProxy
+from flask import render_template
+from flask_injector import request
+from injector import inject
 
-from husky_directory.models.enum import PopulationType
 from husky_directory.models.pws import NamedIdentity, PersonOutput
 from husky_directory.models.vcard import VCard, VCardAddress, VCardPhone, VCardPhoneType
 from husky_directory.services.pws import PersonWebServiceClient
-from husky_directory.services.translator import (
-    ListPersonsOutputTranslator,
-    PersonOutputFilter,
-)
 
 
+@request
 class VCardService:
     """Generates vcards from PWS output."""
 
     @inject
-    def __init__(
-        self,
-        pws: PersonWebServiceClient,
-        app: Flask,
-        injector: Injector,
-    ):
+    def __init__(self, pws: PersonWebServiceClient):
         self.pws = pws
-        self.flask = app
-        self.injector = injector
-
-    @property
-    def request_is_authenticated(self):
-        # Lazily bound to constrain request scopes
-        session = self.injector.get(LocalProxy)
-        return bool(session.get("uwnetid"))
-
-    @property
-    def translator(self) -> ListPersonsOutputTranslator:
-        # Lazily bound to constrain request scopes
-        return self.injector.get(ListPersonsOutputTranslator)
 
     @staticmethod
     def set_employee_vcard_attrs(vcard: VCard, person: PersonOutput) -> NoReturn:
@@ -177,23 +154,13 @@ class VCardService:
     def get_vcard(self, href: str) -> BytesIO:
         person = self.pws.get_explicit_href(href, output_type=PersonOutput)
 
-        if not self.translator.filter_person(
-            # We set "PopulationType.all" here because when searching
-            # for a specific person, we expect to get all of their attributes.
-            # The filter will exclude student data if the requester is not
-            # authenticated.
-            person,
-            PersonOutputFilter(allowed_populations=[PopulationType.all]),
-        ):  # This is the case if the resulting person is a student,
-            # but the request isn't authenticated
-            raise Forbidden(href)
-
         last_name, other_names = self.parse_person_name(person)
         vcard = VCard.construct(
             last_name=last_name,
             name_extras=other_names,
             display_name=person.display_name,
         )
+
         self.set_student_vcard_attrs(vcard, person)
         self.set_employee_vcard_attrs(vcard, person)
         # Render the vcard template with the user's data,

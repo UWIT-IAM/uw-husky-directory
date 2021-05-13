@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional
 from inflection import titleize
 from pydantic import BaseModel, Extra, Field, validator
 
-from .common import UWDepartmentRole
+from .common import RecordConstraint, UWDepartmentRole
 from .enum import AffiliationState
 from ..util import camelize
 
@@ -106,6 +106,7 @@ class ListPersonsInput(PWSBaseModel):
         "PWS response to indicate the next page of a large query.",
         alias="Href",
     )
+    constraints: List[RecordConstraint] = []
 
 
 class EmployeePosition(PWSBaseModel, UWDepartmentRole):
@@ -165,7 +166,7 @@ class NamedIdentity(PWSBaseModel):
     registered_first_middle_name: Optional[str]
     preferred_first_name: Optional[str]
     preferred_middle_name: Optional[str]
-    preferred_last_name: Optional[str]
+    preferred_last_name: Optional[str] = Field(None, alias="PreferredSurname")
 
     @validator(
         "display_name",

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from functools import partial
 from itertools import product
 from typing import Any, Callable, Iterable, List, Optional, Tuple, Union
 
@@ -5,12 +8,13 @@ import inflection
 from flask_injector import request
 from injector import inject
 from pydantic import BaseModel, EmailError, validate_email
-from werkzeug.local import LocalProxy
 
+from husky_directory.models.common import RecordConstraint
 from husky_directory.models.enum import AffiliationState, PopulationType
 from husky_directory.models.pws import ListPersonsInput
 from husky_directory.models.search import SearchDirectoryInput
-from husky_directory.services.translator import PersonOutputFilter
+from husky_directory.services.auth import AuthService
+from husky_directory.util import ConstraintPredicates
 
 
 class QueryTemplate(BaseModel):
@@ -48,6 +52,11 @@ class QueryTemplate(BaseModel):
         [str],  # That takes a list of strings (the "words" of the query)
         ListPersonsInput,  # and returns the query itself based on those args.
     ]
+
+    # Constraints can be set as an added value to filter the output.
+    # Constraints are not sent to PWS, but are used by PersonWebServiceClient to
+    # add additional filters to the output.
+    constraints: List[RecordConstraint] = []
 
     def get_query(self, args: List[str]) -> ListPersonsInput:
         """Given a list of arguments, creates a query by calling the query generator."""
@@ -94,6 +103,11 @@ Query = ListPersonsInput  # Aliasing this for brevity in the below definitions.
 ArgFmt = WildcardFormat  # An uglier, but shorter name
 
 
+class GeneratedQuery(BaseModel):
+    description: str
+    request_input: ListPersonsInput
+
+
 @request
 class SearchQueryGenerator:
     """
@@ -118,38 +132,123 @@ class SearchQueryGenerator:
         1: [
             QueryTemplate(
                 description_fmt='Last name is "{}"',
-                query_generator=lambda name: Query(last_name=name),
+                query_generator=lambda name: Query(
+                    last_name=name,
+                    constraints=[
+                        RecordConstraint(
+                            namespace="preferred_last_name",
+                            predicate=partial(
+                                ConstraintPredicates.null_or_matches, name
+                            ),
+                        )
+                    ],
+                ),
             ),
             QueryTemplate(
                 description_fmt='Last name begins with "{}"',
-                query_generator=lambda name: Query(last_name=ArgFmt.begins_with(name)),
+                query_generator=lambda name: Query(
+                    last_name=ArgFmt.begins_with(name),
+                    constraints=[
+                        RecordConstraint(
+                            namespace="preferred_last_name",
+                            predicate=partial(
+                                ConstraintPredicates.null_or_begins_with, name
+                            ),
+                        )
+                    ],
+                ),
             ),
             QueryTemplate(
                 description_fmt='First name is "{}"',
-                query_generator=lambda name: Query(first_name=name),
+                query_generator=lambda name: Query(
+                    first_name=name,
+                    constraints=[
+                        RecordConstraint(
+                            namespace="preferred_first_name",
+                            predicate=partial(
+                                ConstraintPredicates.null_or_matches, name
+                            ),
+                        )
+                    ],
+                ),
             ),
             QueryTemplate(
                 description_fmt='Name contains: "{}"',
-                query_generator=lambda name: Query(display_name=ArgFmt.contains(name)),
+                query_generator=lambda name: Query(
+                    display_name=ArgFmt.contains(name),
+                    constraints=[
+                        RecordConstraint(
+                            namespace="display_name",
+                            predicate=partial(
+                                ConstraintPredicates.null_or_includes, name
+                            ),
+                        )
+                    ],
+                ),
             ),
         ],
         2: [
             QueryTemplate(
                 description_fmt='First name is "{}", last name is "{}"',
                 query_generator=lambda first, last: Query(
-                    first_name=first, last_name=last
+                    first_name=first,
+                    last_name=last,
+                    constraints=[
+                        RecordConstraint(
+                            namespace="preferred_first_name",
+                            predicate=partial(
+                                ConstraintPredicates.null_or_matches, first
+                            ),
+                        ),
+                        RecordConstraint(
+                            namespace="preferred_last_name",
+                            predicate=partial(
+                                ConstraintPredicates.null_or_matches, last
+                            ),
+                        ),
+                    ],
                 ),
             ),
             QueryTemplate(
                 description_fmt='First name begins with "{}", last name is "{}"',
                 query_generator=lambda first, last: Query(
-                    first_name=ArgFmt.begins_with(first), last_name=last
+                    first_name=ArgFmt.begins_with(first),
+                    last_name=last,
+                    constraints=[
+                        RecordConstraint(
+                            namespace="preferred_first_name",
+                            predicate=partial(
+                                ConstraintPredicates.null_or_begins_with, first
+                            ),
+                        ),
+                        RecordConstraint(
+                            namespace="preferred_last_name",
+                            predicate=partial(
+                                ConstraintPredicates.null_or_matches, last
+                            ),
+                        ),
+                    ],
                 ),
             ),
             QueryTemplate(
                 description_fmt='First name is "{}", last name begins with "{}"',
                 query_generator=lambda first, last: Query(
-                    first_name=first, last_name=ArgFmt.begins_with(last)
+                    first_name=first,
+                    last_name=ArgFmt.begins_with(last),
+                    constraints=[
+                        RecordConstraint(
+                            namespace="preferred_first_name",
+                            predicate=partial(
+                                ConstraintPredicates.null_or_matches, first
+                            ),
+                        ),
+                        RecordConstraint(
+                            namespace="preferred_last_name",
+                            predicate=partial(
+                                ConstraintPredicates.null_or_begins_with, last
+                            ),
+                        ),
+                    ],
                 ),
             ),
             QueryTemplate(
@@ -157,24 +256,42 @@ class SearchQueryGenerator:
                 query_generator=lambda first, last: Query(
                     first_name=ArgFmt.begins_with(first),
                     last_name=ArgFmt.begins_with(last),
+                    constraints=[
+                        RecordConstraint(
+                            namespace="preferred_first_name",
+                            predicate=partial(
+                                ConstraintPredicates.null_or_begins_with, first
+                            ),
+                        ),
+                        RecordConstraint(
+                            namespace="preferred_last_name",
+                            predicate=partial(
+                                ConstraintPredicates.null_or_begins_with, last
+                            ),
+                        ),
+                    ],
                 ),
             ),
             QueryTemplate(
                 description_fmt='Last name begins with "{} {}"',
                 query_generator=lambda *args: Query(
-                    last_name=ArgFmt.begins_with(*args)
+                    last_name=ArgFmt.begins_with(*args),
+                    constraints=[
+                        RecordConstraint(
+                            namespace="preferred_last_name",
+                            predicate=partial(
+                                ConstraintPredicates.null_or_begins_with, " ".join(args)
+                            ),
+                        ),
+                    ],
                 ),
             ),
         ],
     }
 
     @inject
-    def __init__(self, session: LocalProxy):
-        self.session = session
-
-    @property
-    def request_is_authenticated(self) -> bool:
-        return bool(self.session.get("uwnetid"))
+    def __init__(self, auth: AuthService):
+        self.auth = auth
 
     @staticmethod
     def _build_sliced_name_query_template(
@@ -190,6 +307,28 @@ class SearchQueryGenerator:
 
         pre_slice_query_name = inflection.humanize(pre_slice_format.__name__)
         post_slice_query_name = inflection.humanize(post_slice_format.__name__)
+
+        def _generate_query(*args: str):
+            first_name = pre_slice_format(*args[0:slice])
+            last_name = post_slice_format(*args[slice:])
+            return Query(
+                first_name=first_name,
+                last_name=last_name,
+                constraints=[
+                    RecordConstraint(
+                        namespace="preferred_first_name",
+                        predicate=partial(
+                            ConstraintPredicates.null_or_begins_with, first_name
+                        ),
+                    ),
+                    RecordConstraint(
+                        namespace="preferred_last_name",
+                        predicate=partial(
+                            ConstraintPredicates.null_or_begins_with, last_name
+                        ),
+                    ),
+                ],
+            )
 
         # Ugh; this is so ugly, but it beat hard-coding all of these use cases. I don't have the stamina to type
         # that much. See the QueryTemplate documentation for deeper details.
@@ -209,10 +348,7 @@ class SearchQueryGenerator:
             # This is similar to the description_formatter, except it's formatting those same
             # slices with the *_slice_format function parameters.
             # See tests/services/test_query_generator.py for examples.
-            query_generator=lambda *args: Query(
-                first_name=pre_slice_format(*args[0:slice]),
-                last_name=post_slice_format(*args[slice:]),
-            ),
+            query_generator=_generate_query,
         )
 
     def _generate_sliced_name_queries(self, max_slice: int) -> Iterable[QueryTemplate]:
@@ -247,7 +383,10 @@ class SearchQueryGenerator:
 
     def generate_name_queries(self, name: str) -> Tuple[str, ListPersonsInput]:
         # No matter the case, we will always be checking for an exact match
-        yield f'Name matches "{name}"', ListPersonsInput(display_name=name)
+        yield GeneratedQuery(
+            description=f'Name matches "{name}"',
+            request_input=ListPersonsInput(display_name=name),
+        )
 
         # If the request contains a wildcard, we don't make any further "guesses" as to
         # what the user wants, because they've told us they think they know what they're doing.
@@ -260,13 +399,17 @@ class SearchQueryGenerator:
 
         if cardinality in self.name_query_templates:
             for template in self.name_query_templates[cardinality]:
-                yield template.get_description(name_parts), template.get_query(
-                    name_parts
+                yield GeneratedQuery(
+                    description=template.get_description(name_parts),
+                    request_input=template.get_query(name_parts),
                 )
             return
 
         for template in self._generate_sliced_name_queries(cardinality):
-            yield template.get_description(name_parts), template.get_query(name_parts)
+            yield GeneratedQuery(
+                description=template.get_description(name_parts),
+                request_input=template.get_query(name_parts),
+            )
 
     def generate_department_queries(
         self, department: str, include_alt_queries: bool = True
@@ -279,19 +422,23 @@ class SearchQueryGenerator:
         don't need to keep track of this themselves.
         :return:
         """
-        yield f'Department matches "{department}"', ListPersonsInput(
-            department=department
+        yield GeneratedQuery(
+            description=f'Department matches "{department}"',
+            request_input=ListPersonsInput(department=department),
         )
+
         if (
             "*" in department
         ):  # If the user provides a wildcard, we'll let PWS do the rest of the work.
             return
 
-        yield f'Department begins with "{department}"', ListPersonsInput(
-            department=ArgFmt.begins_with(department)
+        yield GeneratedQuery(
+            description=f'Department begins with "{department}"',
+            request_input=ListPersonsInput(department=ArgFmt.begins_with(department)),
         )
-        yield f'Department contains "{department}"', ListPersonsInput(
-            department=ArgFmt.contains(department)
+        yield GeneratedQuery(
+            description=f'Department contains "{department}"',
+            request_input=ListPersonsInput(department=ArgFmt.contains(department)),
         )
 
         if not include_alt_queries:
@@ -307,10 +454,9 @@ class SearchQueryGenerator:
 
         # Remove any extra whitespace between words.
         department = " ".join(filter(bool, department.split()))
-        for description, query in self.generate_department_queries(
+        yield from self.generate_department_queries(
             department, include_alt_queries=False
-        ):
-            yield description, query
+        )
 
     @staticmethod
     def generate_sanitized_phone_queries(phone: str) -> Tuple[str, ListPersonsInput]:
@@ -323,25 +469,31 @@ class SearchQueryGenerator:
 
         :param phone: The phone number (digits only)
         """
-        yield f'Phone matches "{phone}"', ListPersonsInput(phone_number=phone)
+        yield GeneratedQuery(
+            description=f'Phone matches "{phone}"',
+            request_input=ListPersonsInput(phone_number=phone),
+        )
         if len(phone) > 10:  # XXX YYY-ZZZZ
             no_country_code = phone[-10:]
-            yield f'Phone matches "{no_country_code}"', ListPersonsInput(
-                phone_number=no_country_code
+            yield GeneratedQuery(
+                description=f'Phone matches "{no_country_code}"',
+                request_input=ListPersonsInput(phone_number=no_country_code),
             )
 
     @staticmethod
     def generate_box_number_queries(box_number: str) -> Tuple[str, ListPersonsInput]:
         # PWS only ever returns "begins with" results for mailstop.
-        yield f'Mailstop begins with "{box_number}"', ListPersonsInput(
-            mail_stop=box_number
+        yield GeneratedQuery(
+            description=f'Mailstop begins with "{box_number}"',
+            request_input=ListPersonsInput(mail_stop=box_number),
         )
         # All (most?) UW mail stops start with '35,' and so it is considered shorthand to omit
         # them at times. To be sure we account for shorthand input, we will also always try
         # adding '35' to every query.
         alt_number = f"35{box_number}"
-        yield f'Mailstop begins with "35{alt_number}"', ListPersonsInput(
-            mail_stop=alt_number
+        yield GeneratedQuery(
+            description=f'Mailstop begins with "35{alt_number}"',
+            request_input=ListPersonsInput(mail_stop=alt_number),
         )
 
     @staticmethod
@@ -357,12 +509,16 @@ class SearchQueryGenerator:
                 alternate = "washington.edu"
             elif partial.endswith("@washington.edu"):
                 alternate = "uw.edu"
-            yield f'Email is "{partial}"', ListPersonsInput(email=partial)
+            yield GeneratedQuery(
+                description=f'Email is "{partial}"',
+                request_input=ListPersonsInput(email=partial),
+            )
             if alternate:
                 alternate_email = f"{username}@{alternate}"
 
-                yield f'Email is "{alternate_email}"', ListPersonsInput(
-                    email=alternate_email
+                yield GeneratedQuery(
+                    description=f'Email is "{alternate_email}"',
+                    request_input=ListPersonsInput(email=alternate_email),
                 )
             return
         except EmailError:
@@ -372,44 +528,56 @@ class SearchQueryGenerator:
         # just want to run this specific query, so will not forcibly include
         # any additional results.
         if "@" in partial or "*" in partial:  # If a user types in a full address
-            yield f'Email matches "{partial}"', ListPersonsInput(email=partial)
+            yield GeneratedQuery(
+                description=f'Email matches "{partial}"',
+                request_input=ListPersonsInput(email=partial),
+            )
         else:
             # If the user has just supplied 'foo123', we will search for a couple of
             # combinations.
-            yield f'Email begins with "{partial}"', ListPersonsInput(
-                email=WildcardFormat.begins_with(partial)
+            yield GeneratedQuery(
+                description=f'Email begins with "{partial}"',
+                request_input=ListPersonsInput(
+                    email=WildcardFormat.begins_with(partial)
+                ),
             )
-            yield f'Email contains "{partial}"', ListPersonsInput(
-                email=WildcardFormat.contains(partial)
+            yield GeneratedQuery(
+                description=f'Email contains "{partial}"',
+                request_input=ListPersonsInput(email=WildcardFormat.contains(partial)),
             )
 
     def generate_field_queries(
         self, field_name: str, query_value: Any, population: Union[PopulationType, str]
-    ):
+    ) -> GeneratedQuery:
         if isinstance(population, str):
             population = PopulationType(population)
 
         query_method = f"generate_{field_name}_queries"
-        query: ListPersonsInput
-        for description, query in getattr(self, query_method)(query_value):
+        generated: GeneratedQuery
+        for generated in getattr(self, query_method)(query_value):
             if population in (PopulationType.all, PopulationType.employees):
-                yield description, query
+                yield generated
+            # We cannot perform an OR search for student/employee
+            # affiliation state. In order to get a union of
+            # students and employees, we must make an additional query.
             if (
                 population in (PopulationType.all, PopulationType.students)
-                and self.request_is_authenticated
+                and self.auth.request_is_authenticated
             ):
-                yield description, query.copy(
-                    update=dict(
-                        employee_affiliation_state=None,
-                        student_affiliation_state=AffiliationState.current.value,
-                    )
+                yield GeneratedQuery(
+                    description=generated.description,
+                    request_input=generated.request_input.copy(
+                        update=dict(
+                            employee_affiliation_state=None,
+                            student_affiliation_state=AffiliationState.current.value,
+                        )
+                    ),
                 )
 
     def generate(
         self,
         request_input: SearchDirectoryInput,
-        constraints: Optional[PersonOutputFilter] = None,
-    ) -> Iterable[Tuple[str, ListPersonsInput]]:
+    ) -> Iterable[GeneratedQuery]:
         population = request_input.population
         for field in ("name", "sanitized_phone", "box_number", "email", "department"):
             val = getattr(request_input, field, None)

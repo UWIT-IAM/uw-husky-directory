@@ -59,9 +59,8 @@ def app(
 
 @pytest.fixture
 def generate_person():
-    random_string = "".join(random.choice(string.ascii_lowercase) for _ in range(24))
-
     def inner(**attrs: Any) -> PersonOutput:
+        random_string = "".join(random.choice(string.ascii_lowercase) for _ in range(8))
         default = PersonOutput(
             display_name="Ada Lovelace",
             registered_name="Ada Lovelace",
@@ -69,7 +68,7 @@ def generate_person():
             registered_first_middle_name="Ada",
             whitepages_publish=True,
             is_test_entity=False,
-            netid="ada",
+            netid=random_string,
             href=f"person/{random_string}",
         )
         return default.copy(update=attrs)
@@ -135,12 +134,22 @@ def mock_people(generate_person):
                         faxes=["+1 999 214-9864"],
                         mobiles=["+1 999 (967)-4222", "+1 999 (967) 4999"],
                         touch_dials=["+19999499911"],
-                        emails=["dawg@uw.edu"],
+                        emails=["dawg@uw.edu", "dawg2@uw.edu"],
+                        voice_mails=["1800MYVOICE"],
+                        positions=[
+                            EmployeePosition(
+                                department="Haute Cuisine", title="Garde Manger"
+                            ),
+                        ],
                     ),
                 ),
                 student=StudentPersonAffiliation(
                     directory_listing=StudentDirectoryListing(
-                        publish_in_directory=True, phone="19999674222"
+                        publish_in_directory=True,
+                        phone="19999674222",
+                        email="student@uw.edu",
+                        departments=["Cybertronic Engineering"],
+                        class_level="Junior",
                     )
                 ),
             )
