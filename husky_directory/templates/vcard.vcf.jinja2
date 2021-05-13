@@ -1,28 +1,34 @@
-{#
-    Do not adhere to conventional indendation in this file.
-    Line breaks for long lines must only happen _inside_ jinja blocks.
-    field must be on a single line, with no indents.
-    Specification: https://tools.ietf.org/html/rfc6350
-    Model: husky_directory.models.vcard.VCard
-#}
+{# Be careful when adding new blocks, make sure to remove
+any whitespaces using the built-in jinja whitespace control.
+For more, see docs/jinja-templates.md#whitespace-control #}
 BEGIN:VCARD
 {# "Husky Dawg Woofington" becomes "woofington;husky;dawg" #}
-N:{{ last_name }};{% for e in name_extras %}{{ e }}{{';' if not loop.last else '' }}{% endfor %}
+N:{{ last_name }};{% for e in name_extras -%}
+    {{ e }}{{ ';' if not loop.last else '' }}
+{% endfor %}
 {# Husky Dawg Woofington #}
 FN:{{ display_name }}
-{% for title in titles %}
-TITLE:{{ title }}
+{% for title in titles -%}
+    TITLE:{{ title }}
 {% endfor %}
-{% for dept in departments %}
-ORG:University of Washington;{{ dept }}
+{% for dept in departments -%}
+    ORG:University of Washington;{{ dept }}
 {% endfor %}
-{% if not email is blank %}
 {# EMAIL;type=INTERNET,type=WORK:dawg@uw.edu #}
-EMAIL;type=INTERNET,type=WORK:{{ email }}
+{% if not email is blank -%}
+    EMAIL;type=INTERNET,type=WORK:{{ email }}
 {% endif %}
-{% for phone in phones %}
 {# TEL;type="pager,voice":5558675309 #}
-TEL;type="{% for pt in phone['types'] %}{{ pt }}{{
-        ',' if not loop.last else '' }}{% endfor %}":{{ phone['value'] }}
-{% endfor %} {# phone in phones #}
+{% for phone in phones -%}
+    TEL;type="{% for pt in phone['types'] -%}
+        {{ pt }}{{ ',' if not loop.last else '' }}
+    {%- endfor %}":{{ phone['value'] }}
+{% endfor -%} {# phone in phones #}
+{# `vcard_address` is a preformatted string using the following format:
+ # [PO Box];[Extended Address];[Street Address];[City];[State];[ZIP Code];[Country]
+#}
+{% for vcard_address in addresses -%}
+    item{{ loop.index }}.X-ABADR:us
+    item{{ loop.index }}.ADR;type=WORK:{{ vcard_address }}
+{% endfor %}
 END:VCARD

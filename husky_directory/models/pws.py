@@ -128,6 +128,7 @@ class EmployeeDirectoryListing(PWSBaseModel):
     touch_dials: List[str] = []
     pagers: List[str] = []
     mobiles: List[str] = []
+    addresses: List[str] = []
 
 
 class StudentDirectoryListing(PWSBaseModel):

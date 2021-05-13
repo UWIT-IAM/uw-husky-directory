@@ -19,6 +19,9 @@ class PropertyBaseModel(BaseModel):
     https://github.com/samuelcolvin/pydantic/issues/935#issuecomment-752987593
     """
 
+    class Config:
+        ignored_properties = []
+
     @classmethod
     def get_properties(cls) -> typing.List[str]:
         """
@@ -28,7 +31,8 @@ class PropertyBaseModel(BaseModel):
         return [
             prop
             for prop in dir(cls)
-            if isinstance(getattr(cls, prop), property)
+            if prop not in getattr(cls.Config, "ignored_properties", [])
+            and isinstance(getattr(cls, prop), property)
             and prop not in ("__values__", "fields")
         ]
 

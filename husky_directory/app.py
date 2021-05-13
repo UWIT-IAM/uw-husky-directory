@@ -148,6 +148,8 @@ class AppInjectorModule(Module):
 
         # We've done our pre-work; now we can create the instance itself.
         app = Flask("husky_directory")
+        app.jinja_env.trim_blocks = True
+        app.jinja_env.lstrip_blocks = True
         app.config.update(app_settings.app_configuration)
         app.url_map.strict_slashes = (
             False  # Allows both '/search' and '/search/' to work
