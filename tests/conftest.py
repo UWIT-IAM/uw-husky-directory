@@ -58,9 +58,17 @@ def app(
 
 
 @pytest.fixture
-def generate_person():
+def random_string():
+    def inner(num_chars: int = 8) -> str:
+        return "".join(random.choice(string.ascii_lowercase) for _ in range(8))
+
+    return inner
+
+
+@pytest.fixture
+def generate_person(random_string):
     def inner(**attrs: Any) -> PersonOutput:
-        random_string = "".join(random.choice(string.ascii_lowercase) for _ in range(8))
+        netid = random_string()
         default = PersonOutput(
             display_name="Ada Lovelace",
             registered_name="Ada Lovelace",
@@ -68,8 +76,8 @@ def generate_person():
             registered_first_middle_name="Ada",
             whitepages_publish=True,
             is_test_entity=False,
-            netid=random_string,
-            href=f"person/{random_string}",
+            netid=netid,
+            href=f"person/{netid}",
         )
         return default.copy(update=attrs)
 
