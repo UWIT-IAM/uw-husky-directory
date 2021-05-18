@@ -2,7 +2,7 @@ from base64 import b64decode
 from logging import Logger
 from typing import Optional
 
-from flask import Blueprint, Request, jsonify, render_template, send_file
+from flask import Blueprint, Request, jsonify, redirect, render_template, send_file
 from inflection import humanize, underscore
 from injector import Injector, inject, singleton
 from pydantic import ValidationError
@@ -72,6 +72,9 @@ class SearchBlueprint(Blueprint):
 
         Returns a jsonified instance of SearchDirectoryOutput
         """
+        if not request.args:
+            return redirect("/")
+
         request_input = SearchDirectoryInput.parse_obj(request.args)
         self.logger.info(f"searching for {request_input}")
         request_output = search_service.search_directory(request_input)

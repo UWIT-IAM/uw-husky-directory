@@ -3,7 +3,7 @@ from unittest import mock
 
 import pytest
 from injector import Injector
-from werkzeug.exceptions import Forbidden
+from werkzeug.exceptions import NotFound
 from werkzeug.local import LocalProxy
 
 from husky_directory.models.pws import (
@@ -43,6 +43,7 @@ def employee(generate_person) -> PersonOutput:
                     emails=["employee@uw.edu"],
                     positions=positions,
                     addresses=["123 Main St. Anytown, WA 98123"],
+                    voice_mails=["5555555"],
                 ),
             )
         ),
@@ -73,13 +74,6 @@ class TestVCardServiceAttributeResolution:
         self.injector = injector
         self.service = injector.get(VCardService)
 
-    def test_request_is_authenticated(self, client):
-        assert not self.service.request_is_authenticated
-        client.get("/saml/login", follow_redirects=True)
-        assert self.service.request_is_authenticated
-        client.get("/saml/logout", follow_redirects=True)
-        assert not self.service.request_is_authenticated
-
     def test_set_employee_vcard_attrs(self, employee):
         vcard = VCard.construct()
         self.service.set_employee_vcard_attrs(vcard, employee)
@@ -91,6 +85,7 @@ class TestVCardServiceAttributeResolution:
             ),
             VCardPhone(types=["TTY-TDD"], value="3333333"),
             VCardPhone(types=["fax"], value="2222222"),
+            VCardPhone(types=["MSG"], value="5555555"),
         ]
 
         assert vcard.email == "employee@uw.edu"
@@ -109,13 +104,14 @@ class TestVCardServiceAttributeResolution:
 class TestVCardServiceVCardGeneration:
     @pytest.fixture(autouse=True)
     def initialize(self, injector: Injector, mock_injected):
-        self.service = injector.get(VCardService)
-        self.pws = injector.get(PersonWebServiceClient)
         self.session = cast(LocalProxy, {})
 
         with mock_injected(LocalProxy, self.session):
+            self.service = injector.get(VCardService)
+            self.pws = injector.get(PersonWebServiceClient)
             with mock_injected(PersonWebServiceClient, self.pws):
-                yield
+                with mock_injected(VCardService, self.service):
+                    yield
 
         self.mock_pws_person: Optional[PersonOutput] = None
 
@@ -144,6 +140,7 @@ class TestVCardServiceVCardGeneration:
             'TEL;type="cell,pager,work":1111111',
             'TEL;type="TTY-TDD":3333333',
             'TEL;type="fax":2222222',
+            'TEL;type="MSG":5555555',
             "item1.X-ABADR:us",
             "item1.ADR;type=WORK:Box 381234;;123 Main St.;Anytown;WA;98123;US;",
             "END:VCARD",
@@ -255,9 +252,8 @@ class TestVCardServiceVCardGeneration:
 
         try:
             result = self.get_vcard_result(student)
-            for i, line in enumerate(result):
-                assert line == expected[i]
-        except Forbidden:
+            assert result == expected
+        except NotFound:
             assert not log_in
 
     @pytest.mark.parametrize("log_in", (True, False))
@@ -285,6 +281,7 @@ class TestVCardServiceVCardGeneration:
             'TEL;type="cell,pager,work":1111111',
             'TEL;type="TTY-TDD":3333333',
             'TEL;type="fax":2222222',
+            'TEL;type="MSG":5555555',
             "item1.X-ABADR:us",
             "item1.ADR;type=WORK:Box 381234;;123 Main St.;Anytown;WA;98123;US;",
             "END:VCARD",

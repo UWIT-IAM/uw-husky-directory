@@ -69,9 +69,7 @@ class TestSearchQueryGenerator:
             self.query_generator.generate(SearchDirectoryInput(name="foo*"))
         )
         assert len(generated) == 1
-        print(generated)
-        description, query = generated[0]
-        assert description == 'Name matches "foo*"'
+        assert generated[0].description == 'Name matches "foo*"'
 
     def test_single_name_input(self):
         generated = list(
@@ -86,8 +84,13 @@ class TestSearchQueryGenerator:
             dict(display_name="*foo*"),
         ]
         actual_queries = [
-            query.dict(exclude_unset=True, exclude_none=True, exclude_defaults=True)
-            for desc, query in generated
+            query.request_input.dict(
+                exclude_unset=True,
+                exclude_none=True,
+                exclude_defaults=True,
+                exclude={"constraints"},
+            )
+            for query in generated
         ]
         assert expected_queries == actual_queries
 
@@ -105,8 +108,13 @@ class TestSearchQueryGenerator:
             dict(last_name="foo bar*"),
         ]
         actual_queries = [
-            query.dict(exclude_unset=True, exclude_none=True, exclude_defaults=True)
-            for desc, query in generated
+            query.request_input.dict(
+                exclude_unset=True,
+                exclude_none=True,
+                exclude_defaults=True,
+                exclude={"constraints"},
+            )
+            for query in generated
         ]
         assert expected_queries == actual_queries
 
@@ -154,8 +162,13 @@ class TestSearchQueryGenerator:
         )
         if assert_included:
             actual_queries = [
-                query.dict(exclude_unset=True, exclude_none=True, exclude_defaults=True)
-                for desc, query in generated
+                query.request_input.dict(
+                    exclude_unset=True,
+                    exclude_none=True,
+                    exclude_defaults=True,
+                    exclude={"constraints"},
+                )
+                for query in generated
             ]
             for case in assert_included:
                 assert case in actual_queries
@@ -170,8 +183,8 @@ class TestSearchQueryGenerator:
     def test_phone_input_long_number(self):
         request_input = SearchDirectoryInput(phone="+1 (206) 555-4321")
         queries = list(self.query_generator.generate(request_input))
-        assert queries[0][1].phone_number == "12065554321"
-        assert queries[1][1].phone_number == "2065554321"
+        assert queries[0].request_input.phone_number == "12065554321"
+        assert queries[1].request_input.phone_number == "2065554321"
         assert len(queries) == 2
 
     def test_phone_input_invalid_number(self):
@@ -186,8 +199,8 @@ class TestSearchQueryGenerator:
         request_input = SearchDirectoryInput(box_number="123456")
         queries = list(self.query_generator.generate(request_input))
         assert len(queries) == 2
-        assert queries[0][1].mail_stop == "123456"
-        assert queries[1][1].mail_stop == "35123456"
+        assert queries[0].request_input.mail_stop == "123456"
+        assert queries[1].request_input.mail_stop == "35123456"
 
     @pytest.mark.parametrize(
         "input_value, expected_snippets",
@@ -205,8 +218,7 @@ class TestSearchQueryGenerator:
         queries = list(self.query_generator.generate(request_input))
         assert len(queries) == len(expected_snippets)
         for i, snippet in enumerate(expected_snippets):
-            description, _ = queries[i]
-            assert snippet in description
+            assert snippet in queries[i].description
 
     @pytest.mark.parametrize(
         "input_value, expected_snippets",
@@ -249,8 +261,7 @@ class TestSearchQueryGenerator:
         queries = list(self.query_generator.generate(request_input))
         assert len(queries) == len(expected_snippets)
         for i, snippet in enumerate(expected_snippets):
-            description, _ = queries[i]
-            assert snippet in description
+            assert snippet in queries[i].description
 
     @pytest.mark.parametrize("authenticate", (True, False))
     def test_query_all_populations(self, authenticate: bool):
@@ -264,11 +275,11 @@ class TestSearchQueryGenerator:
         )
         queries = list(self.query_generator.generate(request_input))
 
-        assert queries[0][1].employee_affiliation_state == "current"
-        assert queries[0][1].student_affiliation_state is None
+        assert queries[0].request_input.employee_affiliation_state == "current"
+        assert queries[0].request_input.student_affiliation_state is None
         if authenticate:
-            assert queries[1][1].student_affiliation_state == "current"
-            assert queries[1][1].employee_affiliation_state is None
+            assert queries[1].request_input.student_affiliation_state == "current"
+            assert queries[1].request_input.employee_affiliation_state is None
 
     @pytest.mark.parametrize("authenticate", (True, False))
     def test_query_student_population(self, authenticate: bool):
@@ -281,7 +292,7 @@ class TestSearchQueryGenerator:
         queries = list(self.query_generator.generate(request_input))
         if authenticate:
             assert len(queries) == 1
-            assert queries[0][1].employee_affiliation_state is None
-            assert queries[0][1].student_affiliation_state == "current"
+            assert queries[0].request_input.employee_affiliation_state is None
+            assert queries[0].request_input.student_affiliation_state == "current"
         else:
             assert not queries

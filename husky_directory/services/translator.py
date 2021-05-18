@@ -1,9 +1,7 @@
-from typing import Dict, List, Optional, Set
+from typing import Dict, NoReturn, Optional, Set
 
-from injector import inject
-from werkzeug.local import LocalProxy
+from injector import singleton
 
-from husky_directory.models.base import DirectoryBaseModel
 from husky_directory.models.common import UWDepartmentRole
 from husky_directory.models.enum import PopulationType
 from husky_directory.models.pws import (
@@ -19,97 +17,11 @@ from husky_directory.models.search import (
 )
 
 
-class PersonOutputFilter(DirectoryBaseModel):
-    allowed_populations: List[PopulationType] = [PopulationType.employees]
-    include_test_identities: bool = False
-    duplicate_netids: Set[str] = set()
-
-    def population_is_allowed(self, population: PopulationType) -> bool:
-        return (
-            "all" in self.allowed_populations
-            or population.value in self.allowed_populations
-        )
-
-
+@singleton
 class ListPersonsOutputTranslator:
     """
     Translates PWS API output in to Directory API output.
     """
-
-    @inject
-    def __init__(self, session: LocalProxy):
-        self._session = session
-
-    @property
-    def session(self) -> LocalProxy:
-        return self._session
-
-    @property
-    def current_request_is_authenticated(self) -> bool:
-        return bool(self.session.get("uwnetid"))
-
-    def filter_person(
-        self, person: PersonOutput, person_filter_paramters: PersonOutputFilter
-    ) -> bool:
-        """
-        Given a PersonOutput, determines whether the result is valid to return to the front-end. This is needed
-        because PWS does not provide query support for all fields, in particular the 'publish_in_directory' and the
-        'whitepages_publish' fields. If _translate_pws_list_persons_output() is broken out into its own service,
-        this should probably go along with it.
-
-        :returns: True if the user should be included in the output, or False if they should be pruned.
-        """
-        if not all(
-            [
-                person.netid,  # Only publish identities with netids
-                person.whitepages_publish,  # that want to be published
-                # and that we're not already returning
-                person.netid not in person_filter_paramters.duplicate_netids,
-            ]
-        ):
-            return False
-
-        # Only include test identities if explicitly asked
-        if (
-            person.is_test_entity
-            and not person_filter_paramters.include_test_identities
-        ):
-            return False
-
-        if person.affiliations.student:
-            if not all(
-                [
-                    # ensure the request is authenticated
-                    self.current_request_is_authenticated,
-                    # ensure the user requested student data
-                    person_filter_paramters.population_is_allowed(
-                        PopulationType.students
-                    ),
-                    # Ensure the identity has elected to be published
-                    person.affiliations.student.directory_listing.publish_in_directory,
-                ]
-            ):
-                person.affiliations.student = None
-
-        if (
-            person.affiliations.employee
-        ):  # Similar to above, minus the current_user check
-            if not all(
-                [
-                    person_filter_paramters.population_is_allowed(
-                        PopulationType.employees
-                    ),
-                    person.affiliations.employee.directory_listing.publish_in_directory,
-                ]
-            ):
-                person.affiliations.employee = None
-
-        # If we've pruned all the valid affiliations for this person,
-        # then we won't include them in the results.
-        if not any([person.affiliations.student, person.affiliations.employee]):
-            return False
-
-        return True
 
     @staticmethod
     def _resolve_phones(
@@ -126,10 +38,41 @@ class ListPersonsOutputTranslator:
 
         return model
 
+    @staticmethod
+    def _translate_student_attributes(
+        student: StudentPersonAffiliation,
+        result_in_progress: Person,
+    ) -> NoReturn:
+        result_in_progress.email = student.directory_listing.email
+        result_in_progress.departments.extend(
+            UWDepartmentRole(
+                title=student.directory_listing.class_level, department=dept
+            )
+            for dept in student.directory_listing.departments
+            if dept  # Ignore data with holes in it.
+        )
+
+    @staticmethod
+    def _translate_employee_attributes(
+        employee: EmployeePersonAffiliation, result_in_progress: Person
+    ) -> NoReturn:
+        # Email will usually be the same, but just in case, we'll prefer the
+        # employee email address and not overwrite it with the student's if
+        # it's already set.
+        if employee.directory_listing.emails:
+            result_in_progress.email = employee.directory_listing.emails[0]
+
+        result_in_progress.box_number = employee.mail_stop
+        result_in_progress.departments.extend(
+            UWDepartmentRole.from_orm(position)
+            for position in employee.directory_listing.positions
+            # Sometimes the data we get has holes in it;
+            # we ignore holey data.
+            if position.department and position.title
+        )
+
     def translate_scenario(
-        self,
-        request_output: ListPersonsOutput,
-        person_filter_parameters: PersonOutputFilter,
+        self, request_output: ListPersonsOutput, netid_tracker: Set[str]
     ) -> Dict[PopulationType, DirectoryQueryPopulationOutput]:
         results = {
             PopulationType.employees: DirectoryQueryPopulationOutput(
@@ -140,11 +83,17 @@ class ListPersonsOutputTranslator:
             ),
         }
 
-        def filter_(person_) -> bool:
-            """A small shim around the class method to include the user-requested filters"""
-            return self.filter_person(person_, person_filter_parameters)
+        def filter_(person_: PersonOutput) -> bool:
+            """
+            Ignores entities we've already catalogued [as they may have been returned
+            in both the student search and the employee search], and entities
+            who have had all of their guts filtered out by the output
+            constraint filtering.
+            """
+            return person_.netid not in netid_tracker and (
+                person_.affiliations.student or person_.affiliations.employee
+            )
 
-        # Streams the list and iterates, excluding entries we don't want to return
         for person in filter(filter_, request_output.persons):
             student = person.affiliations.student
             employee = person.affiliations.employee
@@ -156,31 +105,12 @@ class ListPersonsOutputTranslator:
             )
 
             if student:
-                result.email = student.directory_listing.email
-                result.departments.extend(
-                    UWDepartmentRole(
-                        title=student.directory_listing.class_level, department=dept
-                    )
-                    for dept in student.directory_listing.departments
-                    if dept  # Ignore data with holes in it.
-                )
+                self._translate_student_attributes(student, result)
                 results[PopulationType.students].people.append(result)
 
             if employee:
-                # Email will usually be the same, but just in case, we'll prefer the
-                # employee email address and not overwrite it with the student's if
-                # it's already set.
-                if employee.directory_listing.emails:
-                    result.email = employee.directory_listing.emails[0]
-                result.box_number = employee.mail_stop
-                result.departments.extend(
-                    UWDepartmentRole.from_orm(position)
-                    for position in employee.directory_listing.positions
-                    # Sometimes the data we get has holes in it;
-                    # we ignore holey data.
-                    if position.department and position.title
-                )
+                self._translate_employee_attributes(employee, result)
                 results[PopulationType.employees].people.append(result)
 
-            person_filter_parameters.duplicate_netids.add(person.netid)
+            netid_tracker.add(person.netid)
         return results

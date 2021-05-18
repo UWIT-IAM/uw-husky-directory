@@ -5,6 +5,7 @@ from unittest import mock
 import pytest
 from bs4 import BeautifulSoup
 from inflection import titleize
+from werkzeug.local import LocalProxy
 
 from husky_directory.models.enum import PopulationType, ResultDetail
 from husky_directory.models.search import SearchDirectoryFormInput, SearchDirectoryInput
@@ -13,28 +14,36 @@ from husky_directory.services.pws import PersonWebServiceClient
 
 class BlueprintSearchTestBase:
     @pytest.fixture(autouse=True)
-    def initialize(self, client, mock_people, injector, html_validator):
-        self.pws_client = injector.get(PersonWebServiceClient)
+    def initialize(self, client, mock_people, injector, html_validator, mock_injected):
         self.flask_client = client
-        self.mock_people = mock_people
-        self.mock_list_persons = mock.patch.object(
-            self.pws_client, "list_persons"
-        ).start()
-        self.mock_get_explicit_href = mock.patch.object(
-            self.pws_client, "get_explicit_href"
-        ).start()
-        self.mock_list_persons.return_value = mock_people.as_search_output(
-            self.mock_people.contactable_person
-        )
-        self.mock_get_explicit_href.return_value = mock_people.as_search_output()
+        self.session = injector.get(LocalProxy)
         self.html_validator = html_validator
+        self.mock_people = mock_people
+
+        with mock_injected(LocalProxy, self.session):
+            self.pws_client = injector.get(PersonWebServiceClient)
+            with mock_injected(PersonWebServiceClient, self.pws_client):
+                self.mock_send_request = mock.patch.object(
+                    self.pws_client, "_get_search_request_output"
+                ).start()
+                self.mock_send_request.return_value = mock_people.as_search_output(
+                    mock_people.contactable_person
+                )
+                yield
 
 
 class TestSearchBlueprint(BlueprintSearchTestBase):
-    def test_json_success(self):
-        response = self.flask_client.get("/search?name=foo")
+    @pytest.mark.parametrize("log_in", (True, False))
+    def test_json_success(self, log_in):
+        if log_in:
+            self.flask_client.get("/saml/login", follow_redirects=True)
+            assert self.session.get("uwnetid")
+
+        expected_num_results = 2 if log_in else 1
+
+        response = self.flask_client.get("/search?name=lovelace")
         assert response.status_code == 200
-        assert response.json["numResults"] == 1
+        assert response.json["numResults"] == expected_num_results
         for scenario in response.json["scenarios"]:
             for population, results in scenario["populations"].items():
                 if results["people"]:
@@ -65,17 +74,26 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
                 )
             assert "autofocus" not in html.find("input", attrs={"name": "query"}).attrs
 
-    def test_render_full_success(self):
+    @pytest.mark.parametrize("log_in", (True, False))
+    def test_render_full_success(self, log_in):
+        if log_in:
+            self.flask_client.get("/saml/login", follow_redirects=True)
+            assert self.session.get("uwnetid")
+
         response = self.flask_client.post(
-            "/search", data={"query": "foo", "length": "full"}
+            "/search", data={"query": "lovelace", "length": "full"}
         )
+
         profile = self.mock_people.contactable_person
         with self.html_validator.validate_response(response):
             self.html_validator.assert_has_tag_with_text("h4", profile.display_name)
-            self.html_validator.assert_has_scenario_anchor("employees-name-matches-foo")
-            self.html_validator.assert_not_has_scenario_anchor(
-                "students-name-matches-foo"
+            self.html_validator.assert_has_scenario_anchor(
+                "employees-name-matches-lovelace"
             )
+            if log_in:
+                self.html_validator.assert_has_scenario_anchor(
+                    "students-name-matches-lovelace"
+                )
             with self.html_validator.scope("ul", class_="dir-listing"):
                 self.html_validator.assert_has_tag_with_text(
                     "li", profile.affiliations.employee.directory_listing.emails[0]
@@ -88,7 +106,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
                 )
 
     def test_render_no_results(self):
-        self.mock_list_persons.return_value = self.mock_people.as_search_output()
+        self.mock_send_request.return_value = self.mock_people.as_search_output()
         response = self.flask_client.post("/search", data={"query": "foo"})
         with self.html_validator.validate_response(response) as html:
             self.html_validator.assert_not_has_scenario_anchor(
@@ -112,7 +130,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
             self.html_validator.assert_has_tag_with_text("b", "invalid box number")
 
     def test_render_full_no_box_number(self):
-        self.mock_list_persons.return_value = self.mock_people.as_search_output(
+        self.mock_send_request.return_value = self.mock_people.as_search_output(
             self.mock_people.published_student
         )
         self.flask_client.get("/saml/login", follow_redirects=True)
@@ -135,7 +153,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
                 self.html_validator.assert_has_tag_with_text("button", "Download vcard")
 
     def test_render_unexpected_error(self):
-        self.mock_list_persons.side_effect = RuntimeError
+        self.mock_send_request.side_effect = RuntimeError
         response = self.flask_client.post(
             "/search", data={"query": "123456", "method": "box_number"}
         )
@@ -187,10 +205,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
     )
     def test_render_no_matches(self, search_field, search_value):
         query_output = self.mock_people.as_search_output()
-        query_output.persons = []
-        query_output.total_count = 0
-        query_output.next = None
-        self.mock_list_persons.return_value = query_output
+        self.mock_send_request.return_value = query_output
         with self.html_validator.validate_response(
             self.flask_client.post(
                 "/search", data={"method": search_field, "query": search_value}
@@ -345,6 +360,32 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
         )
         assert response.status_code == 400
 
+    @pytest.mark.parametrize("search_term", ["Smith", "Lovelace"])
+    def test_get_person_non_matching_surname(self, search_term):
+        """Ensures that our name constraints work by setting
+        a preferred last name that is different than the registered
+        last name, and searching for the registered last name.
+        """
+        profile = self.mock_people.published_employee
+        profile.preferred_last_name = "Smith"
+        empty_results = self.mock_people.as_search_output()
+
+        expected_num_results = 1 if profile.preferred_last_name == search_term else 0
+
+        outputs = [
+            empty_results,
+            self.mock_people.as_search_output(profile),
+        ]
+
+        def mock_get(*args, **kwargs):
+            return outputs.pop(0) if outputs else empty_results
+
+        self.mock_send_request.side_effect = mock_get
+
+        response = self.flask_client.get(f"/search?name={search_term}")
+        assert response.status_code == 200
+        assert response.json["numResults"] == expected_num_results
+
     def test_get_person_vcard(self):
         """
         Tests that the blueprint returns the right result, but does not test
@@ -352,7 +393,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
         """
         person = self.mock_people.published_employee
         href = base64.b64encode("foo".encode("UTF-8")).decode("UTF-8")
-        self.mock_get_explicit_href.return_value = person
+        self.mock_send_request.return_value = person
         response = self.flask_client.get(f"/search/person/{href}/vcard")
         assert response.status_code == 200
         assert response.mimetype == "text/vcard"
