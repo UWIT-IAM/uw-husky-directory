@@ -161,12 +161,17 @@ class Person(DirectoryBaseModel):
     email: Optional[str]
     box_number: Optional[str]
     departments: List[UWDepartmentRole] = []
+    sort_key: Optional[str]
 
     href: str
 
     @validator("href")
     def b64_encode_href(cls, value: str) -> str:
         return base64.b64encode(value.encode("UTF-8")).decode("UTF-8")
+
+    @validator("sort_key", always=True)
+    def set_default_sort_key(cls, v: Optional[str], values: Dict):
+        return v if v else values.get("name")
 
 
 class DirectoryQueryPopulationOutput(DirectoryBaseModel):
@@ -176,6 +181,13 @@ class DirectoryQueryPopulationOutput(DirectoryBaseModel):
     @property
     def num_results(self) -> int:
         return len(self.people)
+
+    def dict(self, *args, **kwargs):
+        result = super().dict(*args, **kwargs)
+        sort_key = "sort_key" if not kwargs.get("by_alias") else "sortKey"
+        if result and "people" in result:
+            result["people"] = sorted(result["people"], key=lambda p: p[sort_key])
+        return result
 
 
 class DirectoryQueryScenarioOutput(DirectoryBaseModel):

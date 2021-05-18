@@ -386,6 +386,37 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
         assert response.status_code == 200
         assert response.json["numResults"] == expected_num_results
 
+    def test_list_people_sort(self, generate_person, random_string):
+        people = self.mock_people.as_search_output(
+            self.mock_people.published_employee.copy(
+                update={
+                    "preferred_last_name": "Zlovelace",
+                    "registered_surname": "Alovelace",
+                    "netid": random_string(),
+                }
+            ),
+            self.mock_people.published_employee.copy(
+                update={
+                    "registered_surname": "Blovelace",
+                    "netid": random_string(),
+                }
+            ),
+            self.mock_people.published_employee.copy(
+                update={
+                    "preferred_last_name": "Alovelace",
+                    "netid": random_string(),
+                }
+            ),
+        )
+        self.mock_send_request.return_value = people
+        response = self.flask_client.get("/search?name=lovelace")
+        assert response.status_code == 200
+        sort_keys = [
+            p["sortKey"]
+            for p in response.json["scenarios"][0]["populations"]["employees"]["people"]
+        ]
+        assert sort_keys == ["Alovelace", "Blovelace", "Zlovelace"]
+
     def test_get_person_vcard(self):
         """
         Tests that the blueprint returns the right result, but does not test

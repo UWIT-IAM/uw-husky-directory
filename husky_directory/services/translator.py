@@ -100,6 +100,7 @@ class ListPersonsOutputTranslator:
 
             result = Person(
                 name=person.display_name,
+                sort_key=person.preferred_last_name or person.registered_surname,
                 phone_contacts=self._resolve_phones(employee, student),
                 **person.dict()
             )
