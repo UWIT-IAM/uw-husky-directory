@@ -1,5 +1,6 @@
 import base64
 import re
+from datetime import datetime
 from unittest import mock
 
 import pytest
@@ -73,6 +74,15 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
                     profile.affiliations.employee.directory_listing.emails[0],
                 )
             assert "autofocus" not in html.find("input", attrs={"name": "query"}).attrs
+
+    def test_copyright_footer(self):
+        response = self.flask_client.get("/")
+        assert response.status_code == 200
+        current_year = datetime.utcnow().year
+        html: BeautifulSoup
+        with self.html_validator.validate_response(response) as html:
+            element = html.find("p", attrs={"id": "footer-copyright"})
+            assert f"© {current_year}" in element.text
 
     @pytest.mark.parametrize("log_in", (True, False))
     def test_render_full_success(self, log_in):
