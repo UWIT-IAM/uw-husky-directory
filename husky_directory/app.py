@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from logging.config import dictConfig
 from typing import List, NoReturn, Optional, Type, cast
 
@@ -128,6 +129,10 @@ class AppInjectorModule(Module):
         def provide_search_attributes():
             """Makes the list of search attributes available to the parser without having to hard-code them."""
             return {"search_attributes": self.search_attributes}
+
+        @app.context_processor
+        def provide_current_year():
+            return {"current_year": datetime.utcnow().year}
 
     @provider
     @singleton
