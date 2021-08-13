@@ -2,119 +2,196 @@ name: Weekly uw-husky-directory scheduled maintenance
 
 on:
   schedule:
-    - cron: '0 4 * * 1'  # Run at 4am every Monday.
+    - cron: '0 4 * * 1'  # Run at 4am (UTC) every Monday.
   push:
     # This supports the ability to force push to run for testing purposes,
     # or if you want to force a rebuild for any reason! Go for it!
     branches:
       - run-scheduled-maintenance-workflow
+  workflow_dispatch:
 
 env:
   SLACK_BOT_TOKEN: ${{ secrets.ACTIONS_SLACK_BOT_TOKEN }}
-  SLACK_CANVAS_ID: "${{ github.run_id }}.${{ github.run_number }}"
   BASE_IMAGE_REPO: gcr.io/${{ secrets.IAM_GCR_REPO }}/husky-directory-base
-  SLACK_CHANNEL: '#iam-bots'
+  APP_IMAGE_REPO: gcr.io/${{ secrets.IAM_GCR_REPO }}/husky-directory
+  SLACK_CHANNEL: '#cloud-native-directory'
+  STEP_SCRIPTS: ./.github/steps/scheduled-maintenance
+  BUILD_SCRIPTS_DIR: /tmp/build-scripts
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  PR_URL_BASE: https://github.com/${{ github.repository }}/pull
 
 jobs:
-  configure-workflow:
+  scheduled-maintenance:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
-      - with:
+
+      - if: github.event_name != 'schedule'
+        run: echo "POETRY_VERSION_GUIDANCE=prerelease" >> $GITHUB_ENV
+
+      - name: Bootstrap Google Cloud
+        with:
           project_id: ${{ secrets.IAM_GCR_REPO }}
           service_account_key: ${{ secrets.GCR_TOKEN }}
           export_default_credentials: true
         uses: google-github-actions/setup-gcloud@master
-      - name: Create SEMVER-like version string from the date and time
-        run: echo "VERSION=$(date +%Y.%-j.%-I.%-M)" >> $GITHUB_ENV
-      - name: Initialize workflow canvas
+
+      - name: Install Poetry
+        uses: abatilo/actions-poetry@v2.1.0
+
+      - name: Configure build
+        run: $STEP_SCRIPTS/configure-environment.sh
+        id: configure
+
+      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
         with:
           command: create-canvas
-          channel: ${{ env.SLACK_CHANNEL }}
-          description: ${{ github.workflow }}
-        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
-      - with:
-          command: create-step
-          step-id: rebuild-base-image
-          workflow-status: in progress
-          description: >
-            Re-build <https://${{ env.BASE_IMAGE_REPO }} | husky-directory-base>
-        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
-      - with:
-          command: create-step
-          step-id: push-base-image
-          description: >
-            Push version
-            <https://${{ env.BASE_IMAGE_REPO }}:${{ env.VERSION }} | ${{ env.VERSION }}>
-        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
-      - with:
-          command: add-artifact
-          description: >
-            *Event*:
-            <https://www.github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-            | ${{ github.event_name }}>
-        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
-      - with:
-          project_id: ${{ secrets.IAM_GCR_REPO }}
-          service_account_key: ${{ secrets.GCR_TOKEN }}
-          export_default_credentials: true
-        uses: google-github-actions/setup-gcloud@master
-      - with:
-          command: update-workflow
-          step-id: rebuild-base-image
-          step-status: in progress
-        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
-      - name: Rebuild husky-directory-base
-        env:
-          # Despite my best efforts, this cannot currently be
-          # factored into a common action. See # https://github.com/actions/runner/issues/991
-          FINGERPRINT: ${{ hashFiles('poetry.lock', 'docker/husky-directory-base.dockerfile') }}
-        run: |
-          gcloud auth configure-docker
-          docker build --build-arg FINGERPRINT -f docker/husky-directory-base.dockerfile -t base .
-      - with:
-          command: update-workflow
-          step-id: rebuild-base-image
-          step-status: succeeded
-        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
-      - with:
-          command: update-workflow
-          step-id: push-base-image
-          step-status: in progress
-        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
+          json: ${{ steps.configure.outputs.workflow-json }}
+        id: create-canvas
+
       - run: |
-          docker tag base ${{ env.BASE_IMAGE_REPO }}:$VERSION
-          docker tag base ${{ env.BASE_IMAGE_REPO }}:edge
-          docker push ${{ env.BASE_IMAGE_REPO }}:$VERSION
-          docker push ${{ env.BASE_IMAGE_REPO }}:edge
-      - with:
+          echo "SLACK_CANVAS_ID=${{ steps.create-canvas.outputs.canvas-id }}" >> $GITHUB_ENV
+          echo "ACTIVE_STEP=configure" >> $GITHUB_ENV
+          echo "NEXT_STEP=rebuild-images" >> $GITHUB_ENV
+        name: Export slack notification state variables
+
+      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
+        with:
           command: update-workflow
-          step-id: push-base-image
-          step-status: failed
-        if: failure()
-        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
-      - with:
+          step-id: ${{ env.ACTIVE_STEP }}, ${{ env.NEXT_STEP }}
+          step-status: succeeded, in progress
+        if: steps.create-canvas.outputs.canvas-id
+      - run: |
+          echo "ACTIVE_STEP=$NEXT_STEP" >> $GITHUB_ENV
+          echo "NEXT_STEP=test-application-image" >> $GITHUB_ENV
+        name: Advance workflow to next step
+
+      - run: |
+          $STEP_SCRIPTS/update-dependency-image.sh
+          $STEP_SCRIPTS/update-application-image.sh
+
+      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
+        with:
           command: update-workflow
-          step-id: push-base-image
+          step-id: ${{ env.ACTIVE_STEP }}, ${{ env.NEXT_STEP }}
+          step-status: succeeded, in progress
+        if: steps.create-canvas.outputs.canvas-id
+        name: Advance workflow to next step
+
+      - run: |
+          echo "ACTIVE_STEP=$NEXT_STEP" >> $GITHUB_ENV
+          echo "NEXT_STEP=push-poetry-lock" >> $GITHUB_ENV
+
+      - run: ./scripts/run-image-tests.sh -i $APP_IMAGE_REPO:$new_version --headless
+        env:
+          new_version: ${{ steps.configure.outputs.new-app-version }}
+
+      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
+        with:
+          command: update-workflow
+          step-id: ${{ env.ACTIVE_STEP }}, ${{ env.NEXT_STEP }}
+          step-status: succeeded, in progress
+        if: steps.create-canvas.outputs.canvas-id
+        name: Advance workflow to next step
+
+      - run: |
+          echo "ACTIVE_STEP=$NEXT_STEP" >> $GITHUB_ENV
+          echo "NEXT_STEP=push-di-fingerprint" >> $GITHUB_ENV
+
+      - uses: EndBug/add-and-commit@v7 # You can change this to use a specific version
+        env:
+          tag: ${{ github.event_name == 'schedule' && steps.configure.outputs.new_app_version || '0.0.0-testing --force' }}
+        with:
+          add: 'pyproject.toml poetry.lock'
+          branch: scheduled-maintenance
+          default_author: github_actions
+          pull_strategy: 'NO-PULL'
+          push: true
+          tag: ${{ env.tag }}
+
+      - name: create pull request
+        uses: peter-evans/create-pull-request@v3.10.0
+        with:
+          branch: scheduled-maintenance
+          base: main
+          title: Scheduled dependency updates (${{ steps.configure.outputs.new-di-version }}
+          body: |
+            Beep boop! I'm a bot, here to make sure your dependencies are up to date!
+            Everything looks good, I just need your approval to merge this
+            change in to your main branch!
+
+            > What if I don't want to do this?
+
+            No problem! Just close this pull request. I'll bug you again next week.
+          assigness: tomthorogood, goulter, jdiverp
+
+      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
+        if: steps.create-canvas.outputs.canvas-id
+        env:
+          di_version: ${{ steps.configure.outputs.new-di-version }}
+          app_version: ${{ steps.configure.outputs.new-app-version }}
+          pr_num: ${{ steps.create-pull-request.outputs.pull-request-number }}
+          pr_url: ${{ env.PR_URL_BASE }}/${{ steps.create-pull-request.outputs.pull-request-number }}
+          di_url: https://${{ env.BASE_IMAGE_REPO }}:${{ steps.configure.outputs.new-di-version }}
+          app_url: https://${{ env.APP_IMAGE_REPO }}:${{ steps.configure.outputs.new-app-version }}
+          pr_link: <${{ env.pr_url }} | PR#${{ env.pr_num }}>
+          di_link: <${{ env.di_url }} | ${{ env.di_version }}>
+          app_link: <${{ env.app_url }} | ${{ env.app_version }}>
+        with:
+          command: add-artifact
+          description: |
+            * Created ${{ env.pr_link }} for version ${{ env.app_link }}
+
+            * Pushed dependency image version ${{ env.di_link }}
+
+      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
+        with:
+          command: update-workflow
+          step-id: ${{ env.ACTIVE_STEP }}, ${{ env.NEXT_STEP }}
+          step-status: succeeded, in progress
+        if: steps.create-canvas.outputs.canvas-id
+        name: Advance workflow to next step
+
+      - run: |
+          echo "ACTIVE_STEP=$NEXT_STEP" >> $GITHUB_ENV
+          docker tag $BASE_IMAGE_REPO:$fingerprint $BASE_IMAGE_REPO:$new_di_version
+          docker push $BASE_IMAGE_REPO:$fingerprint
+          docker push $BASE_IMAGE_REPO:$new_di_version
+          docker push $APP_IMAGE_REPO:$new_app_version
+        env:
+          fingerprint: ${{ steps.configure.outputs.di-fingerprint }}
+          new_di_version: ${{ steps.configure.outputs.new-di-version }}
+          new_app_version: ${{ steps.configure.outputs.new-app-version }}
+      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
+        with:
+          command: update-workflow
+          step-id: ${{ env.ACTIVE_STEP }}
           step-status: succeeded
-        if: success()
-        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
-      - with:
-          project_id: ${{ secrets.IAM_GCR_REPO }}
-          service_account_key: ${{ secrets.GCR_TOKEN }}
-          export_default_credentials: true
-        uses: google-github-actions/setup-gcloud@master
+        if: steps.create-canvas.outputs.canvas-id
+
+      # Everything after this is the epilogue that cleans up the workflow
+      - if: failure() && steps.create-canvas.outputs.canvas-id
+        with:
+          command: update-workflow
+          step-id: ${{ env.ACTIVE_STEP }}
+          step-status: failed
+          workflow-status: failed
+        uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
+
       - with:
           command: update-workflow
           workflow-status: succeeded
-        if: success()
-        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
-      - with:
-          command: update-workflow
-          workflow-status: failed
-        if: failure()
-        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
-      - with:
+        uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
+        if: success() && steps.create-canvas.outputs.canvas-id
+
+      - if: always() && steps.create-canvas.outputs.canvas-id
+        with:
+          command: remove-step
+          step-id: '*'
+          step-status: succeeded
+        uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
+
+      - if: always() && steps.create-canvas.outputs.canvas-id
+        with:
           command: finalize-workflow
-        if: always()
-        uses: UWIT-IAM/actions/update-slack-workflow-canvas@release
+        uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
