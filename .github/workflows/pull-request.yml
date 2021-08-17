@@ -18,6 +18,8 @@ env:
 jobs:
   update-pr-branch-version:
     runs-on: ubuntu-latest
+    outputs:
+      new-version: ${{ steps.update-version.outputs.new-version }}
     env:
       BASE_VERSION: ${{ needs.get-base-branch-version.outputs.version }}
     steps:
@@ -57,6 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BUILD_SCRIPTS_DIR: /tmp/build-scripts
+      APP_VERSION: ${{ needs.update-pr-branch-version.outputs.new-version }}
     steps:
       - uses: actions/checkout@v2
       - run: |
@@ -64,10 +67,9 @@ jobs:
           ./.github/scripts/install-build-scripts.sh
         id: configure
       - name: Run validation checks and tests
-        run: ./scripts/pre-push.sh --headless
+        run: ./scripts/pre-push.sh --headless --version $APP_VERSION
         id: run-validations
       - name: Push tag for pull request
-
         run: ${STEP_SCRIPTS}/create-pr-tag.sh -s ${{ steps.run-validations.outputs.image }}
         id: create-pr-tag
       - uses: mshick/add-pr-comment@v1
@@ -76,6 +78,7 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           repo-token-user-login: 'github-actions[bot]'
+          allow-repeats: false
           message: |
             Download and run the latest build with:
 
