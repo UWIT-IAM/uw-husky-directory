@@ -20,8 +20,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       new-version: ${{ steps.update-version.outputs.new-version }}
-    env:
-      BASE_VERSION: ${{ needs.get-base-branch-version.outputs.version }}
     steps:
       - name: Python Poetry Action
         uses: abatilo/actions-poetry@v2.1.0
@@ -36,7 +34,10 @@ jobs:
         id: get-version
       - uses: actions/checkout@v2
       - name: Update PR version to base_version+guidance
+        env:
+          BASE_VERSION: ${{ steps.get-version.outputs.version }}
         run: |
+          set -x
           poetry version $BASE_VERSION
           poetry version ${{ steps.guidance.outputs.guidance }}
           if [[ -n "$(git diff)" ]]
