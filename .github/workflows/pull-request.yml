@@ -25,7 +25,7 @@ jobs:
     steps:
       - name: Python Poetry Action
         uses: abatilo/actions-poetry@v2.1.0
-      - uses: uwit-iam/actions/require-semver-guidance-label@dry-run  # TODO
+      - uses: uwit-iam/actions/require-semver-guidance-label@0.1.4
         id: guidance
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
