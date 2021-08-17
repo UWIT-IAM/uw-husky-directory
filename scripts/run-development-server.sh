@@ -91,7 +91,10 @@ then
   docker build --build-arg BASE_VERSION -f docker/development-server.dockerfile \
     -t "${IMAGE}" .
 else
-  docker pull "${IMAGE}"
+  if [[ -z "$(docker images ${IMAGE} -q)" ]]
+  then
+    docker pull "${IMAGE}"
+  fi
 fi
 
 if [[ "$USE_COMPOSE" = "1" ]]
