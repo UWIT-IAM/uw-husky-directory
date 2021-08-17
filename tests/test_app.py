@@ -1,5 +1,8 @@
 from unittest import mock
 
+import pytest
+
+from husky_directory.services.pws import PersonWebServiceClient
 from husky_directory.services.search import DirectorySearchService
 
 
@@ -10,16 +13,35 @@ def test_get_index(client, html_validator):
         assert "autofocus" in html.find("input", attrs={"name": "query"}).attrs
 
 
-def test_get_health(client):
-    response = client.get("/health")
-    assert response.status_code == 200
-    assert response.json["ready"] is False
+@pytest.mark.parametrize("pws_is_ready", (True, False))
+@pytest.mark.parametrize("version", (None, "1.2.3"))
+def test_get_health(client, pws_is_ready, version, app_config, injector, mock_injected):
+    app_config.version = version
+    should_be_ready = bool(pws_is_ready) and bool(version)
+    pws_client = injector.get(PersonWebServiceClient)
+    if not pws_is_ready:
+        mock.patch.object(pws_client, "validate_connection", RuntimeError()).start()
+
+    with mock_injected(PersonWebServiceClient, pws_client):
+        response = client.get("/health")
+        assert response.status_code == 200
+        assert (
+            response.json["ready"] == should_be_ready
+        ), f"{response.json} {bool(pws_is_ready)} {bool(version)}"
 
 
-def test_get_ready(client):
+@pytest.mark.parametrize("is_ready", (True, False))
+def test_get_ready(client, app_config, is_ready: bool):
+    if is_ready:
+        app_config.version = "1.2.3"
+
     response = client.get("/health?ready")
-    assert response.status_code == 200, response.data
-    assert response.json["ready"] is True
+    if is_ready:
+        assert response.status_code == 200, response.data
+        assert response.json["ready"] is True, response.json
+    else:
+        assert response.status_code == 500
+        assert "ready=False" in response.data.decode("UTF-8"), response.data
 
 
 def test_get_login(client):

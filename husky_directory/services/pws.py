@@ -53,6 +53,10 @@ class PersonWebServiceClient:
     def pws_url(self):
         return f"{self.host}{self.default_path}"
 
+    def validate_connection(self):
+        response = requests.get(self.pws_url)
+        response.raise_for_status()
+
     def _get_sanitized_request_output(
         self,
         url: str,
