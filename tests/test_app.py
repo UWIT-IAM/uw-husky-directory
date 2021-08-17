@@ -34,6 +34,8 @@ def test_get_health(client, pws_is_ready, version, app_config, injector, mock_in
 def test_get_ready(client, app_config, is_ready: bool):
     if is_ready:
         app_config.version = "1.2.3"
+    else:
+        app_config.version = None
 
     response = client.get("/health?ready")
     if is_ready:
