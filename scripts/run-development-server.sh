@@ -45,6 +45,9 @@ do
       shift
       IMAGE=$1
       ;;
+    --no-pull)
+      NO_PULL_IMAGE=1
+      ;;
     --idp)
       USE_TEST_IDP=0
       ;;
@@ -91,7 +94,7 @@ then
   docker build --build-arg BASE_VERSION -f docker/development-server.dockerfile \
     -t "${IMAGE}" .
 else
-  if [[ -z "$(docker images ${IMAGE} -q)" ]]
+  if [[ -z "${NO_PULL_IMAGE}" ]]
   then
     docker pull "${IMAGE}"
   fi
