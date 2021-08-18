@@ -25,7 +25,7 @@ class TestApplicationConfig:
         expected_field_names = {
             "settings_dir",
             "stage",
-            "build_id",
+            "version",
             "start_time",
             "auth_settings",
             "redis_settings",

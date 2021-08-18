@@ -187,7 +187,7 @@ class ApplicationConfig(FlaskConfigurationSettings):
 
     settings_dir: str
     stage: str = Field(..., env="FLASK_ENV")
-    build_id: Optional[str] = Field(None, env="BUILD_ID")
+    version: Optional[str] = Field(None, env="HUSKY_DIRECTORY_VERSION")
     start_time: datetime = Field(datetime.now())
 
     # Aggregated Settings

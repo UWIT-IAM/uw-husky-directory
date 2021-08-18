@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 # This script does some sanity checks on your code base, autoformats our code using 'black', and
 # builds an image that will match the image used by our CI exactly. This will also invoke the
@@ -23,10 +23,11 @@ TST_DIR=tests
 VIRTUAL_ENV=$(poetry env list --full-path 2>/dev/null | cut -f1 -d\ )
 test -e ${VIRTUAL_ENV}/.envrc && source ${VIRTUAL_ENV}/.envrc
 CACHE_PATH=./.pre_push
+DOCKER_RUN_ARGS="${DOCKER_RUN_ARGS}"
 
-for item in "$@"
+while (( $# ))
 do
-  case $item in
+  case $1 in
     # Hushes a lot of output!
     "--quiet")
       QUIET=1
@@ -39,7 +40,10 @@ do
       NO_EXIT_ON_FAIL=1
       NO_COMMIT=1
       ;;
-    "--debug")
+    "--headless")
+      HEADLESS=1
+      ;;
+    --debug|-g)
       set -x;
       ;;
     # This will prevent some auto-commit features, such as for blackened code or appending the pre-push validation.
@@ -52,14 +56,22 @@ do
       docker build -f docker/husky-directory-base.dockerfile -t $LOCAL_TAG .
       USE_LOCAL_BASE=1
       ;;
+    "--version")
+      shift
+      VERSION="$1"
+      BUILD_ARGS="$BUILD_ARGS --build-arg HUSKY_DIRECTORY_VERSION=$VERSION"
+      ;;
   esac
+  shift
 done
 
-function conditional_exit() {
+test -n "${HEADLESS}" || DOCKER_RUN_ARGS+="-it "
+
+function conditional_exit {
   test -z "${NO_EXIT_ON_FAIL}" && exit 1
 }
 
-function conditional_echo() {
+function conditional_echo {
   test -z "${QUIET}" && echo $1
 }
 
@@ -82,6 +94,10 @@ COMMIT_TAG="commit-${COMMIT_SHA}"
 conditional_echo "ℹ️ Commit tag is: ${COMMIT_TAG}"
 
 IMAGE_NAME="$REPO_HOST/$REPO_PROJECT/$APP_NAME:$COMMIT_TAG"
+if [[ -n "${GITHUB_REF}" ]]
+then
+  echo "::set-output name=image::$IMAGE_NAME"
+fi
 
 if ! black --check $SRC_DIR $TST_DIR > /dev/null
 then
@@ -105,8 +121,8 @@ then
   BUILD_ARGS="${BUILD_ARGS} --build-arg BASE_VERSION=local"
 fi
 docker build -f docker/development-server.dockerfile ${BUILD_ARGS} -t "${IMAGE_NAME}" .
-conditional_echo "Tagged image ${IMAGE_NAME}"
-if ! docker run -v "$(pwd)"/htmlcov:/app/htmlcov -it "${IMAGE_NAME}" /scripts/validate-development-image.sh
+conditional_echo "Tagged image ${IMAGE_NAME} with version: $VERSION"
+if ! docker run -v "$(pwd)"/htmlcov:/app/htmlcov ${DOCKER_RUN_ARGS} "${IMAGE_NAME}" /scripts/validate-development-image.sh
 then
   echo "☠️ Your commit should NOT be pushed."
   conditional_exit
