@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "uw-husky-directory"
-version = "0.2.1"
+version = "1.0.1"
 description = "An updated version of the UW Directory"
 authors = ["Thomas Thorogood <goodtom@uw.edu>"]
 license = "MIT"
