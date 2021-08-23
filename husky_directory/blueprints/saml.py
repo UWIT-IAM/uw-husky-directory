@@ -24,12 +24,14 @@ class SAMLBlueprint(Blueprint):
         self.logger = logger
 
     def process_saml_request(self, request: Request, session: LocalProxy, **kwargs):
-        self.logger.info(f"Processing SAML POST request from {request.remote_addr}")
+        dest_url = request.form.get("RelayState") or request.host_url
+        self.logger.info(
+            f"Processing SAML POST request from {request.remote_addr} to access {dest_url}"
+        )
         attributes = uw_saml2.process_response(request.form, **kwargs)
         session["uwnetid"] = attributes["uwnetid"]
         self.logger.info(f"Signed in user {session['uwnetid']}")
-        relay_state = request.form.get("RelayState")
-        return redirect(relay_state or "/")
+        return redirect(dest_url)
 
     def login(self, request: Request, session: LocalProxy):
         session.clear()
@@ -39,6 +41,7 @@ class SAMLBlueprint(Blueprint):
         }
 
         if request.method == "GET":
+            args["return_to"] = request.host_url
             self.logger.info(f"Redirecting {request.remote_addr} to SAML sign in.")
             return redirect(uw_saml2.login_redirect(**args))
 
