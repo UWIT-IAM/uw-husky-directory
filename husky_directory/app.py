@@ -69,10 +69,17 @@ class AppInjectorModule(Module):
 
     @provider
     @singleton
-    def provide_logger(self, yaml_loader: YAMLSettingsLoader) -> logging.Logger:
+    def provide_logger(
+        self, yaml_loader: YAMLSettingsLoader, injector: Injector
+    ) -> logging.Logger:
         logger_settings = yaml_loader.load_settings("logging")
         dictConfig(logger_settings)
         gunicorn_error_logger = logging.getLogger("gunicorn.error")
+        formatter = gunicorn_error_logger.handlers[0].formatter
+        formatter.injector = injector
+        gunicorn_error_logger.info(
+            f"Log formatter: {gunicorn_error_logger.handlers[0].formatter}"
+        )
         return gunicorn_error_logger
 
     def register_jinja_extensions(self, app: Flask):

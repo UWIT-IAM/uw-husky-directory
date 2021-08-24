@@ -3,16 +3,23 @@ base: &base
   formatters:
     default:
       format: "[%(levelname)s][%(asctime)s][%(module)s]: %(message)s"
+    json:
+      '()': husky_directory.logging.JsonFormatter
   handlers:
     wsgi:
-      level: DEBUG
+      level: INFO
       class: logging.StreamHandler
-      formatter: default
+      formatter: json
   loggers:
     glogging:
-      level: WARNING  # This is very noisy and duplicates a lot of error messages.
-    gunicorn.error:
+      # Turn off all but critical `glogging` messages, because it's
+      # a very noisy module that is out of our control.
+      level: CRITICAL
+      propagate: true
+    app:
       level: DEBUG
+      propagate: true
+    gunicorn.error:
       handlers:
         - wsgi
 
