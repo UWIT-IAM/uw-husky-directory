@@ -42,7 +42,7 @@ class SAMLBlueprint(Blueprint):
 
         if request.method == "GET":
             args["return_to"] = request.host_url
-            self.logger.info(f"Redirecting {request.remote_addr} to SAML sign in.")
+            self.logger.debug(f"Redirecting {request.remote_addr} to SAML sign in.")
             return redirect(uw_saml2.login_redirect(**args))
 
         return self.process_saml_request(request, session, **args)
