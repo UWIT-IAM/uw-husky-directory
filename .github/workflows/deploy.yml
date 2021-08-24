@@ -1,0 +1,160 @@
+on:
+  push:
+    branches:
+      - dry-run-deploy
+  release:
+  workflow_dispatch:
+    inputs:
+      cluster:
+        description: cluster. Choose from dev/eval/prod.
+        default: eval
+        required: true
+      rfc:
+        description: >
+          rfc. The RFC number (e.g., '0724') associated with this
+          deployment. Required when deploying to prod.
+      version:
+        description: >
+          version. The version to deploy (e.g., '1.2.3'). If not provided,
+          the most recent release candidate will be used (eval will source from dev,
+          prod will source from eval).
+
+env:
+  BUILD_SCRIPTS_DIR: /tmp/build-scripts
+  SLACK_BOT_TOKEN: ${{ secrets.ACTIONS_SLACK_BOT_TOKEN }}
+  DRY_RUN: false
+  STEP_SCRIPTS: ${{ github.workspace }}/.github/steps/deploy
+  target_cluster: dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1
+    steps:
+      - uses: actions/checkout@v2
+      - run: ${{ github.workspace }}/.github/scripts/install-build-scripts.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: Install common-build-scripts
+      - uses: google-github-actions/setup-gcloud@v0.2.0
+        with:
+          project_id: ${{ secrets.GCR_REPO }}
+          service_account_key: ${{ secrets.GCR_TOKEN }}
+          export_default_credentials: true
+        name: Bootstrap gcloud
+      # When pushing from a merge to main, we'll always deploy the latest
+      # created release to dev.
+      - if: github.event_name == 'release'
+        run: echo "target_version=$(basename $GITHUB_REF)" >> $GITHUB_ENV
+        name: Configure new release deployment
+
+      # When performing an automated dry run from a push, we will be running using
+      # the basic default command of: ./deploy-sh --dry-run --target-cluster dev
+      - if: github.event_name == 'push' && github.ref == 'refs/heads/dry-run-deploy'
+        run: |
+          echo 'DRY_RUN=true' >> $GITHUB_ENV
+          echo 'deployment_qualifier=[DRY-RUN]' >> $GITHUB_ENV
+        name: Configure dry run deployment
+
+      # When pushing from the Github UI, we will fill in the values
+      # provided by the user.
+      - if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "DRY_RUN=${{ github.event.inputs.dry-run }}" >> $GITHUB_ENV
+          echo "target_cluster=${{ github.event.inputs.cluster }}" >> $GITHUB_ENV
+          echo "target_version=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+          echo "rfc_number=${{ github.event.inputs.rfc }}" >> $GITHUB_ENV
+          echo "deployment_qualifier=[RFC-${{ github.event.inputs.rfc }}]" >> $GITHUB_ENV
+        id: configure-env
+        name: Configure manual deployment
+
+      - name: Fetch the promotion version if no version is provided
+        run:  |
+          ./scripts/deploy.sh --configure-only \
+            -t "${target_cluster}" \
+            -v "${target_version}" \
+            -r "${rfc_number}"
+        id: configure-promotion
+        if: '! env.target_version'
+
+      - name: Update env with promotion version
+        run: |
+          source ${BUILD_SCRIPTS_DIR}/sources/github-actions.sh
+          set_env target_version '${{ steps.configure-promotion.outputs.target-version }}'
+        if: '! env.target_version'
+
+      - name: Configure slack notification canvas
+        id: configure-canvas
+        run: ${STEP_SCRIPTS}/configure-canvas.sh
+
+      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.4
+        with:
+          json: ${{ steps.configure-canvas.outputs.slack-canvas }}
+          command: create-canvas
+        id: create-canvas
+        name: Create slack notification canvas
+
+      - run: |
+          echo "SLACK_CANVAS_ID=${{ steps.create-canvas.outputs.canvas-id }}" >> $GITHUB_ENV
+          echo "CURRENT_STEP=deploy" >> $GITHUB_ENV
+          echo "NEXT_STEP=validate-deployment" >> $GITHUB_ENV
+        name: Set up slack notification env
+
+      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.4
+        with:
+          command: add-artifact
+          description: ${{ steps.configure-canvas.outputs.context-artifact }}
+        name: Add context artifact to slack
+
+      - run: ${STEP_SCRIPTS}/deploy.sh
+        id: deploy
+        name: Deploy version ${{ env.target_version }}
+
+      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.4
+        with:
+          command: update-workflow
+          step-id: ${{ env.CURRENT_STEP }}, ${{ env.NEXT_STEP }}
+          step-status: succeeded, in progress
+        name: Update canvas and progress to ${{ env.NEXT_STEP }}
+      - run: |
+          echo "CURRENT_STEP=$NEXT_STEP" >> $GITHUB_ENV
+          echo "NEXT_STEP=" >> $GITHUB_ENV
+        name: Update canvas steps in env
+
+      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.4
+        with:
+          command: update-workflow
+          step-id: ${{ env.CURRENT_STEP }}
+          step-status: succeeded
+        name: Mark step as successful
+
+      - if: failure() && steps.create-canvas.outputs.canvas-id
+        uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.4
+        with:
+          command: update-workflow
+          step-id: ${{ env.CURRENT_STEP }}
+          workflow-status: failed
+          step-status: failed
+        name: Mark workflow as failed
+
+      - if: always() && steps.create-canvas.outputs.canvas-id
+        uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.4
+        with:
+          command: remove-step
+          step-id: '*'
+          step-status: succeeded
+        name: Clean up workflow canvas
+
+      - if: success()
+        uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.4
+        with:
+          command: update-workflow
+          workflow-status: succeeded
+        name: Mark workflow as successful
+
+      - if: always() && steps.create-canvas.outputs.canvas-id
+        uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.4
+        with:
+          command: finalize-workflow
+        name: Finalize workflow
