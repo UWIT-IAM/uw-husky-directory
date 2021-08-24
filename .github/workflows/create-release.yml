@@ -1,0 +1,73 @@
+on:
+  push:
+    branches:
+      - main
+      - dry-run-create-release
+    paths-ignore:
+      - '*.md'
+
+env:
+  BUILD_SCRIPTS_DIR: /tmp/build-scripts
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+    strategy:
+      max-parallel: 1
+    steps:
+      - uses: actions/checkout@v2
+      - run: ${{ github.workspace }}/.github/scripts/install-build-scripts.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: Install common-build-scripts to ${{ env.BUILD_SCRIPTS_DIR }}
+      - name: Python Poetry Action
+        uses: abatilo/actions-poetry@v2.1.0
+      - uses: google-github-actions/setup-gcloud@v0.2.1
+        with:
+          project_id: ${{ secrets.IAM_GCR_REPO }}
+          service_account_key: ${{ secrets.GCR_TOKEN }}
+          export_default_credentials: true
+          credentials_file_path: /tmp/gcloud.json
+        name: Bootstrap gcloud
+      - run: gcloud auth configure-docker gcr.io
+      - run: echo ::set-output name=version::$(poetry version -s)
+        id: get-version
+        name: Get merged version
+      - run: ./scripts/pre-push.sh --headless --no-commit
+        name: Validate build
+      - name: Actions Ecosystem Action Get Merged Pull Request
+        uses: actions-ecosystem/action-get-merged-pull-request@v1.0.1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+        id: pr
+      - name: Push release tag
+        env:
+          pr_image: gcr.io/${{ secrets.IAM_GCR_REPO }}/husky-directory:pull-request-${{ steps.pr.outputs.number }}
+          release_image: gcr.io/${{ secrets.IAM_GCR_REPO }}/husky-directory:${{ steps.get-version.outputs.version }}
+          # When using the dry-run branch, there is no PR to draw from, so we hard-code
+          # a known-good image.
+          testing_image: gcr.io/${{ secrets.IAM_GCR_REPO }}/husky-directory:1.0.1
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]
+          then
+            docker pull $pr_image
+          else
+            docker pull $testing_image
+            docker tag $testing_image $pr_image
+          fi
+          docker tag $pr_image $release_image
+          if [[ '${{ github.ref }}' == 'refs/heads/main' ]]
+          then
+            docker push $release_image
+          else
+            echo "Not pushing $release_image in dry-run mode."
+          fi
+      - name: Create release ${{ steps.get-version.outputs.version }}
+        uses: ncipollo/release-action@v1
+        with:
+          # Use PAT so that the release will trigger the deployment workflow.
+          token: ${{ secrets.ACTIONS_PAT }}
+          tag: ${{ steps.get-version.outputs.version }}
+        if: github.ref == 'refs/heads/main'
