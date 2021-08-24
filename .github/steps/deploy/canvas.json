@@ -1,0 +1,20 @@
+{
+  "description": "${{ qualifier }} Deploy husky-directory version '${{ version }}' to ${{ stage }}.",
+  "channel": "${{ slack_channel }}",
+  "steps": [
+    {
+      "stepId": "configure-deployment",
+      "description": "Configure deployment",
+      "status": "succeeded"
+    },
+    {
+      "stepId": "deploy",
+      "description": "Deploy version ${{ version }} to ${{ stage }}",
+      "status": "in progress"
+    },
+    {
+      "stepId": "validate-deployment",
+      "description": "Test deployed ${{ stage }} instance"
+    }
+  ]
+}
