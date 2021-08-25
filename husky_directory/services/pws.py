@@ -5,7 +5,6 @@ from logging import Logger
 from typing import Any, Dict, List, Optional, Type, TypeVar, Union, cast
 
 import requests
-from devtools import PrettyFormat
 from flask_injector import request
 from injector import inject
 from werkzeug.exceptions import NotFound
@@ -18,6 +17,7 @@ from husky_directory.models.pws import (
     PersonOutput,
 )
 from husky_directory.services.auth import AuthService
+from husky_directory.util import timed
 
 RequestsCertificate = namedtuple("RequestsCertificate", ["cert_path", "key_path"])
 
@@ -34,7 +34,6 @@ class PersonWebServiceClient:
         self,
         application_config: ApplicationConfig,
         logger: Logger,
-        formatter: PrettyFormat,
         auth: AuthService,
     ):
         uwca_cert_path = application_config.auth_settings.uwca_cert_path
@@ -46,13 +45,13 @@ class PersonWebServiceClient:
         self.host = application_config.pws_settings.pws_host
         self.default_path = application_config.pws_settings.pws_default_path
         self.logger = logger
-        self.formatter = formatter
         self.auth = auth
 
     @property
     def pws_url(self):
         return f"{self.host}{self.default_path}"
 
+    @timed
     def validate_connection(self):
         response = requests.get(self.pws_url)
         response.raise_for_status()
