@@ -14,6 +14,12 @@ function print_help {
                          place, instead (eval promotes from dev, prod promotes from
                          eval).
 
+   --candidate           This allows you to deploy to dev and dev only, any tag
+                         that is on your system.
+
+   --no-pull             In combination with '--candidate', allows you to deploy an
+                         image that has never been pushed.
+
    -t, --target-cluster  The cluster to deploy to. Choose from: dev, eval, prod.
 
    -r, --rfc-number      If deploying to prod, the RFC number is required.
@@ -43,6 +49,12 @@ DEV_STRATEGY=tag
 while (( $# ))
 do
   case $1 in
+    --candidate)
+      RELEASE_CANDIDATE=1
+      ;;
+    --no-pull)
+      NO_PULL=1
+      ;;
     --version|-v)
       shift
       deploy_version="$1"
@@ -99,7 +111,12 @@ function version_image_tag {
 
 function deploy_image_tag {
   local stage="$1"
-  echo "gcr.io/uwit-mci-iam/husky-directory:deploy-${stage}.$(semver_timestamp)"
+  qualifier=$(semver_timestamp)
+  if [[ -n "${RELEASE_CANDIDATE}" ]]
+  then
+    qualifier="$(whoami).${deploy_version}.${qualifier}"
+  fi
+  echo "gcr.io/uwit-mci-iam/husky-directory:deploy-${stage}.${qualifier}"
 }
 
 function get_version {
@@ -130,6 +147,10 @@ function get_latest_github_tag {
 
 function configure_deployment {
   # Cluster is always a required argument.
+  if [[ -n "${RELEASE_CANDIDATE}" ]]
+  then
+    target_cluster=dev
+  fi
   test -z "${target_cluster}" && echo "--target-cluster/-t must be supplied" && return 1
   test -n "${deploy_version}" && return 0
   # If no version was explicitly provided, we have to
@@ -183,12 +204,13 @@ function wait_for_version_update {
       echo "Deployed version matches target of $deploy_version"
       return 0
     fi
-    echo "Attempt #${attempts}: Deployed $target_cluster version is $cur_version, waiting for $new_version" [$(date)]""
+    echo "Attempt #${attempts}: Deployed $target_cluster version is $cur_version, waiting for $deploy_version" [$(date)]""
     sleep 10
   done
 }
 
 function pull_version {
+  test -z "${NO_PULL}" || return 0
   local version="$1"
   local image=$(version_image_tag $version)
   if ! docker pull $image
@@ -202,11 +224,13 @@ function deploy {
   gcloud auth configure-docker
   local version_tag=$(version_image_tag $deploy_version)
   local deploy_tag=$(deploy_image_tag $target_cluster)
-  pull_version $deploy_version
-  docker build -f docker/deployment.yml \
-    --build-arg IMAGE=$deploy_version \
+  pull_version $version_tag
+  docker build \
+    -f docker/deployment.dockerfile \
+    --no-cache \
+    --build-arg IMAGE=$version_tag \
     --build-arg DEPLOYMENT_ID=$deploy_tag \
-    -t $deploy_tag
+    -t $deploy_tag .
   echo "Tagged $deploy_version for deployment: $deploy_tag"
   if [[ -z "${DRY_RUN}" ]]
   then
@@ -225,7 +249,7 @@ function deploy {
 
 set -e
 configure_deployment
-if [[ -z "${CONFIGURE_ONLY}}" ]]
+if [[ -z "${CONFIGURE_ONLY}" ]]
 then
   deploy
 fi
