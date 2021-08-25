@@ -16,6 +16,7 @@ from werkzeug.exceptions import BadRequest, HTTPException, InternalServerError
 from werkzeug.local import LocalProxy
 
 from husky_directory.blueprints.app import AppBlueprint
+from husky_directory.blueprints.metrics import MetricsBlueprint
 from husky_directory.blueprints.saml import (
     IdentityProviderModule,
     MockSAMLBlueprint,
@@ -154,6 +155,7 @@ class AppInjectorModule(Module):
         app_blueprint: AppBlueprint,
         saml_blueprint: SAMLBlueprint,
         mock_saml_blueprint: MockSAMLBlueprint,
+        metrics_blueprint: MetricsBlueprint,
     ) -> Flask:
         # First we have to do some logging configuration, before the
         # app instance is created.
@@ -176,6 +178,7 @@ class AppInjectorModule(Module):
         app.register_blueprint(app_blueprint)
         app.register_blueprint(search_blueprint)
         app.register_blueprint(saml_blueprint)
+        app.register_blueprint(metrics_blueprint)
 
         # Ensure the application is using the same logger as everything else.
         app.logger.handlers = logger.handlers
