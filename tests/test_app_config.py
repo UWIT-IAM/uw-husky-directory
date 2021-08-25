@@ -31,6 +31,7 @@ class TestApplicationConfig:
             "redis_settings",
             "session_settings",
             "pws_settings",
+            "deployment_id",
         }
         assert set(self.app_config.dict().keys()) == expected_field_names
 
