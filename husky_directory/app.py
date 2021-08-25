@@ -24,7 +24,6 @@ from husky_directory.blueprints.saml import (
 )
 from husky_directory.blueprints.search import SearchBlueprint
 from husky_directory.models.search import SearchDirectoryInput
-from husky_directory.util import UtilityInjectorModule
 from .app_config import (
     ApplicationConfig,
     ApplicationConfigInjectorModule,
@@ -49,7 +48,6 @@ def attach_app_error_handlers(app: Flask) -> NoReturn:
 def get_app_injector_modules() -> List[Type[Module]]:
     return [
         ApplicationConfigInjectorModule,
-        UtilityInjectorModule,
         IdentityProviderModule,
     ]
 
