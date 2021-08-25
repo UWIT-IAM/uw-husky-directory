@@ -121,7 +121,13 @@ then
   BUILD_ARGS="${BUILD_ARGS} --build-arg BASE_VERSION=local"
 fi
 docker build -f docker/development-server.dockerfile ${BUILD_ARGS} -t "${IMAGE_NAME}" .
-conditional_echo "Tagged image ${IMAGE_NAME} with version: $VERSION"
+conditional_echo "Tagged image ${IMAGE_NAME} with version: ${VERSION:-'<none provided>'}"
+if [[ -n "${VERSION}" ]]
+then
+  version_tag="${REPO_HOST}/${REPO_PROJECT}/${APP_NAME}:${VERSION}"
+  docker tag "${IMAGE_NAME}" "${version_tag}"
+  conditional_echo "Tagged image ${version_tag}"
+fi
 if ! docker run -v "$(pwd)"/htmlcov:/app/htmlcov ${DOCKER_RUN_ARGS} "${IMAGE_NAME}" /scripts/validate-development-image.sh
 then
   echo "☠️ Your commit should NOT be pushed."
