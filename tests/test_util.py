@@ -1,6 +1,8 @@
+import time
+
 import pytest
 
-from husky_directory.util import ConstraintPredicates
+from husky_directory.util import ConstraintPredicates, Timer
 
 
 class TestConstraintPredicates:
@@ -56,3 +58,28 @@ class TestConstraintPredicates:
     )
     def test_null_or_includes(self, target, value, expected):
         assert ConstraintPredicates.null_or_includes(target, value) == expected
+
+
+class TestTimer:
+    def _assert_timer_result(self, timer: Timer, expected_result: float = 0.25):
+        min_jitter = expected_result - 0.01
+        max_jitter = expected_result + 0.02
+        assert min_jitter <= round(timer.result, 2) <= max_jitter
+
+    def test_timer_with_block(self):
+        with Timer("my-timer") as timer:
+            time.sleep(0.25)
+        self._assert_timer_result(timer)
+
+    def test_timer_with_run(self):
+        timer = Timer("my-timer")
+        with timer.run():
+            time.sleep(0.25)
+        self._assert_timer_result(timer)
+
+    def test_assert_manual_timer(self):
+        timer = Timer("my-timer")
+        timer.start()
+        time.sleep(0.25)
+        timer.stop()
+        self._assert_timer_result(timer)
