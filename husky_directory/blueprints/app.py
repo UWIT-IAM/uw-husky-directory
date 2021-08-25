@@ -22,6 +22,7 @@ class HealthReport(BaseModel):
     version: Optional[str]
     start_time: str
     pws_is_ready: bool = False
+    deployment_id: Optional[str]
 
 
 class AppBlueprint(Blueprint):
@@ -75,6 +76,7 @@ class AppBlueprint(Blueprint):
             version=self.version,
             pws_is_ready=self.pws_is_ready,
             start_time=self.start_time.strftime("%y-%m-%d %H:%M:%S"),
+            deployment_id=self.config.deployment_id,
         )
         if "ready" in request.args:
             if not self.ready:
