@@ -32,6 +32,7 @@ class PWSBaseModel(BaseModel):
             return camelize(field_name, uppercase_first_letter=True)
 
         alias_generator = generate_alias
+        exclude_from_payload = set()
 
     @property
     def payload(self) -> Dict[str, Any]:
@@ -39,7 +40,9 @@ class PWSBaseModel(BaseModel):
         Formats the contents of the model, ensuring alias values and excluding
         None values in order to send only relevant payload details to PWS.
         """
-        return self.dict(exclude_none=True, by_alias=True)
+        return self.dict(
+            exclude_none=True, by_alias=True, exclude=self.Config.exclude_from_payload
+        )
 
 
 class ListResponsesOutputWrapper(PWSBaseModel):
@@ -51,9 +54,10 @@ class ListResponsesOutputWrapper(PWSBaseModel):
 class ListPersonsInput(PWSBaseModel):
     """The input model for PWS search."""
 
-    class Config:
+    class Config(PWSBaseModel.Config):
         alias_generator = None
         use_enum_values = True
+        exclude_from_payload = {"constraints"}
 
     first_name: Optional[str]
     last_name: Optional[str]
