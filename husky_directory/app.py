@@ -4,6 +4,7 @@ from logging.config import dictConfig
 from typing import List, NoReturn, Optional, Type, cast
 
 import inflection
+import pytz
 from flask import Flask, session as flask_session
 from flask_injector import FlaskInjector, request
 from flask_session import RedisSessionInterface, Session
@@ -16,6 +17,7 @@ from werkzeug.exceptions import BadRequest, HTTPException, InternalServerError
 from werkzeug.local import LocalProxy
 
 from husky_directory.blueprints.app import AppBlueprint
+from husky_directory.blueprints.metrics import MetricsBlueprint
 from husky_directory.blueprints.saml import (
     IdentityProviderModule,
     MockSAMLBlueprint,
@@ -23,7 +25,6 @@ from husky_directory.blueprints.saml import (
 )
 from husky_directory.blueprints.search import SearchBlueprint
 from husky_directory.models.search import SearchDirectoryInput
-from husky_directory.util import UtilityInjectorModule
 from .app_config import (
     ApplicationConfig,
     ApplicationConfigInjectorModule,
@@ -48,7 +49,6 @@ def attach_app_error_handlers(app: Flask) -> NoReturn:
 def get_app_injector_modules() -> List[Type[Module]]:
     return [
         ApplicationConfigInjectorModule,
-        UtilityInjectorModule,
         IdentityProviderModule,
     ]
 
@@ -74,13 +74,10 @@ class AppInjectorModule(Module):
     ) -> logging.Logger:
         logger_settings = yaml_loader.load_settings("logging")
         dictConfig(logger_settings)
-        gunicorn_error_logger = logging.getLogger("gunicorn.error")
-        formatter = gunicorn_error_logger.handlers[0].formatter
+        app_logger = logging.getLogger("gunicorn.error").getChild("app")
+        formatter = app_logger.handlers[0].formatter
         formatter.injector = injector
-        gunicorn_error_logger.info(
-            f"Log formatter: {gunicorn_error_logger.handlers[0].formatter}"
-        )
-        return gunicorn_error_logger
+        return app_logger
 
     def register_jinja_extensions(self, app: Flask):
         """You can define jinja filters here in order to make them available in our jinja templates."""
@@ -154,6 +151,7 @@ class AppInjectorModule(Module):
         app_blueprint: AppBlueprint,
         saml_blueprint: SAMLBlueprint,
         mock_saml_blueprint: MockSAMLBlueprint,
+        metrics_blueprint: MetricsBlueprint,
     ) -> Flask:
         # First we have to do some logging configuration, before the
         # app instance is created.
@@ -176,9 +174,10 @@ class AppInjectorModule(Module):
         app.register_blueprint(app_blueprint)
         app.register_blueprint(search_blueprint)
         app.register_blueprint(saml_blueprint)
+        app.register_blueprint(metrics_blueprint)
 
         # Ensure the application is using the same logger as everything else.
-        app.logger.handlers = logger.handlers
+        app.logger = logger
 
         # Bind an injector to the app itself to manage the scopes of
         # our dependencies appropriate for each request.
@@ -186,11 +185,14 @@ class AppInjectorModule(Module):
         self._configure_app_session(app, app_settings)
         attach_app_error_handlers(app)
         self.register_jinja_extensions(app)
+        app.logger.info(
+            f"Application started at "
+            f'{datetime.utcnow().astimezone(pytz.timezone("US/Pacific"))}'
+        )
         return app
 
     @staticmethod
     def _configure_app_session(app: Flask, app_settings: ApplicationConfig) -> NoReturn:
-        app.logger.info(f"Session Type: {app.config.get('SESSION_TYPE')}")
         # There is something wrong with the flask_session implementation that
         # is supposed to translate flask config values into redis settings;
         # also, it doesn't support authorization (what?!) so we have to

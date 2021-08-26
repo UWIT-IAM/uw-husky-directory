@@ -189,6 +189,7 @@ class ApplicationConfig(FlaskConfigurationSettings):
     stage: str = Field(..., env="FLASK_ENV")
     version: Optional[str] = Field(None, env="HUSKY_DIRECTORY_VERSION")
     start_time: datetime = Field(datetime.now())
+    deployment_id: Optional[str] = Field(None, env="DEPLOYMENT_ID")
 
     # Aggregated Settings
     pws_settings: PWSSettings = PWSSettings()

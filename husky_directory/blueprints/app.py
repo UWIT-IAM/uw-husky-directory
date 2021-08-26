@@ -22,6 +22,7 @@ class HealthReport(BaseModel):
     version: Optional[str]
     start_time: str
     pws_is_ready: bool = False
+    deployment_id: Optional[str]
 
 
 class AppBlueprint(Blueprint):
@@ -39,6 +40,7 @@ class AppBlueprint(Blueprint):
         self._app_config = app_config
         self._injector = injector
         self.logger = logger
+        self.__pws_result = None
 
     @property
     def version(self) -> Optional[str]:
@@ -50,13 +52,14 @@ class AppBlueprint(Blueprint):
 
     @property
     def pws_is_ready(self):
-        try:
-            self._injector.get(PersonWebServiceClient).validate_connection()
-        except Exception as e:
-            print(e)
-            self.logger.error(f"{e.__class__}: {str(e)}")
-            return False
-        return True
+        if not self.__pws_result:
+            try:
+                self._injector.get(PersonWebServiceClient).validate_connection()
+                self.__pws_result = True
+            except Exception as e:
+                self.logger.error(f"{e.__class__}: {str(e)}")
+                self.__pws_result = False
+        return self.__pws_result
 
     @property
     def ready(self) -> bool:
@@ -73,6 +76,7 @@ class AppBlueprint(Blueprint):
             version=self.version,
             pws_is_ready=self.pws_is_ready,
             start_time=self.start_time.strftime("%y-%m-%d %H:%M:%S"),
+            deployment_id=self.config.deployment_id,
         )
         if "ready" in request.args:
             if not self.ready:

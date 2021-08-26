@@ -46,6 +46,7 @@ class PropertyBaseModel(BaseModel):
         exclude_unset: bool = False,
         exclude_defaults: bool = False,
         exclude_none: bool = False,
+        exclude_properties: bool = False,
     ) -> "DictStrAny":
         """
         Overrides the base dict() behavior to ensure that properties are
@@ -65,32 +66,30 @@ class PropertyBaseModel(BaseModel):
             exclude_defaults=exclude_defaults,
             exclude_none=exclude_none,
         )
-        props = self.get_properties()
 
-        # Include and exclude properties
-        if include:
-            props = [prop for prop in props if prop in include]
-        if exclude:
-            props = [prop for prop in props if prop not in exclude]
+        alias_generator = getattr(self.Config, "alias_generator", None)
+        if by_alias and not alias_generator:
+            raise AttributeError(
+                f"{self.__class__.__name__} has no alias generator, so its properties cannot be "
+                f"converted to an alias."
+            )
 
-        # Update the attribute dict with the properties
-        if props:
-            attribs.update({prop: getattr(self, prop) for prop in props})
+        if not exclude_properties:
+            props = self.get_properties()
+            if include:
+                props = [prop for prop in props if prop in include]
+            if exclude:
+                props = [prop for prop in props if prop not in exclude]
 
-        # @tomthorogood added this to the model found on Github mentioned above.
-        # This will ensure that `by_alias` is respected in the output. I wonder if there
-        # is a better way to do this . . .
-        if by_alias:
-            alias_generator = self.Config.alias_generator
-            if not alias_generator:
-                raise AttributeError(
-                    f"{self.__class__.__name__} has no alias generator, so its properties cannot be "
-                    f"converted to an alias."
-                )
-            for prop in props:
-                # Replace the property key with its generated alias.
-                if prop in attribs:
-                    attribs[alias_generator(prop)] = attribs.pop(prop)
+            # update the attribute dict with the properties
+            if props:
+                attribs.update({prop: getattr(self, prop) for prop in props})
+
+            if by_alias:
+                for prop in props:
+                    # Replace the property key with its generated alias.
+                    if prop in attribs:
+                        attribs[alias_generator(prop)] = attribs.pop(prop)
 
         return attribs
 

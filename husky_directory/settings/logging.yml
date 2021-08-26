@@ -10,26 +10,28 @@ base: &base
       level: INFO
       class: logging.StreamHandler
       formatter: json
+    gunicorn:
+      level: ERROR
+      class: logging.StreamHandler
+      formatter: default
   loggers:
     glogging:
       # Turn off all but critical `glogging` messages, because it's
       # a very noisy module that is out of our control.
       level: CRITICAL
-      propagate: true
-    app:
+      propagate: false
+    gunicorn.error.app:
       level: DEBUG
-      propagate: true
-    gunicorn.error:
+      propagate: false
       handlers:
         - wsgi
+    gunicorn.error:
+      handlers:
+        - gunicorn
+    gunicorn.error.app.unscoped:
+      handlers:
+        - gunicorn
 
 development: *base
 
 test: *base
-
-production:
-  <<: *base
-  root:
-    level: INFO
-    handlers:
-      - wsgi
