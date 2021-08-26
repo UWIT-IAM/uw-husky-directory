@@ -8,13 +8,6 @@
 # To run this, simply do:
 #   ./scripts/pre-push.sh
 #
-# If successful, this script will create (or replace) the file .pre_push/last in your current directory.
-# This contains some helpful environment variables for referencing your commit and push.
-# You can import those at any time using: 'source .pre_push/last'
-#
-# The variables themselves are used in some helpful output, so that you can copy and paste the output directly to
-# execute other steps.
-#
 REPO_HOST=gcr.io
 REPO_PROJECT=uwit-mci-iam
 APP_NAME=husky-directory
@@ -22,7 +15,6 @@ SRC_DIR=husky_directory
 TST_DIR=tests
 VIRTUAL_ENV=$(poetry env list --full-path 2>/dev/null | cut -f1 -d\ )
 test -e ${VIRTUAL_ENV}/.envrc && source ${VIRTUAL_ENV}/.envrc
-CACHE_PATH=./.pre_push
 DOCKER_RUN_ARGS="${DOCKER_RUN_ARGS}"
 
 ./scripts/install-build-scripts.sh || exit 1
