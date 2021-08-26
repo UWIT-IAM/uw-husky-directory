@@ -1,16 +1,6 @@
 #!/usr/bin/env bash
 
-if ! source "${BUILD_SCRIPTS_DIR}/sources/github-actions.sh"
-then
-  echo "You must install common-build-scripts and set "
-  echo "the BUILD_SCRIPTS_DIR environment variable."
-  echo "Try: "
-  echo "    export BUILD_SCRIPT_DIR=/tmp/build-scripts"
-  echo "    ./.github/scripts/install-build-scripts.sh"
-  echo "and then run this script again."
-  echo
-  exit 1
-fi
+source ./.build-scripts/sources/github-actions.sh
 
 function print_help {
    cat <<EOF

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Generates the sha256 fingerprint of the current
 # dependency image based on the declared lock files.
-source $BUILD_SCRIPTS_DIR/sources/fingerprints.sh
+source ./.build-scripts/sources/fingerprints.sh
+
 image_name='husky-directory-base'
 
 lock_files=(
