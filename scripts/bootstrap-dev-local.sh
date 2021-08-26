@@ -41,25 +41,4 @@ fi
 # Install declared library dependencies
 poetry env use "${PYTHON}"
 poetry install
-
-VIRTUAL_ENV=$(poetry env list --full-path 2>/dev/null | cut -f1 -d\ )
-LOCAL=$(pwd)
-STARTUP=${VIRTUAL_ENV}/.envrc
-
-echo "Generating your virtualenv startups script: ${STARTUP}"
-
-echo "# This file sets environment variables for the uw-husky-directory developer virtual environment." > ${STARTUP}
-echo "# Feel free to edit this as desired; it will be sourced every time your virtualenv is activated." >> ${STARTUP}
-echo "# To re-generate this at anytime, simply re-run this script." >> ${STARTUP}
-echo "" >> ${STARTUP}
-echo "# Sets your personal image suffix for using \`docker push ${PERSONAL_IMAGE}\`" >> ${STARTUP}
-echo "export PERSONAL_IMAGE_SUFFIX=${USER}" >> ${STARTUP}
-echo "export VENV_STARTUP=${STARTUP}" >> ${STARTUP}
-echo "# Always sources .pre_push env variables from your last successful pre-push validation, if it exists." >> ${STARTUP}
-echo "test -e $LOCAL/.pre_push && source $LOCAL/.pre_push/last" >> ${STARTUP}
-
-echo "source ${STARTUP}" >> ${VIRTUAL_ENV}/bin/activate
-
-echo "Added ${STARTUP} to virtualenv activate script. Edit that to do any setup you want when your virtualenv is activated."
-echo "(You may want to edit it to set your PERSONAL_IMAGE_SUFFIX to start, so that it matches your UW netid)"
-echo "The VENV_STARTUP environment variable is included, so you can easily access this file to edit it."
+./scripts/install-build-scripts.sh
