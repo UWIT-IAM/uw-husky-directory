@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-source $BUILD_SCRIPTS_DIR/sources/slack.sh
-source $BUILD_SCRIPTS_DIR/sources/github-actions.sh
+source ./.build-scripts/sources/slack.sh
+source ./.build-scripts/sources/github-actions.sh
 
 BASE_IMAGE=${BASE_IMAGE_REPO}
 APP_IMAGE=${APP_IMAGE_REPO}

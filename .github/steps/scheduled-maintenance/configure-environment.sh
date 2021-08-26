@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -x
 
-./.github/scripts/install-build-scripts.sh
+workspace=${GITHUB_WORKSPACE:-.}
+
+${GITHUB_WORKSPACE}/scripts/install-build-scripts.sh
 
 POETRY_VERSION_GUIDANCE=${POETRY_VERSION_GUIDANCE:-patch}
 

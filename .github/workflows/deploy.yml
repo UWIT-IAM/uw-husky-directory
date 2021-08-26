@@ -3,6 +3,8 @@ on:
     branches:
       - dry-run-deploy
   release:
+    types:
+      - released
   workflow_dispatch:
     inputs:
       cluster:
@@ -20,7 +22,6 @@ on:
           prod will source from eval).
 
 env:
-  BUILD_SCRIPTS_DIR: /tmp/build-scripts
   SLACK_BOT_TOKEN: ${{ secrets.ACTIONS_SLACK_BOT_TOKEN }}
   DRY_RUN: false
   STEP_SCRIPTS: ${{ github.workspace }}/.github/steps/deploy
@@ -33,11 +34,9 @@ jobs:
       max-parallel: 1
     steps:
       - uses: actions/checkout@v2
-      - run: ${{ github.workspace }}/.github/scripts/install-build-scripts.sh
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: ./scripts/install-build-scripts.sh
         name: Install common-build-scripts
-      - uses: google-github-actions/setup-gcloud@v0.2.0
+      - uses: google-github-actions/setup-gcloud@v0.2.1
         with:
           project_id: ${{ secrets.GCR_REPO }}
           service_account_key: ${{ secrets.GCR_TOKEN }}
@@ -46,26 +45,33 @@ jobs:
       # When pushing from a merge to main, we'll always deploy the latest
       # created release to dev.
       - if: github.event_name == 'release'
-        run: echo "target_version=$(basename $GITHUB_REF)" >> $GITHUB_ENV
+        run: |
+          source ./.build-scripts/sources/github-actions.sh
+          set_env target_version "$(basename $GITHUB_REF)"
         name: Configure new release deployment
 
       # When performing an automated dry run from a push, we will be running using
       # the basic default command of: ./deploy-sh --dry-run --target-cluster dev
       - if: github.event_name == 'push' && github.ref == 'refs/heads/dry-run-deploy'
         run: |
-          echo 'DRY_RUN=true' >> $GITHUB_ENV
-          echo 'deployment_qualifier=[DRY-RUN]' >> $GITHUB_ENV
+          source ./.build-scripts/sources/github-actions.sh
+          set_env DRY_RUN true
+          set_env deployment_qualifier "[DRY-RUN]"
         name: Configure dry run deployment
 
       # When pushing from the Github UI, we will fill in the values
       # provided by the user.
       - if: github.event_name == 'workflow_dispatch'
         run: |
-          echo "DRY_RUN=${{ github.event.inputs.dry-run }}" >> $GITHUB_ENV
-          echo "target_cluster=${{ github.event.inputs.cluster }}" >> $GITHUB_ENV
-          echo "target_version=${{ github.event.inputs.version }}" >> $GITHUB_ENV
-          echo "rfc_number=${{ github.event.inputs.rfc }}" >> $GITHUB_ENV
-          echo "deployment_qualifier=[RFC-${{ github.event.inputs.rfc }}]" >> $GITHUB_ENV
+          source ./.build-scripts/sources/github-actions.sh
+          set_env DRY_RUN "${{ github.event.inputs.dry-run }}"
+          set_env target_cluster "${{ github.event.inputs.cluster }}"
+          set_env target_version "${{ github.event.inputs.version }}"
+          set_env rfc_number "${{ github.event.inputs.rfc }}"
+          if [[ -n "${{ github.event.inputs.rfc }}" ]]
+          then
+            set_env deployment_qualifier "[RFC-${{ github.event.inputs.rfc }}]"
+          fi
         id: configure-env
         name: Configure manual deployment
 
@@ -80,7 +86,7 @@ jobs:
 
       - name: Update env with promotion version
         run: |
-          source ${BUILD_SCRIPTS_DIR}/sources/github-actions.sh
+          source ./.build-scripts/sources/github-actions.sh
           set_env target_version '${{ steps.configure-promotion.outputs.target-version }}'
         if: '! env.target_version'
 
@@ -96,9 +102,10 @@ jobs:
         name: Create slack notification canvas
 
       - run: |
-          echo "SLACK_CANVAS_ID=${{ steps.create-canvas.outputs.canvas-id }}" >> $GITHUB_ENV
-          echo "CURRENT_STEP=deploy" >> $GITHUB_ENV
-          echo "NEXT_STEP=validate-deployment" >> $GITHUB_ENV
+          source ./.build-scripts/sources/github-actions.sh
+          set_env SLACK_CANVAS_ID "${{ steps.create-canvas.outputs.canvas-id }}"
+          set_env CURRENT_STEP deploy
+          set_env NEXT_STEP validate-deployment
         name: Set up slack notification env
 
       - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.4
@@ -118,8 +125,9 @@ jobs:
           step-status: succeeded, in progress
         name: Update canvas and progress to ${{ env.NEXT_STEP }}
       - run: |
-          echo "CURRENT_STEP=$NEXT_STEP" >> $GITHUB_ENV
-          echo "NEXT_STEP=" >> $GITHUB_ENV
+          source ./.build-scripts/sources/github-actions.sh
+          set_env CURRENT_STEP $NEXT_STEP
+          set_env NEXT_STEP ""
         name: Update canvas steps in env
 
       - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.4

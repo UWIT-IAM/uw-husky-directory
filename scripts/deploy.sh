@@ -221,10 +221,10 @@ function pull_version {
 }
 
 function deploy {
-  gcloud auth configure-docker
+  gcloud auth configure-docker gcr.io
   local version_tag=$(version_image_tag $deploy_version)
   local deploy_tag=$(deploy_image_tag $target_cluster)
-  pull_version $version_tag
+  pull_version $deploy_version
   docker build \
     -f docker/deployment.dockerfile \
     --no-cache \
