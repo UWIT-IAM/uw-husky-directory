@@ -15,7 +15,6 @@ env:
   APP_IMAGE_REPO: gcr.io/${{ secrets.IAM_GCR_REPO }}/husky-directory
   SLACK_CHANNEL: '#cloud-native-directory'
   STEP_SCRIPTS: ./.github/steps/scheduled-maintenance
-  BUILD_SCRIPTS_DIR: /tmp/build-scripts
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   PR_URL_BASE: https://github.com/${{ github.repository }}/pull
 
@@ -52,9 +51,10 @@ jobs:
         name: Create slack notification
 
       - run: |
-          echo "SLACK_CANVAS_ID=${{ steps.create-canvas.outputs.canvas-id }}" >> $GITHUB_ENV
-          echo "ACTIVE_STEP=configure" >> $GITHUB_ENV
-          echo "NEXT_STEP=rebuild-images" >> $GITHUB_ENV
+          source ./.build-scripts/sources/github-actions.sh
+          set_env SLACK_CANVAS_ID "${{ steps.create-canvas.outputs.canvas-id }}"
+          set_env ACTIVE_STEP configure
+          set_env NEXT_STEP rebuild-images
         name: Export slack notification state variables
 
       - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
@@ -73,12 +73,13 @@ jobs:
         if: steps.create-canvas.outputs.canvas-id
         name: Update workflow status
       - run: |
-          echo "ACTIVE_STEP=$NEXT_STEP" >> $GITHUB_ENV
-          echo "NEXT_STEP=test-application-image" >> $GITHUB_ENV
+          source ./.build-scripts/sources/github-actions.sh
+          set_env ACTIVE_STEP "$NEXT_STEP"
+          set_env NEXT_STEP test-application-image
         name: Advance workflow to next step
 
       - run: |
-          $STEP_SCRIPTS/update-dependency-image.sh
+          ./scripts/update-dependency-image.sh
           $STEP_SCRIPTS/update-application-image.sh
         name: Build new images
 
@@ -90,9 +91,10 @@ jobs:
         if: steps.create-canvas.outputs.canvas-id
         name: Update workflow status
 
-      - run: |
-          echo "ACTIVE_STEP=$NEXT_STEP" >> $GITHUB_ENV
-          echo "NEXT_STEP=push-poetry-lock" >> $GITHUB_ENV
+      - run:
+          source ./.build-scripts/sources/github-actions.sh
+          set_env ACTIVE_STEP "$NEXT_STEP"
+          set_env NEXT_STEP push-poetry-lock
         name: Advance workflow to next step
 
       - run: ./scripts/run-image-tests.sh -i $APP_IMAGE_REPO:$new_version --headless
@@ -108,9 +110,10 @@ jobs:
         if: steps.create-canvas.outputs.canvas-id
         name: Update workflow status
 
-      - run: |
-          echo "ACTIVE_STEP=$NEXT_STEP" >> $GITHUB_ENV
-          echo "NEXT_STEP=push-di-fingerprint" >> $GITHUB_ENV
+      - run:
+          source ./.build-scripts/sources/github-actions.sh
+          set_env ACTIVE_STEP "$NEXT_STEP"
+          set_env NEXT_STEP push-di-fingerprint
         name: Advance workflow to next step
 
       - name: Add & Commit
@@ -148,7 +151,8 @@ jobs:
         name: Update workflow status
 
       - run: |
-          echo "ACTIVE_STEP=$NEXT_STEP" >> $GITHUB_ENV
+          source ./.build-scripts/sources/github-actions.sh
+          set_env ACTIVE_STEP "$NEXT_STEP"
           docker tag $BASE_IMAGE_REPO:$fingerprint $BASE_IMAGE_REPO:$new_di_version
           docker push $BASE_IMAGE_REPO:$fingerprint
           docker push $BASE_IMAGE_REPO:$new_di_version

@@ -17,7 +17,6 @@ VIRTUAL_ENV=$(poetry env list --full-path 2>/dev/null | cut -f1 -d\ )
 test -e ${VIRTUAL_ENV}/.envrc && source ${VIRTUAL_ENV}/.envrc
 DOCKER_RUN_ARGS="${DOCKER_RUN_ARGS}"
 
-./scripts/install-build-scripts.sh || exit 1
 source ./.build-scripts/sources/fingerprints.sh
 
 while (( $# ))

@@ -23,16 +23,21 @@ jobs:
     steps:
       - name: Python Poetry Action
         uses: abatilo/actions-poetry@v2.1.0
+
       - uses: uwit-iam/actions/require-semver-guidance-label@0.1.4
         id: guidance
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: actions/checkout@v2
         with:
           ref: ${{ github.event.pull_request.base.ref }}
+
       - run: echo ::set-output name=version::$(poetry version -s)
         id: get-version
+
       - uses: actions/checkout@v2
+
       - name: Update PR version to base_version+guidance
         env:
           BASE_VERSION: ${{ steps.get-version.outputs.version }}
@@ -46,6 +51,7 @@ jobs:
             echo ::set-output name=new-version::$new_version
           fi
         id: update-version
+
       - if: steps.update-version.outputs.new-version
         uses: EndBug/add-and-commit@v7.2.1
         env:
@@ -55,24 +61,28 @@ jobs:
           default_author: github_actions
           push: true
           message: "[Bot] Update version to ${{ env.version }}"
+
   validate-image-quality:
     needs: [update-pr-branch-version]
     runs-on: ubuntu-latest
     env:
-      BUILD_SCRIPTS_DIR: /tmp/build-scripts
       APP_VERSION: ${{ needs.update-pr-branch-version.outputs.new-version }}
     steps:
       - uses: actions/checkout@v2
+
       - run: |
           ./.github/scripts/gcr-login.sh
-          ./.github/scripts/install-build-scripts.sh
+          ./scripts/install-build-scripts.sh
         id: configure
+
       - name: Run validation checks and tests
         run: ./scripts/pre-push.sh --headless --version $APP_VERSION
         id: run-validations
+
       - name: Push tag for pull request
         run: ${STEP_SCRIPTS}/create-pr-tag.sh -s ${{ steps.run-validations.outputs.image }}
         id: create-pr-tag
+
       - uses: mshick/add-pr-comment@v1
         env:
           PR_TAG: ${{ steps.create-pr-tag.outputs.image }}

@@ -4,7 +4,7 @@ pr_body="Beep boop! I'm a bot, here to make sure your dependencies are up to dat
 pr_body+="Everything looks good, I just need your approval to merge this "
 pr_body+="change in to your main branch!"
 
-source $BUILD_SCRIPTS_DIR/sources/github-actions.sh
+source ./.build-scripts/sources/github-actions.sh
 
 gh pr create \
   -B main \
