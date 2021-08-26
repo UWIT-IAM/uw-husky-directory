@@ -62,8 +62,8 @@ class TestConstraintPredicates:
 
 class TestTimer:
     def _assert_timer_result(self, timer: Timer, expected_result: float = 0.25):
-        min_jitter = expected_result - 0.01
-        max_jitter = expected_result + 0.02
+        min_jitter = expected_result - 0.05
+        max_jitter = expected_result + 0.05
         assert min_jitter <= round(timer.result, 2) <= max_jitter
 
     def test_timer_with_block(self):
