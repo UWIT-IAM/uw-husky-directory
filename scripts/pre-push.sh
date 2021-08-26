@@ -25,6 +25,9 @@ test -e ${VIRTUAL_ENV}/.envrc && source ${VIRTUAL_ENV}/.envrc
 CACHE_PATH=./.pre_push
 DOCKER_RUN_ARGS="${DOCKER_RUN_ARGS}"
 
+./scripts/install-build-scripts.sh || exit 1
+source ./.build-scripts/sources/fingerprints.sh
+
 while (( $# ))
 do
   case $1 in
@@ -50,11 +53,6 @@ do
     # Not recommended, as it could cause CI to fail if you push code that needed the automatic updates.
     "--no-commit")
       NO_COMMIT=1
-      ;;
-    "--rebuild-base")
-      LOCAL_TAG=gcr.io/uwit-mci-iam/husky-directory-base:local
-      docker build -f docker/husky-directory-base.dockerfile -t $LOCAL_TAG .
-      USE_LOCAL_BASE=1
       ;;
     "--version")
       shift
@@ -89,6 +87,9 @@ then
   conditional_exit
 fi
 
+di_fingerprint=$(./scripts/get-snapshot-fingerprint.sh)
+./scripts/update-dependency-image.sh
+
 COMMIT_SHA=$(git log | head -n 1 | cut -f2 -d\ | cut -c 1-10)
 COMMIT_TAG="commit-${COMMIT_SHA}"
 conditional_echo "ℹ️ Commit tag is: ${COMMIT_TAG}"
@@ -116,10 +117,7 @@ else
 fi
 
 conditional_echo "Building development server image"
-if [[ -n "$USE_LOCAL_BASE" ]]
-then
-  BUILD_ARGS="${BUILD_ARGS} --build-arg BASE_VERSION=local"
-fi
+BUILD_ARGS="${BUILD_ARGS} --build-arg BASE_VERSION=${di_fingerprint}"
 docker build -f docker/development-server.dockerfile ${BUILD_ARGS} -t "${IMAGE_NAME}" .
 conditional_echo "Tagged image ${IMAGE_NAME} with version: ${VERSION:-'<none provided>'}"
 if [[ -n "${VERSION}" ]]
