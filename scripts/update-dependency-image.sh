@@ -5,6 +5,8 @@ function print_help {
    cat <<EOF
    Use: update-dependency-image.sh [--debug --help]
    Options:
+   -p, --push      Push the fingerprint after building, this is risk-free
+                   and saves a lot of time in the future!
    -h, --help      Show this message and exit
    -g, --debug     Show commands as they are executing
 EOF
