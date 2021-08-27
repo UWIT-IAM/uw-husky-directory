@@ -4,4 +4,4 @@ PWS_HOST=https://it-wseval1.s.uw.edu
 PWS_DEFAULT_PATH=/identity/v2
 HOST=directory.iamdev.s.uw.edu
 SAML_ENTITY_ID=https://${HOST}/saml
-SAML_ACS_URL=https://${HOST}/saml/login
+SAML_ACS_PATH=/saml/login
