@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-source ${BUILD_SCRIPTS_DIR}/sources/github-actions.sh
+source ./.build-scripts/sources/github-actions.sh
 
 canvas=$(${STEP_SCRIPTS}/get_slack_notification.sh \
   -b canvas \

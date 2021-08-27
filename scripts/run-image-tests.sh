@@ -42,7 +42,11 @@ PYTEST_ARGS=${PYTEST_ARGS:-$DEFAULT_PYTEST_ARGS}
 if test -n "${BUILD_FIRST}"
 then
   echo "Building image and tagging as ${IMAGE_NAME}"
-  docker build -f docker/development-server.dockerfile -t "${IMAGE_NAME}" .
+  ./scripts/update-dependency-image.sh
+  fingerprint=$(./scripts/get-snapshot-fingerprint.sh)
+  docker build -f docker/development-server.dockerfile \
+    --build-arg BASE_VERSION=${fingerprint} \
+    -t "${IMAGE_NAME}" .
 fi
 
 set -x

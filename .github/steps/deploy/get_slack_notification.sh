@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-source $BUILD_SCRIPTS_DIR/sources/slack.sh
-BUILD_SCRIPTS_DIR=${BUILD_SCRIPTS_DIR:-/tmp/build-scripts}
+source ./.build-scripts/sources/slack.sh
 ACTOR=${GITHUB_ACTOR}
 SLACK_CHANNEL='#cloud-native-directory'
 

@@ -1,5 +1,5 @@
 {
-  "description": "${{ qualifier }} Deploy husky-directory version '${{ version }}' to ${{ stage }}.",
+  "description": "${{ qualifier }} Deploy husky-directory version '${{ version }}' to ${{ stage }}",
   "channel": "${{ slack_channel }}",
   "steps": [
     {

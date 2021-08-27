@@ -7,6 +7,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 nocommit.*  # Store arbitrary files in your local repo without committing them
+.build-scripts
 
 # C extensions
 *.so

@@ -1,6 +1,6 @@
 ARG BASE_VERSION=latest
-ARG FINGERPRINT=""
 FROM ghcr.io/uwit-iam/uw-saml-poetry:${BASE_VERSION} as poetry-base
+ARG FINGERPRINT=""
 WORKDIR /app
 COPY poetry.lock pyproject.toml ./
 ENV PATH="$POETRY_HOME/bin:$PATH" \
