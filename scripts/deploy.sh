@@ -4,6 +4,11 @@ REPO_API_URL=https://api.github.com/repos/uwit-iam/uw-husky-directory
 
 REPO_TAGS_URL="${REPO_API_URL}/tags"
 REPO_RELEASE_URL="${REPO_API_URL}/release/latest"
+# Explicitly clear the local DRY_RUN variable if it is set by the environment
+# So that we don't have to try and guess what the environment is doing with it.
+# For the purposes of this script, dry run can be set by using `-x` or` --dry-run`,
+# and then within this script only tested for value presence.
+DRY_RUN=
 
 function print_help {
    cat <<EOF
