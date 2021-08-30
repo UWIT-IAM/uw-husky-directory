@@ -117,7 +117,7 @@ class RedisSettings(FlaskConfigurationSettings):
 
 class SessionSettings(FlaskConfigurationSettings):
     cookie_name: str = Field(
-        "edu.uw.identity.session", env="SESSION_COOKIE_NAME", flask_config_key="_env"
+        "edu.uw.directory.session", env="SESSION_COOKIE_NAME", flask_config_key="_env"
     )
     secret_key: SecretStr = Field(None, env="SECRET_KEY", flask_config_key="_env")
     lifetime_seconds: int = Field(
@@ -154,7 +154,7 @@ class AuthSettings(FlaskConfigurationSettings):
     uwca_cert_name: str = Field(..., env="UWCA_CERT_NAME")
     uwca_cert_path: str = Field(..., env="UWCA_CERT_PATH")
     saml_entity_id: str = Field(..., env="SAML_ENTITY_ID")
-    saml_acs_url: str = Field(..., env="SAML_ACS_URL")
+    saml_acs_path: str = Field(..., env="SAML_ACS_PATH")
     use_test_idp: bool = Field(False, env="USE_TEST_IDP")
 
 

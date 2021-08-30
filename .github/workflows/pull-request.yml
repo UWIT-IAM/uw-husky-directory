@@ -59,6 +59,7 @@ jobs:
         with:
           add: pyproject.toml
           default_author: github_actions
+          pull_strategy: NO-PULL
           push: true
           message: "[Bot] Update version to ${{ env.version }}"
 

@@ -1,5 +1,6 @@
 import getpass
 from logging import Logger
+from typing import Dict
 
 import uw_saml2
 from flask import Blueprint, Request, redirect
@@ -7,6 +8,7 @@ from injector import Module, inject, provider, singleton
 from uw_saml2.idp import IdpConfig
 from uw_saml2.idp.uw import UwIdp
 from werkzeug.local import LocalProxy
+import urllib.parse
 
 from husky_directory.app_config import ApplicationConfig
 
@@ -25,25 +27,35 @@ class SAMLBlueprint(Blueprint):
 
     def process_saml_request(self, request: Request, session: LocalProxy, **kwargs):
         dest_url = request.form.get("RelayState") or request.host_url
+        post_args: Dict = request.form.copy()
+        post_args.setdefault("RelayState", request.host_url)
+        remote_ip = request.headers.get("X-Forwarded-For")
         self.logger.info(
-            f"Processing SAML POST request from {request.remote_addr} to access {dest_url}"
+            f"Processing SAML POST request from {remote_ip} to access {dest_url} with POST: {post_args}"
         )
-        attributes = uw_saml2.process_response(request.form, **kwargs)
+        attributes = uw_saml2.process_response(post_args, **kwargs)
         session["uwnetid"] = attributes["uwnetid"]
         self.logger.info(f"Signed in user {session['uwnetid']}")
         return redirect(dest_url)
 
     def login(self, request: Request, session: LocalProxy):
         session.clear()
+        acs_hostname = urllib.parse.urlparse(request.host_url).hostname
+        acs_host = f"https://{acs_hostname}"
+        acs_url = urllib.parse.urljoin(acs_host, self.auth_settings.saml_acs_path)
         args = {
             "entity_id": self.auth_settings.saml_entity_id,
-            "acs_url": self.auth_settings.saml_acs_url,
+            "acs_url": acs_url,
         }
+        remote_ip = request.headers.get("X-Forwarded-For")
 
         if request.method == "GET":
-            args["return_to"] = request.host_url
-            self.logger.debug(f"Redirecting {request.remote_addr} to SAML sign in.")
-            return redirect(uw_saml2.login_redirect(**args))
+            args["return_to"] = acs_host
+            self.logger.info(
+                f"Getting SAML redirect URL for {remote_ip} to SAML sign in with args {args}"
+            )
+            url = uw_saml2.login_redirect(**args)
+            return redirect(url)
 
         return self.process_saml_request(request, session, **args)
 
