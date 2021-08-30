@@ -17,7 +17,7 @@ and then 1 or more rows of results. #}
 
 {# data: models.search.Person #}
 {% for data in population['people'] %}
-    <tr>
+    <tr class="summary-row">
         <td valign="top">{{ data['name'] }}&nbsp;</td>
         <td valign="top" nowrap="nowrap">
             {{ data['phone_contacts']['phones']|first }}

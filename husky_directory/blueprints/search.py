@@ -2,7 +2,7 @@ from base64 import b64decode
 from logging import Logger
 from typing import Optional
 
-from flask import Blueprint, Request, jsonify, redirect, render_template, send_file
+from flask import Blueprint, Request, redirect, render_template, send_file
 from inflection import humanize, underscore
 from injector import Injector, inject, singleton
 from pydantic import ValidationError
@@ -62,23 +62,13 @@ class SearchBlueprint(Blueprint):
         # singleton instance)
         return self.injector.get(VCardService)
 
-    def get(self, request: Request, search_service: DirectorySearchService):
+    def get(self, request: Request):
         """
-        An API call, returning JSON output. Not actively used by
-        any existing flows, but useful for testing/debugging,
-        and may be useful to customers. Uses the SearchDirectoryInput model
-        by way of query parameters.
-            directory.uw.edu/search?name=foo&population=employees
-
-        Returns a jsonified instance of SearchDirectoryOutput
+        The /search endpoint only supports POST, but because it
+        will appear in users' browser histories, we set a default GET
+        path to nicely redirect back to the home page.
         """
-        if not request.args:
-            return redirect("/")
-
-        request_input = SearchDirectoryInput.parse_obj(request.args)
-        self.logger.info(f"searching for {request_input}")
-        request_output = search_service.search_directory(request_input)
-        return jsonify(request_output.dict(by_alias=True, exclude_none=True))
+        return redirect("/")
 
     def get_person(
         self,
