@@ -56,9 +56,9 @@ def test_get_logout(client):
     assert response.status_code == 302, response.data
 
 
-def test_bad_request_error(client):
+def test_search_get_redirect(client):
     response = client.get("/search?boxNumber=ABCDEFG")
-    assert response.status_code == 400
+    assert response.status_code == 302
 
 
 def test_internal_server_error(client, injector, mock_injected):
@@ -66,5 +66,7 @@ def test_internal_server_error(client, injector, mock_injected):
     with mock_injected(DirectorySearchService, service):
         mock_search = mock.patch.object(service, "search_directory").start()
         mock_search.side_effect = RuntimeError
-        response = client.get("/search?boxNumber=123456")
+        response = client.post(
+            "/search", data={"method": "boxNumber", "query": "123456"}
+        )
         assert response.status_code == 500

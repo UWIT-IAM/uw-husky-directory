@@ -34,33 +34,10 @@ class BlueprintSearchTestBase:
 
 
 class TestSearchBlueprint(BlueprintSearchTestBase):
-    @pytest.mark.parametrize("log_in", (True, False))
-    def test_json_success(self, log_in):
-        if log_in:
-            self.flask_client.get("/saml/login", follow_redirects=True)
-            assert self.session.get("uwnetid")
-
-        expected_num_results = 2 if log_in else 1
-
-        response = self.flask_client.get("/search?name=lovelace")
-        assert response.status_code == 200
-        assert response.json["numResults"] == expected_num_results
-        for scenario in response.json["scenarios"]:
-            for population, results in scenario["populations"].items():
-                if results["people"]:
-                    assert (
-                        results["people"][0]["name"]
-                        == self.mock_people.contactable_person.display_name
-                    )
-                    assert (
-                        results["people"][0]["phoneContacts"]["phones"][0]
-                        == self.mock_people.contactable_person.affiliations.employee.directory_listing.phones[
-                            0
-                        ]
-                    )
-
     def test_render_summary_success(self):
-        response = self.flask_client.post("/search", data={"query": "foo"})
+        response = self.flask_client.post(
+            "/search", data={"method": "name", "query": "foo"}
+        )
         assert response.status_code == 200
         profile = self.mock_people.contactable_person
         with self.html_validator.validate_response(response) as html:
@@ -392,40 +369,51 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
 
         self.mock_send_request.side_effect = mock_get
 
-        response = self.flask_client.get(f"/search?name={search_term}")
-        assert response.status_code == 200
-        assert response.json["numResults"] == expected_num_results
-
-    def test_list_people_sort(self, generate_person, random_string):
-        people = self.mock_people.as_search_output(
-            self.mock_people.published_employee.copy(
-                update={
-                    "preferred_last_name": "Zlovelace",
-                    "registered_surname": "Alovelace",
-                    "netid": random_string(),
-                }
-            ),
-            self.mock_people.published_employee.copy(
-                update={
-                    "registered_surname": "Blovelace",
-                    "netid": random_string(),
-                }
-            ),
-            self.mock_people.published_employee.copy(
-                update={
-                    "preferred_last_name": "Alovelace",
-                    "netid": random_string(),
-                }
-            ),
+        response = self.flask_client.post(
+            "/search", data={"method": "name", "query": search_term}
         )
-        self.mock_send_request.return_value = people
-        response = self.flask_client.get("/search?name=lovelace")
         assert response.status_code == 200
-        sort_keys = [
-            p["sortKey"]
-            for p in response.json["scenarios"][0]["populations"]["employees"]["people"]
-        ]
-        assert sort_keys == ["Alovelace", "Blovelace", "Zlovelace"]
+        with self.html_validator.validate_response(response) as html:
+            assert (
+                len(html.find_all("tr", class_="summary-row")) == expected_num_results
+            )
+
+    def test_list_people_sort(self, random_string):
+        ada_1 = self.mock_people.published_employee.copy(
+            update={
+                "preferred_last_name": "Zlovelace",
+                "registered_surname": "Alovelace",
+                "netid": random_string(),
+            },
+            deep=True,
+        )
+        ada_1.affiliations.employee.directory_listing.phones = ["222-2222"]
+        ada_2 = self.mock_people.published_employee.copy(
+            update={
+                "registered_surname": "Blovelace",
+                "netid": random_string(),
+            },
+            deep=True,
+        )
+        ada_2.affiliations.employee.directory_listing.phones = ["888-8888"]
+        ada_3 = self.mock_people.published_employee.copy(
+            update={
+                "preferred_last_name": "Alovelace",
+                "netid": random_string(),
+            },
+            deep=True,
+        )
+        ada_3.affiliations.employee.directory_listing.phones = ["999-9999"]
+        people = self.mock_people.as_search_output(ada_1, ada_2, ada_3)
+
+        self.mock_send_request.return_value = people
+        response = self.flask_client.post(
+            "/search", data={"method": "name", "query": "lovelace"}
+        )
+        html = response.data.decode("UTF-8")
+        assert response.status_code == 200
+        assert html.index("999-9999") < html.index("888-8888")
+        assert html.index("888-8888") < html.index("222-2222")
 
     def test_get_person_vcard(self):
         """
