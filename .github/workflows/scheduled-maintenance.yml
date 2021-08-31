@@ -11,9 +11,9 @@ on:
 
 env:
   SLACK_BOT_TOKEN: ${{ secrets.ACTIONS_SLACK_BOT_TOKEN }}
+  GCLOUD_TOKEN: ${{ secrets.GCR_TOKEN }}
   BASE_IMAGE_REPO: gcr.io/${{ secrets.IAM_GCR_REPO }}/husky-directory-base
   APP_IMAGE_REPO: gcr.io/${{ secrets.IAM_GCR_REPO }}/husky-directory
-  SLACK_CHANNEL: '#cloud-native-directory'
   STEP_SCRIPTS: ./.github/steps/scheduled-maintenance
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   PR_URL_BASE: https://github.com/${{ github.repository }}/pull
@@ -30,7 +30,6 @@ jobs:
 
       - name: Bootstrap Google Cloud
         with:
-          project_id: ${{ secrets.IAM_GCR_REPO }}
           service_account_key: ${{ secrets.GCR_TOKEN }}
           export_default_credentials: true
           credentials_file_path: ${{ github.workspace }}/gcloud-credentials.json
@@ -43,21 +42,19 @@ jobs:
         run: $STEP_SCRIPTS/configure-environment.sh
         id: configure
 
-      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
+      - uses: uwit-iam/actions/set-up-slack-notification-canvas@0.1.5
         with:
-          command: create-canvas
           json: ${{ steps.configure.outputs.workflow-json }}
         id: create-canvas
         name: Create slack notification
 
       - run: |
           source ./.build-scripts/sources/github-actions.sh
-          set_env SLACK_CANVAS_ID "${{ steps.create-canvas.outputs.canvas-id }}"
           set_env ACTIVE_STEP configure
           set_env NEXT_STEP rebuild-images
         name: Export slack notification state variables
 
-      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
+      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.5
         with:
           command: add-artifact
           description: >
@@ -65,7 +62,7 @@ jobs:
             | workflow execution> triggered by '${{ github.event_name }}' event.
         name: Add execution information to slack
 
-      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
+      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.5
         with:
           command: update-workflow
           step-id: ${{ env.ACTIVE_STEP }}, ${{ env.NEXT_STEP }}
@@ -84,7 +81,7 @@ jobs:
           $STEP_SCRIPTS/update-application-image.sh
         name: Build new images
 
-      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
+      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.5
         with:
           command: update-workflow
           step-id: ${{ env.ACTIVE_STEP }}, ${{ env.NEXT_STEP }}
@@ -103,7 +100,7 @@ jobs:
           new_version: ${{ steps.configure.outputs.new-app-version }}
         name: Run tests
 
-      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
+      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.5
         with:
           command: update-workflow
           step-id: ${{ env.ACTIVE_STEP }}, ${{ env.NEXT_STEP }}
@@ -136,14 +133,14 @@ jobs:
         env:
           GITHUB_PR_NUMBER: ${{ steps.create-pull-request.outputs.pull-request-number }}
 
-      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
+      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.5
         if: steps.create-canvas.outputs.canvas-id
         with:
           command: add-artifact
           description: ${{ steps.create-artifact.outputs.slack-artifact }}
         name: Add notification artifact
 
-      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
+      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.5
         with:
           command: update-workflow
           step-id: ${{ env.ACTIVE_STEP }}, ${{ env.NEXT_STEP }}
@@ -163,7 +160,8 @@ jobs:
           fingerprint: ${{ steps.configure.outputs.di-fingerprint }}
           new_di_version: ${{ steps.configure.outputs.new-di-version }}
           new_app_version: ${{ steps.configure.outputs.new-app-version }}
-      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
+
+      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.5
         with:
           command: update-workflow
           step-id: ${{ env.ACTIVE_STEP }}
@@ -171,33 +169,16 @@ jobs:
         if: steps.create-canvas.outputs.canvas-id
         name: Update workflow status
 
-      # Everything after this is the epilogue that cleans up the workflow
       - if: failure() && steps.create-canvas.outputs.canvas-id
         with:
           command: update-workflow
           step-id: ${{ env.ACTIVE_STEP }}
           step-status: failed
           workflow-status: failed
-        uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
+        uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.5
         name: Mark workflow as failed
 
-      - with:
-          command: update-workflow
-          workflow-status: succeeded
-        uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
-        if: success() && steps.create-canvas.outputs.canvas-id
-        name: Mark workflow as succeeded
-
-      - if: always() && steps.create-canvas.outputs.canvas-id
+      - uses: uwit-iam/actions/finalize-slack-notification-canvas@0.1.5
         with:
-          command: remove-step
-          step-id: '*'
-          step-status: succeeded
-        uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
-        name: Clean up successful steps
-
-      - if: always() && steps.create-canvas.outputs.canvas-id
-        with:
-          command: finalize-workflow
-        uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.1
-        name: Finalize workflow
+          workflow-status: ${{ job.status == 'success' && 'succeeded' || 'failed' }}
+        if: steps.create-canvas.outputs.canvas-id
