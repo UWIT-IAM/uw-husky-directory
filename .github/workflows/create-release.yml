@@ -16,6 +16,9 @@ jobs:
       latest-release: ${{ steps.get-release.outputs.latest-release }}
     steps:
       - uses: actions/checkout@v2
+      - name: Install poetry
+        uses: abatilo/actions-poetry@v2.1.0
+      - run: ./scripts/install-build-scripts.sh
       - run: ${STEP_SCRIPTS}/is-release-required.sh
         id: get-release
         name: Get version and determine release requirement

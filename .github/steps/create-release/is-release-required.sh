@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-
+set -ex
 source .build-scripts/sources/github-actions.sh
 
 current_version=$(poetry version -s)
