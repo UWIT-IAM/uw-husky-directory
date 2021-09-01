@@ -19,6 +19,8 @@ PR reviewer can add this guidance for you.
 
 You should supply guidance using the following rhetoric:
 
+- `no-bump` if the change under review does not alter ANY functionality (i.e., only
+  changes documentation).
 - `patch` if the change under review: fixes a bug, updates configuration, or 
 improves stability/performance without directly changing the user experience.
 - `minor` if the change under review: adds a new feature, directly changes the user 
