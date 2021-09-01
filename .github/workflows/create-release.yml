@@ -4,7 +4,7 @@ on:
       - main
       - dry-run-create-release
     paths-ignore:
-      - '*.md'
+      - '**.md'
 
 env:
   STEP_SCRIPTS: ${{ github.workspace }}/.github/steps/create-release
