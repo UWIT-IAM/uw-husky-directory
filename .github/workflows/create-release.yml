@@ -3,17 +3,32 @@ on:
     branches:
       - main
       - dry-run-create-release
-    paths-ignore:
-      - '*.md'
 
 env:
   STEP_SCRIPTS: ${{ github.workspace }}/.github/steps/create-release
 
 jobs:
-  create-release:
+  configure-release:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.get-version.outputs.version }}
+      release-required: ${{ steps.get-release.outputs.release-required }}
+      version: ${{ steps.get-release.outputs.version }}
+      latest-release: ${{ steps.get-release.outputs.latest-release }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install poetry
+        uses: abatilo/actions-poetry@v2.1.0
+      - run: ./scripts/install-build-scripts.sh
+      - run: ${STEP_SCRIPTS}/is-release-required.sh
+        id: get-release
+        name: Get version and determine release requirement
+
+  create-release:
+    needs: [configure-release]
+    if: needs.configure-release.outputs.release-required == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-release.outputs.version }}
     strategy:
       max-parallel: 1
     steps:
@@ -35,10 +50,6 @@ jobs:
 
       - run: gcloud auth configure-docker gcr.io
 
-      - run: echo ::set-output name=version::$(poetry version -s)
-        id: get-version
-        name: Get merged version
-
       - run: ./scripts/pre-push.sh --headless --no-commit
         name: Validate build
 
@@ -51,16 +62,16 @@ jobs:
       - name: Tag and push release image
         env:
           pr_image: gcr.io/${{ secrets.IAM_GCR_REPO }}/husky-directory:pull-request-${{ steps.pr.outputs.number }}
-          release_image: gcr.io/${{ secrets.IAM_GCR_REPO }}/husky-directory:${{ steps.get-version.outputs.version }}
+          release_image: gcr.io/${{ secrets.IAM_GCR_REPO }}/husky-directory:${{ steps.get-release.outputs.version }}
           # When using the dry-run branch, there is no PR to draw from, so we hard-code
           # a known-good image.
           testing_image: gcr.io/${{ secrets.IAM_GCR_REPO }}/husky-directory:1.0.1
         run: ${STEP_SCRIPTS}/push-release-image.sh
 
-      - name: Create release ${{ steps.get-version.outputs.version }}
+      - name: Create release ${{ steps.get-release.outputs.version }}
         uses: ncipollo/release-action@v1
         with:
           # Use PAT so that the release will trigger the deployment workflow.
           token: ${{ secrets.ACTIONS_PAT }}
-          tag: ${{ steps.get-version.outputs.version }}
+          tag: ${{ steps.get-release.outputs.version }}
         if: github.ref == 'refs/heads/main'
