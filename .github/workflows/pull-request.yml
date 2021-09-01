@@ -2,9 +2,6 @@ name: Pull request validation workflow
 
 on:
   pull_request:
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
     types:
       - opened
       - synchronize
