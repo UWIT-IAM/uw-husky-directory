@@ -164,7 +164,7 @@ class PersonAffiliations(PWSBaseModel):
 
 
 class NamedIdentity(PWSBaseModel):
-    display_name: Optional[str] = Field(..., alias="DisplayName")
+    display_name: Optional[str] = Field(...)
     registered_name: Optional[str]
     registered_surname: Optional[str]
     registered_first_middle_name: Optional[str]
@@ -201,7 +201,7 @@ class PersonOutput(NamedIdentity):
     @validator("href", always=True)
     def populate_href(cls, href: Optional[str], values: Dict):
         """
-        While abbreviated surch results include the href, the full
+        While abbreviated search results include the href, the full
         results do not, so it has to be generated.
         """
         if not href:
