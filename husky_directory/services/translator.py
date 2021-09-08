@@ -7,7 +7,6 @@ from husky_directory.models.enum import PopulationType
 from husky_directory.models.pws import (
     EmployeePersonAffiliation,
     ListPersonsOutput,
-    PersonOutput,
     StudentPersonAffiliation,
 )
 from husky_directory.models.search import (
@@ -83,18 +82,10 @@ class ListPersonsOutputTranslator:
             ),
         }
 
-        def filter_(person_: PersonOutput) -> bool:
-            """
-            Ignores entities we've already catalogued [as they may have been returned
-            in both the student search and the employee search], and entities
-            who have had all of their guts filtered out by the output
-            constraint filtering.
-            """
-            return person_.netid not in netid_tracker and (
-                person_.affiliations.student or person_.affiliations.employee
-            )
+        for person in request_output.persons:
+            if person.netid in netid_tracker:
+                continue
 
-        for person in filter(filter_, request_output.persons):
             student = person.affiliations.student
             employee = person.affiliations.employee
 

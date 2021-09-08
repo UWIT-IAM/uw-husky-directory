@@ -74,10 +74,10 @@ def generate_person(random_string):
             registered_name="Ada Lovelace",
             registered_surname="Lovelace",
             registered_first_middle_name="Ada",
-            whitepages_publish=True,
             is_test_entity=False,
             netid=netid,
             href=f"person/{netid}",
+            whitepages_publish=True,
         )
         return default.copy(update=attrs)
 
@@ -108,7 +108,7 @@ def mock_people(generate_person):
                         ],
                     ),
                 )
-            )
+            ),
         )
         unpublished_employee = generate_person(
             affiliations=PersonAffiliations(
@@ -166,15 +166,16 @@ def mock_people(generate_person):
         @staticmethod
         def as_search_output(
             *people: PersonOutput, next_: Optional[str] = None
-        ) -> ListPersonsOutput:
-            return ListPersonsOutput(
+        ) -> Dict:
+            result = ListPersonsOutput(
                 persons=list(people),
                 current=ListPersonsInput(),  # Not used
                 page_size=len(people),
                 page_start=1,
                 total_count=len(people),
                 next=next_,
-            )
+            ).dict(by_alias=True)
+            return result
 
         @property
         def published_student_employee(self) -> PersonOutput:

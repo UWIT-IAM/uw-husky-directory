@@ -136,7 +136,7 @@ class SearchQueryGenerator:
                     last_name=name,
                     constraints=[
                         RecordConstraint(
-                            namespace="preferred_last_name",
+                            namespace="PreferredSurname",
                             predicate=partial(
                                 ConstraintPredicates.null_or_matches, name
                             ),
@@ -150,7 +150,7 @@ class SearchQueryGenerator:
                     last_name=ArgFmt.begins_with(name),
                     constraints=[
                         RecordConstraint(
-                            namespace="preferred_last_name",
+                            namespace="PreferredSurname",
                             predicate=partial(
                                 ConstraintPredicates.null_or_begins_with, name
                             ),
@@ -164,7 +164,7 @@ class SearchQueryGenerator:
                     first_name=name,
                     constraints=[
                         RecordConstraint(
-                            namespace="preferred_first_name",
+                            namespace="PreferredFirstName",
                             predicate=partial(
                                 ConstraintPredicates.null_or_matches, name
                             ),
@@ -178,7 +178,7 @@ class SearchQueryGenerator:
                     display_name=ArgFmt.contains(name),
                     constraints=[
                         RecordConstraint(
-                            namespace="display_name",
+                            namespace="DisplayName",
                             predicate=partial(
                                 ConstraintPredicates.null_or_includes, name
                             ),
@@ -195,13 +195,13 @@ class SearchQueryGenerator:
                     last_name=last,
                     constraints=[
                         RecordConstraint(
-                            namespace="preferred_first_name",
+                            namespace="PreferredFirstName",
                             predicate=partial(
                                 ConstraintPredicates.null_or_matches, first
                             ),
                         ),
                         RecordConstraint(
-                            namespace="preferred_last_name",
+                            namespace="PreferredSurname",
                             predicate=partial(
                                 ConstraintPredicates.null_or_matches, last
                             ),
@@ -216,13 +216,13 @@ class SearchQueryGenerator:
                     last_name=last,
                     constraints=[
                         RecordConstraint(
-                            namespace="preferred_first_name",
+                            namespace="PreferredFirstName",
                             predicate=partial(
                                 ConstraintPredicates.null_or_begins_with, first
                             ),
                         ),
                         RecordConstraint(
-                            namespace="preferred_last_name",
+                            namespace="PreferredSurname",
                             predicate=partial(
                                 ConstraintPredicates.null_or_matches, last
                             ),
@@ -237,13 +237,13 @@ class SearchQueryGenerator:
                     last_name=ArgFmt.begins_with(last),
                     constraints=[
                         RecordConstraint(
-                            namespace="preferred_first_name",
+                            namespace="PreferredFirstName",
                             predicate=partial(
                                 ConstraintPredicates.null_or_matches, first
                             ),
                         ),
                         RecordConstraint(
-                            namespace="preferred_last_name",
+                            namespace="PreferredSurname",
                             predicate=partial(
                                 ConstraintPredicates.null_or_begins_with, last
                             ),
@@ -258,13 +258,13 @@ class SearchQueryGenerator:
                     last_name=ArgFmt.begins_with(last),
                     constraints=[
                         RecordConstraint(
-                            namespace="preferred_first_name",
+                            namespace="PreferredFirstName",
                             predicate=partial(
                                 ConstraintPredicates.null_or_begins_with, first
                             ),
                         ),
                         RecordConstraint(
-                            namespace="preferred_last_name",
+                            namespace="PreferredSurname",
                             predicate=partial(
                                 ConstraintPredicates.null_or_begins_with, last
                             ),
@@ -278,7 +278,7 @@ class SearchQueryGenerator:
                     last_name=ArgFmt.begins_with(*args),
                     constraints=[
                         RecordConstraint(
-                            namespace="preferred_last_name",
+                            namespace="PreferredFirstName",
                             predicate=partial(
                                 ConstraintPredicates.null_or_begins_with, " ".join(args)
                             ),
@@ -316,13 +316,13 @@ class SearchQueryGenerator:
                 last_name=last_name,
                 constraints=[
                     RecordConstraint(
-                        namespace="preferred_first_name",
+                        namespace="PreferredFirstName",
                         predicate=partial(
                             ConstraintPredicates.null_or_begins_with, first_name
                         ),
                     ),
                     RecordConstraint(
-                        namespace="preferred_last_name",
+                        namespace="PreferredSurname",
                         predicate=partial(
                             ConstraintPredicates.null_or_begins_with, last_name
                         ),

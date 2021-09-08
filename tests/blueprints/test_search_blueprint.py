@@ -422,7 +422,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
         """
         person = self.mock_people.published_employee
         href = base64.b64encode("foo".encode("UTF-8")).decode("UTF-8")
-        self.mock_send_request.return_value = person
+        self.mock_send_request.return_value = person.dict(by_alias=True)
         response = self.flask_client.get(f"/search/person/{href}/vcard")
         assert response.status_code == 200
         assert response.mimetype == "text/vcard"

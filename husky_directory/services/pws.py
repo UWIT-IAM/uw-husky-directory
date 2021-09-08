@@ -2,7 +2,7 @@ import os
 from collections import namedtuple
 from functools import partial
 from logging import Logger
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union, cast
+from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 
 import requests
 from flask_injector import request
@@ -27,8 +27,76 @@ OutputReturnType = TypeVar(
 )
 
 
+def clear_namespace(namespace, record: Any) -> bool:
+    """
+    This callback allows attributes to be cleared if they
+    do not match the criteria, instead of throwing away the entire record.
+    Practically: if the user has opted out of employee or student publication,
+    then we null the respective attributes.
+    """
+    ns = namespace.split(".")
+    attr = ns.pop(
+        -1
+    )  # Allows us to resolve to the level _above_ the field being cleared
+    constraint = RecordConstraint.construct(namespace=".".join(ns))
+    field = constraint.resolve_namespace(record)
+    if field and attr in field:
+        del field[attr]
+    return True
+
+
 @request
 class PersonWebServiceClient:
+    _GLOBAL_CONSTRAINTS = [
+        RecordConstraint(
+            # If the identity has no netid, we are not interested
+            # in the record.
+            namespace="UWNetID",
+            predicate=bool,
+        ),
+        RecordConstraint(
+            # If the identity is not eligible for publication,
+            # we are not interested in the record.
+            namespace="WhitepagesPublish",
+            predicate=bool,
+        ),
+        RecordConstraint(
+            # TODO: Support including test entities here,
+            # which will need a minor refactor of how that param
+            # is passed around. For now, we simply invert
+            # the bool representation: if we have a test entity,
+            # then we return False (and exclude the record).
+            namespace="IsTestEntity",
+            predicate=lambda v: not bool(v),
+        ),
+        RecordConstraint(
+            # If there is a student affiliation and the affiliation's
+            # publication flag is true, then accept it;
+            # otherwise clear the affiliation from the record and
+            # continue processing.
+            namespace=(
+                "PersonAffiliations.StudentPersonAffiliation.StudentWhitePages.PublishInDirectory"
+            ),
+            predicate=bool,
+            failure_callback=partial(
+                clear_namespace, "PersonAffiliations.StudentPersonAffiliation"
+            ),
+        ),
+        RecordConstraint(
+            # If there is an employee affiliation and the affiliation's
+            # publication flag is true, then accept it;
+            # otherwise clear the affiliation from the record and
+            # continue processing.
+            namespace=(
+                "PersonAffiliations.EmployeePersonAffiliation.EmployeeWhitePages.PublishInDirectory"
+            ),
+            predicate=bool,
+            failure_callback=partial(
+                clear_namespace, "PersonAffiliations.EmployeePersonAffiliation"
+            ),
+        ),
+    ]
+
     @inject
     def __init__(
         self,
@@ -75,46 +143,56 @@ class PersonWebServiceClient:
         :return: The output; always returns a value, unless PWS raises an error.
         """
         constraints = constraints or self.global_constraints
-        output = self._get_search_request_output(url, params, output_type)
+        output = self._get_search_request_output(url, params)
         if output_type is ListPersonsOutput:
-            output = cast(ListPersonsOutput, output)
-            # Post-process the output to remove items that do not meet
+            # Pre-process the output to remove items that do not meet
             # the provided client-side constraints.
-            output.persons = list(
-                filter(partial(self._filter_output_item, constraints), output.persons)
+            output["Persons"] = list(
+                filter(
+                    partial(self._filter_output_item, constraints), output["Persons"]
+                )
             )
         elif output_type is PersonOutput:
-            output = cast(PersonOutput, output)
             if not self._filter_output_item(constraints, output):
                 raise NotFound
+        output = output_type.parse_obj(output)
         return output
 
     def _get_search_request_output(
         self,
         url: str,
         params: Optional[Dict] = None,
-        output_type: Type[OutputReturnType] = ListPersonsOutput,
-    ) -> OutputReturnType:
+    ) -> Dict:
         response = requests.get(
             url, cert=self.cert, params=params, headers={"Accept": "application/json"}
         )
         self.logger.info(f"[GET] {response.url} : {response.status_code}")
         response.raise_for_status()
         data = response.json()
-        output = output_type.parse_obj(data)
-        return output
+        return data
 
     def _filter_output_item(
-        self, constraints: List[RecordConstraint], target: PersonOutput
+        self,
+        constraints: List[RecordConstraint],
+        target: Dict,
     ) -> bool:
-        if target.affiliations.student and not self.auth.request_is_authenticated:
-            target.affiliations.student = None
+        affiliations: Dict = target.get("PersonAffiliations")
 
-        for constraint in constraints:
-            if not constraint.matches(target):
-                return False
+        if affiliations and not self.auth.request_is_authenticated:
+            # If the request is not authenticated, trash student
+            # data here and now, before it gets exported into
+            # a model.
+            affiliations.pop("StudentPersonAffiliation", None)
+        if not affiliations.get("EmployeePersonAffiliation"):
+            affiliations.pop("EmployeePersonAffiliation", None)
 
-        return bool(target.affiliations.student) or bool(target.affiliations.employee)
+        # Don't use elif here, because the first
+        # predicate (above) may modify the dictionary, so we
+        # must re-check that the dict is populated.
+        if not affiliations:
+            return False
+
+        return all(constraint.matches(target) for constraint in constraints)
 
     def get_explicit_href(
         self, page_url: str, output_type: Type[OutputReturnType] = ListPersonsOutput
@@ -138,65 +216,7 @@ class PersonWebServiceClient:
         """
         These constraints are applied to every public request method in this application.
         """
-
-        def clear_namespace(namespace, record: Any) -> bool:
-            """
-            This callback allows attributes to be cleared if they
-            do not match the criteria, instead of throwing away the entire record.
-            Practically: if the user has opted out of employee or student publication,
-            then we null the respective attributes.
-            """
-            ns = namespace.split(".")
-            attr = ns.pop(
-                -1
-            )  # Allows us to resolve to the level _above_ the field being cleared
-            constraint = RecordConstraint.construct(namespace=".".join(ns))
-            field = constraint.resolve_namespace(record)
-            if field:
-                setattr(field, attr, None)
-            return True
-
-        return [
-            RecordConstraint(
-                # If the identity has no netid, we are not interested
-                # in the record.
-                namespace="netid",
-                predicate=bool,
-            ),
-            RecordConstraint(
-                # If the identity is not eligible for publication,
-                # we are not interested in the record.
-                namespace="whitepages_publish",
-                predicate=bool,
-            ),
-            RecordConstraint(
-                # TODO: Support including test entities here,
-                # which will need a minor refactor of how that param
-                # is passed around. For now, we simply invert
-                # the bool representation: if we have a test entity,
-                # then we return False (and exclude the record).
-                namespace="is_test_entity",
-                predicate=lambda v: not bool(v),
-            ),
-            RecordConstraint(
-                # If there is a student affiliation and the affiliation's
-                # publication flag is true, then accept it;
-                # otherwise clear the affiliation from the record and
-                # continue processing.
-                namespace="affiliations.student.directory_listing.publish_in_directory",
-                predicate=bool,
-                failure_callback=partial(clear_namespace, "affiliations.student"),
-            ),
-            RecordConstraint(
-                # If there is an employee affiliation and the affiliation's
-                # publication flag is true, then accept it;
-                # otherwise clear the affiliation from the record and
-                # continue processing.
-                namespace="affiliations.employee.directory_listing.publish_in_directory",
-                predicate=bool,
-                failure_callback=partial(clear_namespace, "affiliations.employee"),
-            ),
-        ]
+        return self._GLOBAL_CONSTRAINTS
 
     def list_persons(self, request_input: ListPersonsInput) -> ListPersonsOutput:
         """

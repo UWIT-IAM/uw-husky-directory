@@ -2,6 +2,7 @@ import pytest
 from werkzeug.local import LocalProxy
 
 from husky_directory.models.enum import PopulationType
+from husky_directory.models.pws import ListPersonsOutput
 from husky_directory.services.translator import ListPersonsOutputTranslator
 
 
@@ -20,9 +21,11 @@ class TestPersonOutputTranslator:
         return self.injector.get(ListPersonsOutputTranslator)
 
     def test_translate_scenario(self, generate_person):
-        pws_output = self.mock_people.as_search_output(
-            self.mock_people.contactable_person,
-            generate_person(),  # This empty person should be ignored
+        pws_output = ListPersonsOutput.parse_obj(
+            self.mock_people.as_search_output(
+                self.mock_people.contactable_person,
+                generate_person(),  # This empty person should be ignored
+            )
         )
 
         netid_tracker = set()

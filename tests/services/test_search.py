@@ -1,4 +1,5 @@
 from contextlib import ExitStack
+from typing import Dict
 from unittest import mock
 
 import pytest
@@ -7,7 +8,6 @@ from werkzeug.local import LocalProxy
 from husky_directory.models.common import UWDepartmentRole
 from husky_directory.models.enum import PopulationType
 from husky_directory.models.pws import (
-    ListPersonsInput,
     ListPersonsOutput,
 )
 from husky_directory.models.search import Person, SearchDirectoryInput
@@ -36,7 +36,7 @@ class TestDirectorySearchService:
             self.pws = injector.get(PersonWebServiceClient)
             stack.enter_context(mock_injected(PersonWebServiceClient, self.pws))
             self.mock_list_persons = stack.enter_context(
-                mock.patch.object(self.pws, "list_persons")
+                mock.patch.object(self.pws, "_get_search_request_output")
             )
             self.mock_get_explicit_href = stack.enter_context(
                 mock.patch.object(self.pws, "get_explicit_href")
@@ -48,7 +48,7 @@ class TestDirectorySearchService:
             self.client: DirectorySearchService = injector.get(DirectorySearchService)
             yield
 
-    def set_list_persons_output(self, output: ListPersonsOutput):
+    def set_list_persons_output(self, output: Dict):
         self.list_persons_output = output
         self.mock_list_persons.return_value = output
 
@@ -65,11 +65,11 @@ class TestDirectorySearchService:
         assert output.scenarios[0].populations["employees"].people
 
     def test_search_removes_duplicates(self):
-        dupe = self.mock_people.as_search_output(self.mock_people.published_employee)
-        self.set_list_persons_output(
-            dupe.copy(update={"next": ListPersonsInput(href="foo")})
-        )
-        self.set_get_next_output(dupe)
+        orig = self.mock_people.as_search_output(self.mock_people.published_employee)
+        dupe = orig.copy()
+        orig["Next"] = {"Href": "foo"}
+        self.set_list_persons_output(orig)
+        self.set_get_next_output(ListPersonsOutput.parse_obj(dupe))
         request_input = SearchDirectoryInput(name="foo")
         output = self.client.search_directory(request_input)
 
@@ -78,7 +78,7 @@ class TestDirectorySearchService:
 
     def test_output_includes_phones(self):
         person = self.mock_people.contactable_person
-        self.list_persons_output.persons = [person]
+        self.list_persons_output["Persons"] = [person.dict(by_alias=True)]
         self.session["uwnetid"] = "foo"
         request_input = SearchDirectoryInput(name="foo")
         output = self.client.search_directory(request_input)
@@ -161,7 +161,7 @@ class TestDirectorySearchService:
 
         input_population = PopulationType(input_population)
         person = getattr(self.mock_people, person)
-        self.list_persons_output.persons = [person]
+        self.list_persons_output["Persons"] = [person.dict(by_alias=True)]
         request_input = SearchDirectoryInput(
             name="Lovelace", population=input_population
         )
@@ -176,7 +176,7 @@ class TestDirectorySearchService:
     def test_department_ignores_invalid_data(self):
         person = self.mock_people.published_employee
         person.affiliations.employee.directory_listing.positions[0].department = None
-        self.list_persons_output.persons = [person]
+        self.list_persons_output["Persons"] = [person.dict(by_alias=True)]
         request_input = SearchDirectoryInput(
             name="whatever", population=PopulationType.employees
         )
@@ -186,7 +186,7 @@ class TestDirectorySearchService:
 
     def test_output_includes_box_number(self):
         person = self.mock_people.published_employee
-        self.list_persons_output.persons = [person]
+        self.list_persons_output["Persons"] = [person.dict(by_alias=True)]
         output = self.client.search_directory(
             SearchDirectoryInput(name="*blah", population=PopulationType.employees)
         )

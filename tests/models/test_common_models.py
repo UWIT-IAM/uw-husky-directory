@@ -1,5 +1,3 @@
-from types import SimpleNamespace
-
 import pytest
 from pydantic import ValidationError
 
@@ -11,7 +9,6 @@ class TestRecordConstraint:
         "record",
         [
             {"foo": "bar", "baz": {"bop": "buzz"}},
-            SimpleNamespace(foo="bar", baz=SimpleNamespace(bop="buzz")),
         ],
     )
     @pytest.mark.parametrize(

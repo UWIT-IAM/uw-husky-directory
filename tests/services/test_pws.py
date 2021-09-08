@@ -23,12 +23,14 @@ class TestPersonWebServiceClient:
 
     def test_get_explicit_href(self):
         expected_url = f"{self.client.pws_url}/foobar"
+        self.mock_send_request.return_value = self.mock_people.as_search_output()
         self.client.get_explicit_href("/identity/v2/foobar")
         self.mock_send_request.assert_called_once()
         assert self.mock_send_request.call_args[0][0] == expected_url
 
     def test_list_persons(self):
         request_input = ListPersonsInput(display_name="test")
+        self.mock_send_request.return_value = self.mock_people.as_search_output()
         expected_url = f"{self.client.pws_url}/person"
         self.client.list_persons(request_input)
         self.mock_send_request.assert_called_once()
