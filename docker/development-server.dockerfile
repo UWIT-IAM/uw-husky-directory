@@ -22,8 +22,5 @@ ENV FLASK_PORT=8000 \
 
 # 0.0.0.0 binding is necessary for the EXPOSE above to have any effect.
 CMD poetry run gunicorn -b 0.0.0.0:${FLASK_PORT} \
-    --log-level ${GUNICORN_LOG_LEVEL} \
     -c "/app/husky_directory/gunicorn.conf.py" \
-    --reload \
-    --capture-output \
     "husky_directory.app:create_app()"
