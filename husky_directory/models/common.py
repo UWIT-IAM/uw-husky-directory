@@ -7,13 +7,10 @@ the respective service model.
 """
 from __future__ import annotations
 
-import json
 import re
-from types import SimpleNamespace
-from typing import Any, Callable, Generic, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, Optional, Union
 
 from pydantic import BaseModel, validator
-from pydantic.generics import GenericModel
 
 
 class UWDepartmentRole(BaseModel):
@@ -43,10 +40,7 @@ class RecordNamespace(str):
         return v
 
 
-T = TypeVar("T")
-
-
-class RecordConstraint(GenericModel, Generic[T]):
+class RecordConstraint(BaseModel):
     """
     This model helps us apply additional client-side filters to
     result records. A record can be an object or a dict.
@@ -92,13 +86,11 @@ class RecordConstraint(GenericModel, Generic[T]):
         assert data_2['foo']['bar'] == 'temp'
     """
 
-    namespace: Union[
-        RecordNamespace, str
-    ]  # Will always be converted to a RecordNamespace
-    predicate: Callable[[T], bool] = lambda _: False
-    failure_callback: Callable[[T], bool] = lambda _: False
+    namespace: Optional[Any]
+    predicate: Callable[[Any], bool] = lambda _: False
+    failure_callback: Callable[[Dict], bool] = lambda _: False
 
-    def resolve_namespace(self, record: Any) -> Optional[Any]:
+    def resolve_namespace(self, record: Dict) -> Optional[Any]:
         """
         Given a record, resolves the value of the namespace. The record can be anything.
         If it is a dict, the dict will be evaluated as namespace for the scope of this method.
@@ -109,21 +101,18 @@ class RecordConstraint(GenericModel, Generic[T]):
         :param record: The thing you want to test; it can be anything!
         :return: The value of the resolved namespace, or None.
         """
-        if isinstance(record, dict):
-            # Converts the dict into an object.
-            record = json.loads(
-                json.dumps(record), object_hook=lambda item: SimpleNamespace(**item)
-            )
-
         resolved = record
 
         for token in self.namespace.split("."):
-            resolved = getattr(resolved, token, None)
+            try:
+                resolved = resolved.get(token)
+            except AttributeError:
+                resolved = None
             if not resolved:
                 break
         return resolved
 
-    def matches(self, record: T) -> bool:
+    def matches(self, record: Dict) -> bool:
         """
         Given a thing, returns whether the thing matches the predicate
         or the failure callback.

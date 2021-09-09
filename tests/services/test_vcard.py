@@ -103,8 +103,9 @@ class TestVCardServiceAttributeResolution:
 
 class TestVCardServiceVCardGeneration:
     @pytest.fixture(autouse=True)
-    def initialize(self, injector: Injector, mock_injected):
+    def initialize(self, injector: Injector, mock_injected, mock_people):
         self.session = cast(LocalProxy, {})
+        self.mock_people = mock_people
 
         with mock_injected(LocalProxy, self.session):
             self.service = injector.get(VCardService)
@@ -120,7 +121,7 @@ class TestVCardServiceVCardGeneration:
         mock_pws_get.return_value = self.mock_pws_person
 
     def get_vcard_result(self, person: PersonOutput) -> List[str]:
-        self.mock_pws_person = person
+        self.mock_pws_person = person.dict(by_alias=True)
         self.prepare_pws()
 
         result = self.service.get_vcard("foo")
@@ -147,7 +148,7 @@ class TestVCardServiceVCardGeneration:
         ]
 
     def test_employee_vcard(self, employee):
-        self.mock_pws_person = employee
+        self.mock_pws_person = self.mock_people.as_search_output(employee)
         self.prepare_pws()
 
         result = self.get_vcard_result(employee)
