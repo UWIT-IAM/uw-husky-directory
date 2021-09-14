@@ -165,6 +165,17 @@ class PWSSettings(FlaskConfigurationSettings):
     pws_default_path: str = Field(..., env="PWS_DEFAULT_PATH")
 
 
+class MetricsSettings(FlaskConfigurationSettings):
+    metric_prefix: str = Field("uw-directory", env="PROMETHEUS_METRIC_PREFIX")
+
+
+class ApplicationSecrets(BaseSettings):
+    # These should only be set in a deployed environment's gcp-k8 configuration
+    # For more info, see: https://github.com/UWIT-IAM/gcp-docs/blob/master/secrets.md
+    prometheus_username: Optional[SecretStr] = Field(None, env="PROMETHEUS_USERNAME")
+    prometheus_password: Optional[SecretStr] = Field(None, env="PROMETHEUS_PASSWORD")
+
+
 @singleton
 class ApplicationConfig(FlaskConfigurationSettings):
     """
@@ -196,6 +207,8 @@ class ApplicationConfig(FlaskConfigurationSettings):
     auth_settings: AuthSettings = AuthSettings()
     session_settings: SessionSettings = SessionSettings()
     redis_settings: Optional[RedisSettings]
+    metrics_settings: MetricsSettings = MetricsSettings()
+    secrets: ApplicationSecrets = ApplicationSecrets()
 
     @validator("redis_settings")
     def validate_redis_settings(
@@ -232,17 +245,10 @@ class ApplicationConfigInjectorModule(Module):
         )
         settings_file = os.environ.get("APP_DOTENV_FILE", "base.dotenv")
         settings_file_path = os.path.join(settings_dir, settings_file)
-        return ApplicationConfig(
+        config = ApplicationConfig(
             _env_file=settings_file_path, settings_dir=settings_dir
         )
-
-
-# NOT YET USED
-class ApplicationSecrets(BaseSettings):
-    # These should only be set in a deployed environment's gcp-k8 configuration
-    # For more info, see: https://github.com/UWIT-IAM/gcp-docs/blob/master/secrets.md
-    prometheus_username: SecretStr = Field(..., env="PROMETHEUS_USERNAME")
-    prometheus_password: SecretStr = Field(..., env="PROMETHEUS_PASSWORD")
+        return config
 
 
 SettingsType = TypeVar(

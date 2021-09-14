@@ -32,6 +32,8 @@ class TestApplicationConfig:
             "session_settings",
             "pws_settings",
             "deployment_id",
+            "secrets",
+            "metrics_settings",
         }
         assert set(self.app_config.dict().keys()) == expected_field_names
 

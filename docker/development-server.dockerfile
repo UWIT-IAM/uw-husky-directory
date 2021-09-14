@@ -18,8 +18,10 @@ ENV FLASK_PORT=8000 \
     PYTHONPATH=/app:$PYTHONPATH \
     GUNICORN_LOG_LEVEL=DEBUG \
     DOTENV_FILE="$ENV_FILE" \
-    HUSKY_DIRECTORY_VERSION=$HUSKY_DIRECTORY_VERSION
+    HUSKY_DIRECTORY_VERSION=$HUSKY_DIRECTORY_VERSION \
+    PROMETHEUS_MULTIPROC_DIR="/tmp/prometheus"
 
+RUN mkdir -pv $PROMETHEUS_MULTIPROC_DIR && mkdir "/tmp/flask_session"
 # 0.0.0.0 binding is necessary for the EXPOSE above to have any effect.
 CMD poetry run gunicorn -b 0.0.0.0:${FLASK_PORT} \
     -c "/app/husky_directory/gunicorn.conf.py" \

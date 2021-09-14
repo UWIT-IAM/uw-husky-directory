@@ -1,4 +1,5 @@
 import logging
+import os
 from datetime import datetime
 from logging.config import dictConfig
 from typing import List, NoReturn, Optional, Type, cast
@@ -6,6 +7,7 @@ from typing import List, NoReturn, Optional, Type, cast
 import inflection
 import pytz
 from flask import Flask, session as flask_session
+from flask_httpauth import HTTPBasicAuth
 from flask_injector import FlaskInjector, request
 from flask_session import RedisSessionInterface, Session
 from injector import Injector, Module, provider, singleton
@@ -17,7 +19,6 @@ from werkzeug.exceptions import BadRequest, HTTPException, InternalServerError
 from werkzeug.local import LocalProxy
 
 from husky_directory.blueprints.app import AppBlueprint
-from husky_directory.blueprints.metrics import MetricsBlueprint
 from husky_directory.blueprints.saml import (
     IdentityProviderModule,
     MockSAMLBlueprint,
@@ -25,6 +26,7 @@ from husky_directory.blueprints.saml import (
 )
 from husky_directory.blueprints.search import SearchBlueprint
 from husky_directory.models.search import SearchDirectoryInput
+from husky_directory.util import MetricsClient
 from .app_config import (
     ApplicationConfig,
     ApplicationConfigInjectorModule,
@@ -151,7 +153,6 @@ class AppInjectorModule(Module):
         app_blueprint: AppBlueprint,
         saml_blueprint: SAMLBlueprint,
         mock_saml_blueprint: MockSAMLBlueprint,
-        metrics_blueprint: MetricsBlueprint,
     ) -> Flask:
         # First we have to do some logging configuration, before the
         # app instance is created.
@@ -174,7 +175,6 @@ class AppInjectorModule(Module):
         app.register_blueprint(app_blueprint)
         app.register_blueprint(search_blueprint)
         app.register_blueprint(saml_blueprint)
-        app.register_blueprint(metrics_blueprint)
 
         # Ensure the application is using the same logger as everything else.
         app.logger = logger
@@ -183,13 +183,51 @@ class AppInjectorModule(Module):
         # our dependencies appropriate for each request.
         FlaskInjector(app=app, injector=injector)
         self._configure_app_session(app, app_settings)
+        self._configure_prometheus(app, app_settings, injector)
         attach_app_error_handlers(app)
         self.register_jinja_extensions(app)
         app.logger.info(
-            f"Application started at "
+            f"Application worker started at "
             f'{datetime.utcnow().astimezone(pytz.timezone("US/Pacific"))}'
         )
         return app
+
+    @staticmethod
+    def _configure_prometheus(
+        app: Flask, app_settings: ApplicationConfig, injector: Injector
+    ):
+        """
+        Sets up a prometheus client with authorization and
+        binds it to the Injector using the MetricsClient alias.
+        :param app:
+        :param app_settings:
+        :param injector:
+        :return:
+        """
+        secrets = app_settings.secrets
+        metrics_auth = HTTPBasicAuth()
+
+        @metrics_auth.verify_password
+        def verify_credentials(username: str, password: str):
+            if secrets.prometheus_username and secrets.prometheus_password:
+                credentials = (
+                    secrets.prometheus_username.get_secret_value(),
+                    secrets.prometheus_password.get_secret_value(),
+                )
+                return (username, password) == credentials
+            app.logger.warning(
+                "No prometheus authorization is configured. Anyone can scrape these metrics."
+            )
+            return True  # If the environment isn't configured with auth (e.g., testing)
+
+        metrics = MetricsClient(
+            app,
+            debug=True,
+            metrics_decorator=metrics_auth.login_required,
+            defaults_prefix=f"{app_settings.metrics_settings.metric_prefix}_flask",
+        )
+        app.metrics = metrics
+        injector.binder.bind(MetricsClient, metrics, scope=singleton)
 
     @staticmethod
     def _configure_app_session(app: Flask, app_settings: ApplicationConfig) -> NoReturn:
@@ -226,4 +264,4 @@ def create_app(injector: Optional[Injector] = None) -> Flask:
 
 
 if __name__ == "__main__":  # pragma: no cover
-    create_app().run()
+    create_app().run(port=os.environ.get("FLASK_PORT", 8000))
