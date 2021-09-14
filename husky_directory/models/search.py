@@ -41,7 +41,6 @@ class SearchDirectoryFormInput(DirectoryBaseModel):
     method: str = "name"
     query: str = ""
     population: PopulationType = PopulationType.employees
-    include_test_identities: bool = False
     length: ResultDetail = ResultDetail.summary
 
     # render_ fields are provided as a way to search one thing,
@@ -59,6 +58,16 @@ class SearchDirectoryFormInput(DirectoryBaseModel):
     render_length: Optional[ResultDetail]
 
     include_test_identities: bool = False  # Not currently supported
+
+    @validator("query")
+    def strip_illegal_chars(cls, v: str) -> str:
+        """
+        PWS is OK with most special chars, and many may be found
+        in our population's names.
+        The '\' character is not one of them. (And maybe more?)
+        For those, we'll assume a typo, and just strip them on input.
+        """
+        return re.sub(r"[\\]", "", v)
 
     # These methods ensure that, by default, the render_ fields have
     # the same value as the query value.

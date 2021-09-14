@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from husky_directory.models.search import SearchDirectoryInput
+from husky_directory.models.search import SearchDirectoryFormInput, SearchDirectoryInput
 
 
 class TestSearchDirectoryInput:
@@ -54,3 +54,15 @@ class TestSearchDirectoryInput:
             SearchDirectoryInput(population=input_population).requested_populations
             == expected
         )
+
+
+@pytest.mark.parametrize(
+    "query_value, expected_value",
+    [
+        ("foo\\", "foo"),
+        ("f\\oo\\", "foo"),
+    ],
+)
+def test_form_input_strips_illegal_chars(query_value, expected_value):
+    form_input = SearchDirectoryFormInput(query=query_value)
+    assert form_input.query == expected_value
