@@ -146,7 +146,7 @@ fi
 if [[ "$USE_COMPOSE" = "1" ]]
 then
   export APP_IMAGE="${IMAGE}"
-  docker-compose -f docker/docker-compose.app-with-redis.yaml up
+  docker-compose -f docker/docker-compose.app.yaml up
 else
   set -x
   docker run ${RUNENV} -p 8000:8000 -p 9090:9090 ${MOUNTLOCAL} -it "${IMAGE}"

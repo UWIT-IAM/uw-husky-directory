@@ -35,16 +35,19 @@ is to query PWS.
 
 ## Options
 
+**For complete documentation of the run-development-server.sh 
+script, run it with `--help`**
+
 You can run any published tag with `-i`:
 
 `./scripts/run-development-server.sh -i gcr.io/uwit-mci-iam/husky-directory:${TAG}`
 
-You can run an instance that uses a redis cache (for testing and validation
-purposes):
+You can run an instance that also uses a redis cache (for testing and validation
+purposes) and includes a prometheus instance with:
 
-`./.scripts/run-development-server.sh --with-redis`
+`./.scripts/run-development-server.sh --compose`
 
-This will use the [docker-compose file](../docker/docker-compose.app-with-redis.yaml)
+This will use the [docker-compose file](../docker/docker-compose.app.yaml)
 instead of a single docker container. Note that this automatically sets up the
 environment to mount your code live (locally); this is not configurable without editing
 the docker-compose file.
