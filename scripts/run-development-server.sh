@@ -11,6 +11,42 @@ APP_ENV_FILE=${APP_ENV_FILE:-husky_directory/settings/local.dotenv}
 RUNENV="${RUNENV}"
 USE_TEST_IDP=1
 
+function print_help {
+   cat <<EOF
+   Use: run-development-server.sh [--debug --help]
+   Options:
+   -m, --mount     Mount your source code to avoid having to rebuild the image
+
+   -c, --cert-path  The /path/to/your/ UWCA certificate (not required if
+                    UWCA_CERT_PATH is set)
+
+   -c, --cert-name  The name of your cert/key within --cert-path (not required if
+                    UWCA_CERT_NAME is set)
+
+   +di, --rebuild-base  If you are testing new dependencies, this flag will
+                        ensure they are included in your image.
+
+   -e, --env       Passes the argument to the docker run command, e.g.,
+                   `-e FOO=BAR` will make sure `FOO` is set to `BAR` on the
+                   running instance.
+
+   -i, --image     A complete image name you want to run; useful when testing something
+                   that has already been pushed, e.g., gcr.io/uwit-mci-iam/uw-directory:2.0.1
+
+   --no-pull       Run the image that is stored locally; do not attempt to pull or
+                   update it.
+
+   --idp           Use a real IdP. Not likely to work when running from your laptop!
+
+   --compose       Use a docker-compose setup that includes redis and prometheus
+                   integration. Without this, you must set '-e DEBUG_METRICS=true'
+                   in order for metrics to export locally
+
+   -h, --help      Show this message and exit
+   -g, --debug     Show commands as they are executing
+EOF
+}
+
 while (( $# ))
 do
   case $1 in
@@ -31,13 +67,13 @@ do
       export UWCA_CERT_NAME=$1
       RUNENV="${RUNENV} -e UWCA_CERT_NAME=${UWCA_CERT_NAME}"
       ;;
-    --rebuild-base)  # Use this if your dependencies differ from `edge`
+    --rebuild-base|+di)  # Use this if your dependencies differ from `edge`
       docker build -f docker/husky-directory-base.dockerfile \
         -t gcr.io/uwit-mci-iam/husky-directory-base:local .
       export BASE_VERSION=local
       ;;
     # You can provide environment variable arguments here to pass into Docker.
-    -e)
+    -e|--env)
       shift
       RUNENV="${RUNENV} -e $1"
       ;;
@@ -51,8 +87,15 @@ do
     --idp)
       USE_TEST_IDP=0
       ;;
-    --with-redis|-r)
+    --compose)
       USE_COMPOSE=1
+      ;;
+    --help|-h)
+      print_help
+      exit 0
+      ;;
+    --debug|-g)
+      set -x
       ;;
   esac
   shift
@@ -105,5 +148,7 @@ then
   export APP_IMAGE="${IMAGE}"
   docker-compose -f docker/docker-compose.app-with-redis.yaml up
 else
-  docker run ${RUNENV} -p 8000:8000 ${MOUNTLOCAL} -it "${IMAGE}"
+  set -x
+  docker run ${RUNENV} -p 8000:8000 -p 9090:9090 ${MOUNTLOCAL} -it "${IMAGE}"
+  set +x
 fi
