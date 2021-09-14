@@ -19,3 +19,12 @@ services:
     command: redis-server --user uw-directory on +@all -@dangerous ~uw-directory:* >supersecret
     ports:
       - "6379:6379"
+  prometheus:
+    image: prom/prometheus:latest
+    restart: always
+    ports:
+      - 9000:9090
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    volumes:
+      - ${PWD}/docker/prometheus:/etc/prometheus/
