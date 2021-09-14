@@ -28,7 +28,9 @@ namespace_regex = re.compile(r"^([\w\d_]+\.?)+$")
 
 class RecordNamespace(str):
     @classmethod
-    def __get_validators__(cls):
+    def __get_validators__(
+        cls,
+    ):  # pragma: no cover  # This is an internal pydantic thing
         yield cls.validate
 
     @classmethod
