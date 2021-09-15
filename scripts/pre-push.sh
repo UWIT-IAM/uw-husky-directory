@@ -19,36 +19,77 @@ DOCKER_RUN_ARGS="${DOCKER_RUN_ARGS}"
 
 source ./.build-scripts/sources/fingerprints.sh
 
+function print_help {
+   cat <<EOF
+   Use: pre-push.sh [--version VERSION --test]
+
+   Blackens all code, builds a docker image from the code, then
+   runs all validations to ensure that the application is functioning
+   appropriately.
+
+   You must run this in "--test" mode unless your git branch is
+   clean (i.e., ready to push). Running without "--test" amends your
+   commit after blackening all code, so the utility protects you from amending
+   a previous commit accidentally.
+
+   You cannot opt out of blackening the code; our CI pipeline will do this for you
+   even if you skip this step. It is recommended to always run this command
+   before pushing to save the trouble of waiting for the workflow to fail.
+
+   Options:
+
+   --test          Run all validations even if some fail;
+                   do not amend the HEAD commit to blacken code.
+                   Use this until you're ready to actually push.
+
+   -v, --version   Tag an application version. (i.e., -v TAG_NAME).
+                   Use with --test to build release candidates locally for
+                   remote testing. The image will be stored locally
+                   as ${REPO_HOST}/${REPO_PROJECT}/${APP_NAME}:TAG_NAME
+
+   --headless      Do not run docker in interactive mode; required when running
+                   via remote automation (i.e., Github Actions)
+
+   --quiet         Disables most output
+   -h, --help      Show this message and exit
+   -g, --debug     Show commands as they are executing
+EOF
+}
+
 while (( $# ))
 do
   case $1 in
     # Hushes a lot of output!
-    "--quiet")
+    --quiet)
       QUIET=1
       ;;
     # This flag will keep executing the script even if some gateway steps fail
     # Be careful; this may have undefined behavior! If you use this flag, the script will
     # always fail (exit code 2); that way, this doesn't accidentally allow something automated to
     # succeed. Implies --no-commit
-    "--test")
+    --test)
       NO_EXIT_ON_FAIL=1
       NO_COMMIT=1
       ;;
-    "--headless")
+    --headless)
       HEADLESS=1
       ;;
-    --debug|-g)
-      set -x;
-      ;;
-    # This will prevent some auto-commit features, such as for blackened code or appending the pre-push validation.
-    # Not recommended, as it could cause CI to fail if you push code that needed the automatic updates.
-    "--no-commit")
-      NO_COMMIT=1
-      ;;
-    "--version")
+    --version|-v)
       shift
       VERSION="$1"
       BUILD_ARGS="$BUILD_ARGS --build-arg HUSKY_DIRECTORY_VERSION=$VERSION"
+      ;;
+    --help|-h)
+      print_help
+      exit 0
+      ;;
+    --debug|-g)
+      set -x
+      ;;
+    *)
+      echo "Invalid Option: $1"
+      print_help
+      exit 1
       ;;
   esac
   shift

@@ -3,17 +3,46 @@ from __future__ import annotations
 import functools
 import logging
 import time
+import os
 from contextlib import contextmanager
 from typing import Any, Callable, Dict, Optional, TypeVar
 
 import inflection
+from prometheus_flask_exporter import PrometheusMetrics
+from prometheus_flask_exporter.multiprocess import GunicornInternalPrometheusMetrics
 
 from husky_directory.logging import ROOT_LOGGER, build_extras
+
+if os.environ.get("GUNICORN_LOG_LEVEL", None):
+    MetricsClientCls = GunicornInternalPrometheusMetrics
+else:
+    MetricsClientCls = PrometheusMetrics
 
 
 def camelize(string: str, uppercase_first_letter=False) -> str:
     """Fixes the default behavior to keep the first character lowerCased."""
     return inflection.camelize(string, uppercase_first_letter=uppercase_first_letter)
+
+
+class MetricsClient(MetricsClientCls):
+    """
+    This class simply aliases its much more unwieldy
+    parent-class, so that it's easier to inject throughout
+    our application:
+
+        injector.get(MetricsClient)
+    is an alias for
+        injector.get(GunicornInternalPrometheusMetrics).
+
+    Also:
+
+        @inject
+        class Foo:
+            def __init__(self, metrics: MetricsClient):
+                self.metrics = metrics
+    """
+
+    pass
 
 
 T = TypeVar("T")

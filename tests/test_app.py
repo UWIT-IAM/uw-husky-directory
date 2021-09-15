@@ -13,6 +13,11 @@ def test_get_index(client, html_validator):
         assert "autofocus" in html.find("input", attrs={"name": "query"}).attrs
 
 
+def test_get_metrics(client):
+    response = client.get("/metrics")
+    assert response.status_code == 200
+
+
 @pytest.mark.parametrize("pws_is_ready", (True, False))
 @pytest.mark.parametrize("version", (None, "1.2.3"))
 def test_get_health(client, pws_is_ready, version, app_config, injector, mock_injected):

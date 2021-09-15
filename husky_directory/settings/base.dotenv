@@ -5,3 +5,4 @@ PWS_DEFAULT_PATH=/identity/v2
 HOST=directory.iamdev.s.uw.edu
 SAML_ENTITY_ID=https://${HOST}/saml
 SAML_ACS_PATH=/saml/login
+PROMETHEUS_METRIC_PREFIX=uw_directory

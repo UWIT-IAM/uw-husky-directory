@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "uw-husky-directory"
-version = "2.0.3"
+version = "2.0.4"
 description = "An updated version of the UW Directory"
 authors = ["Thomas Thorogood <goodtom@uw.edu>"]
 license = "MIT"
@@ -21,6 +21,8 @@ uw-saml = {version = "^1.0.19"}
 Flask-Session = "^0.3.2"
 redis = "^3.5.3"
 pytz = "^2021.1"
+prometheus-flask-exporter = "^0.18.2"
+Flask-HTTPAuth = "^4.4.0"
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"

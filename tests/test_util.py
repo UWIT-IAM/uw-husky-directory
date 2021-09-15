@@ -1,14 +1,15 @@
 import time
+from importlib import reload
+from unittest import mock
 
 import pytest
-
-from husky_directory.util import ConstraintPredicates, Timer
+import husky_directory.util
 
 
 class TestConstraintPredicates:
     def test_normalize_strings(self):
         assert list(
-            ConstraintPredicates.normalize_strings(
+            husky_directory.util.ConstraintPredicates.normalize_strings(
                 "FOO", "fOo", 13, False, {"bAR": "baz"}
             )
         ) == ["foo", "foo", 13, False, {"bAR": "baz"}]
@@ -23,7 +24,10 @@ class TestConstraintPredicates:
         ],
     )
     def test_null_or_begins_with(self, target, value, expected):
-        assert ConstraintPredicates.null_or_begins_with(target, value) == expected
+        assert (
+            husky_directory.util.ConstraintPredicates.null_or_begins_with(target, value)
+            == expected
+        )
 
     @pytest.mark.parametrize(
         "target, value, expected",
@@ -34,7 +38,10 @@ class TestConstraintPredicates:
         ],
     )
     def test_null_or_matches(self, target, value, expected):
-        assert ConstraintPredicates.null_or_matches(target, value) == expected
+        assert (
+            husky_directory.util.ConstraintPredicates.null_or_matches(target, value)
+            == expected
+        )
 
     @pytest.mark.parametrize(
         "target, value, expected",
@@ -45,7 +52,9 @@ class TestConstraintPredicates:
         ],
     )
     def test_matches(self, target, value, expected):
-        assert ConstraintPredicates.matches(target, value) == expected
+        assert (
+            husky_directory.util.ConstraintPredicates.matches(target, value) == expected
+        )
 
     @pytest.mark.parametrize(
         "target, value, expected",
@@ -57,29 +66,49 @@ class TestConstraintPredicates:
         ],
     )
     def test_null_or_includes(self, target, value, expected):
-        assert ConstraintPredicates.null_or_includes(target, value) == expected
+        assert (
+            husky_directory.util.ConstraintPredicates.null_or_includes(target, value)
+            == expected
+        )
 
 
 class TestTimer:
-    def _assert_timer_result(self, timer: Timer, expected_result: float = 0.25):
+    def _assert_timer_result(
+        self, timer: husky_directory.util.Timer, expected_result: float = 0.25
+    ):
         min_jitter = expected_result - 0.05
         max_jitter = expected_result + 0.05
         assert min_jitter <= round(timer.result, 2) <= max_jitter
 
     def test_timer_with_block(self):
-        with Timer("my-timer") as timer:
+        with husky_directory.util.Timer("my-timer") as timer:
             time.sleep(0.25)
         self._assert_timer_result(timer)
 
     def test_timer_with_run(self):
-        timer = Timer("my-timer")
+        timer = husky_directory.util.Timer("my-timer")
         with timer.run():
             time.sleep(0.25)
         self._assert_timer_result(timer)
 
     def test_assert_manual_timer(self):
-        timer = Timer("my-timer")
+        timer = husky_directory.util.Timer("my-timer")
         timer.start()
         time.sleep(0.25)
         timer.stop()
         self._assert_timer_result(timer)
+
+
+@pytest.mark.parametrize(
+    "env, expected",
+    [
+        ({"GUNICORN_LOG_LEVEL": "DEBUG"}, "GunicornInternalPrometheusMetrics"),
+        ({}, "PrometheusMetrics"),
+    ],
+)
+def test_metrics_class_override(env, expected):
+    import os
+
+    with mock.patch.dict(os.environ, env, clear=True):
+        reload(husky_directory.util)
+        assert husky_directory.util.MetricsClientCls.__name__ == expected

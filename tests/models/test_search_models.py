@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
+from husky_directory.models.enum import PopulationType
 from husky_directory.models.search import SearchDirectoryFormInput, SearchDirectoryInput
 
 
@@ -54,6 +55,19 @@ class TestSearchDirectoryInput:
             SearchDirectoryInput(population=input_population).requested_populations
             == expected
         )
+
+
+class TestSearchDirectoryFormInput:
+    @pytest.mark.parametrize(
+        "render_population, expected",
+        [
+            (None, PopulationType.employees),
+            (PopulationType.students, PopulationType.students),
+        ],
+    )
+    def test_population_default(self, render_population, expected):
+        form_input = SearchDirectoryFormInput(render_population=render_population)
+        assert PopulationType(form_input.render_population) == PopulationType(expected)
 
 
 @pytest.mark.parametrize(
