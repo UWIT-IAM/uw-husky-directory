@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import threading
 import traceback
 from typing import Any, Dict, Optional, Type, TypeVar
@@ -12,6 +13,7 @@ from werkzeug.local import LocalProxy
 T = TypeVar("T")
 
 ROOT_LOGGER = "gunicorn.error"
+PRETTY_JSON = os.environ.get("FLASK_ENV", "production") == "development"
 
 
 class JsonFormatter(logging.Formatter):
@@ -106,7 +108,10 @@ class JsonFormatter(logging.Formatter):
         self._append_custom_attrs(record, data)
         self._append_exception_info(record, data)
 
-        return json.dumps(data, default=str)
+        kwargs = {}
+        if PRETTY_JSON:
+            kwargs["indent"] = 4
+        return json.dumps(data, default=str, **kwargs)
 
 
 def build_extras(attrs: Dict) -> Dict:

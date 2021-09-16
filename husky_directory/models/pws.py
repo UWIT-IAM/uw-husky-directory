@@ -4,8 +4,10 @@ the PWS API definitions at https://it-wseval1.s.uw.edu/identity/swagger/index.ht
 
 These are not 1:1 models of that API; only fields we care about are declared here.
 """
+from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+import logging
+from typing import Any, Dict, List, NoReturn, Optional
 
 from inflection import titleize
 from pydantic import BaseModel, Extra, Field, validator
@@ -211,6 +213,25 @@ class PersonOutput(NamedIdentity):
         return href
 
 
+class ListPersonsRequestStatistics(BaseModel):
+    class Config:
+        alias_generator = camelize
+        allow_population_by_field_name = True
+
+    num_pages_returned: int = 0
+    num_results_ignored: int = 0
+    num_results_returned: int = 0
+    num_user_search_tokens: int = 0
+    num_queries_generated: int = 0
+    num_duplicates_found: int = 0
+
+    def aggregate(self, other: ListPersonsRequestStatistics) -> NoReturn:
+        for field, val in self:
+            incr = getattr(other, field, 0)
+            logging.getLogger("gunicorn.error.app").info(f"{field}: {val}+{incr}")
+            setattr(self, field, val + incr)
+
+
 class ListPersonsOutput(ListResponsesOutputWrapper):
     persons: List[PersonOutput]
     current: ListPersonsInput
@@ -220,3 +241,4 @@ class ListPersonsOutput(ListResponsesOutputWrapper):
         "requests so that we don't have to calculate it.",
     )
     previous: Optional[ListPersonsInput] = Field(None, description="See `next`")
+    request_statistics: Optional[ListPersonsRequestStatistics]
