@@ -80,10 +80,12 @@ class ListPersonsOutputTranslator:
             PopulationType.students: DirectoryQueryPopulationOutput(
                 population=PopulationType.students
             ),
+            "__META__": {},
         }
-
+        num_duplicates_found = 0
         for person in request_output.persons:
             if person.netid in netid_tracker:
+                num_duplicates_found += 1
                 continue
 
             student = person.affiliations.student
@@ -105,4 +107,5 @@ class ListPersonsOutputTranslator:
                 results[PopulationType.employees].people.append(result)
 
             netid_tracker.add(person.netid)
+        results["__META__"]["duplicates"] = num_duplicates_found
         return results

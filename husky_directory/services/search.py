@@ -6,6 +6,7 @@ from typing import Dict, List
 from flask_injector import request
 from injector import inject
 
+from husky_directory.models.pws import ListPersonsOutput, ListPersonsRequestStatistics
 from husky_directory.models.search import (
     DirectoryQueryScenarioOutput,
     SearchDirectoryInput,
@@ -48,31 +49,46 @@ class DirectorySearchService:
                 by_alias=True,
                 exclude_properties=True,
                 exclude_unset=True,
-            )
+            ),
+            "statistics": {},
         }
         timer = Timer("search_directory", context=timer_context).start()
 
         scenarios: List[DirectoryQueryScenarioOutput] = []
         scenario_description_indexes: Dict[str, int] = {}
         duplicate_netids = set()
+        statistics = ListPersonsRequestStatistics()
+
+        if request_input.name:
+            statistics.num_user_search_tokens = len(request_input.name.split())
 
         for generated in self.query_generator.generate(request_input):
             self.logger.debug(
                 f"Querying: {generated.description} with "
                 f"{generated.request_input.dict(exclude_unset=True, exclude_defaults=True)}"
             )
-            pws_output = self._pws.list_persons(generated.request_input)
+            statistics.num_queries_generated += 1
+            pws_output: ListPersonsOutput = self._pws.list_persons(
+                generated.request_input
+            )
             aggregate_output = pws_output
+            statistics.aggregate(pws_output.request_statistics)
 
             while pws_output.next and pws_output.next.href:
                 pws_output = self._pws.get_explicit_href(pws_output.next.href)
+                statistics.aggregate(pws_output.request_statistics)
                 aggregate_output.persons.extend(pws_output.persons)
+
+            populations = self.pws_translator.translate_scenario(
+                aggregate_output, duplicate_netids
+            )
+            statistics.num_duplicates_found += populations.pop("__META__", {}).get(
+                "duplicates", 0
+            )
 
             scenario_output = DirectoryQueryScenarioOutput(
                 description=generated.description,
-                populations=self.pws_translator.translate_scenario(
-                    aggregate_output, duplicate_netids
-                ),
+                populations=populations,
             )
 
             # Merges populations when a scenario is spread
@@ -93,5 +109,6 @@ class DirectorySearchService:
                 scenarios.append(scenario_output)
                 scenario_description_indexes[generated.description] = len(scenarios) - 1
 
+        timer.context["statistics"] = statistics.dict(by_alias=True)
         timer.stop(emit_log=True)
         return SearchDirectoryOutput(scenarios=scenarios)

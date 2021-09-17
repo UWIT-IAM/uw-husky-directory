@@ -14,6 +14,7 @@ from husky_directory.models.common import RecordConstraint
 from husky_directory.models.pws import (
     ListPersonsInput,
     ListPersonsOutput,
+    ListPersonsRequestStatistics,
     PersonOutput,
 )
 from husky_directory.services.auth import AuthService
@@ -145,6 +146,10 @@ class PersonWebServiceClient:
         constraints = constraints or self.global_constraints
         output = self._get_search_request_output(url, params)
         if output_type is ListPersonsOutput:
+            statistics = ListPersonsRequestStatistics(
+                num_results_returned=len(output["Persons"]),
+                num_pages_returned=1,
+            )
             # Pre-process the output to remove items that do not meet
             # the provided client-side constraints.
             output["Persons"] = list(
@@ -152,6 +157,10 @@ class PersonWebServiceClient:
                     partial(self._filter_output_item, constraints), output["Persons"]
                 )
             )
+            statistics.num_results_ignored = max(
+                statistics.num_results_returned - len(output["Persons"]), 0
+            )
+            output["request_statistics"] = statistics
         elif output_type is PersonOutput:
             if not self._filter_output_item(constraints, output):
                 raise NotFound
