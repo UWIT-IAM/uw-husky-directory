@@ -67,7 +67,10 @@ class SearchDirectoryFormInput(DirectoryBaseModel):
         The '\' character is not one of them. (And maybe more?)
         For those, we'll assume a typo, and just strip them on input.
         """
-        return re.sub(r"[\\]", "", v)
+        v = re.sub(r"[\\]", "", v)  # remove illegal chars
+        v = re.sub(r"[\t]", " ", v)  # replace whitespace chars
+        tokens = list(filter(bool, v.split()))  # Condense multiple spaces to one space
+        return " ".join(tokens)
 
     # These methods ensure that, by default, the render_ fields have
     # the same value as the query value.

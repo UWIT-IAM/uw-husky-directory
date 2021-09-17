@@ -73,8 +73,18 @@ class TestSearchDirectoryFormInput:
 @pytest.mark.parametrize(
     "query_value, expected_value",
     [
-        ("foo\\", "foo"),
+        # Ensure illegal characters explicitly stripped
         ("f\\oo\\", "foo"),
+        # Ensure leading/trailing whitespace is
+        # automatically stripped by pydantic
+        ("\tfoo\t", "foo"),
+        ("  foo bar  ", "foo bar"),
+        # Ensure tab characters are converted to spacees
+        ("foo\tbar", "foo bar"),
+        # Ensure multiple spaces are condensed to a single spacee
+        ("foo     bar", "foo bar"),
+        # Ensure all the things
+        ("  foo\t   \t  bar    \t", "foo bar"),
     ],
 )
 def test_form_input_strips_illegal_chars(query_value, expected_value):
