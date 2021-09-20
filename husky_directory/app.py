@@ -12,10 +12,9 @@ from flask_injector import FlaskInjector, request
 from flask_session import RedisSessionInterface, Session
 from injector import Injector, Module, provider, singleton
 from jinja2.tests import test_undefined
-from pydantic import ValidationError
 from redis import Redis
 from uw_saml2 import mock, python3_saml
-from werkzeug.exceptions import BadRequest, HTTPException, InternalServerError
+from werkzeug.exceptions import HTTPException, InternalServerError
 from werkzeug.local import LocalProxy
 
 from husky_directory.blueprints.app import AppBlueprint
@@ -35,10 +34,6 @@ from .app_config import (
 
 
 def attach_app_error_handlers(app: Flask) -> NoReturn:
-    @app.errorhandler(ValidationError)
-    def handle_validation_errors(e: ValidationError):
-        return BadRequest(str(e))
-
     @app.errorhandler(Exception)
     def log_all_errors(e: Exception):
         if isinstance(e, HTTPException):
