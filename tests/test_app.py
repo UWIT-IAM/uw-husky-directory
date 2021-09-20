@@ -1,7 +1,11 @@
+import base64
 from unittest import mock
 
 import pytest
+from pydantic import SecretStr
 
+from husky_directory.app import create_app_injector
+from husky_directory.app_config import ApplicationConfig
 from husky_directory.services.pws import PersonWebServiceClient
 from husky_directory.services.search import DirectorySearchService
 
@@ -11,6 +15,15 @@ def test_get_index(client, html_validator):
     assert response.status_code == 200
     with html_validator.validate_response(response) as html:
         assert "autofocus" in html.find("input", attrs={"name": "query"}).attrs
+
+
+def test_create_injector():
+    # This test is redundant but it keeps
+    # coverage checker happy, because otherwise
+    # this function is only called at the start
+    # of a test session, before coverage checking
+    # starts.
+    assert create_app_injector()
 
 
 def test_get_metrics(client):
@@ -75,3 +88,23 @@ def test_internal_server_error(client, injector, mock_injected):
             "/search", data={"method": "boxNumber", "query": "123456"}
         )
         assert response.status_code == 500
+
+
+@pytest.mark.parametrize("auth_required", (True, False))
+def test_prometheus_configuration(
+    app_config: ApplicationConfig, client, auth_required: bool
+):
+    if auth_required:
+        app_config.secrets.prometheus_username = SecretStr("username")
+        app_config.secrets.prometheus_password = SecretStr("password")
+        credentials = base64.b64encode("username:password".encode("UTF-8")).decode(
+            "UTF-8"
+        )
+        response = client.get("/metrics")
+        assert response.status_code == 401
+        response = client.get(
+            "/metrics", headers=dict(Authorization=f"Basic {credentials}")
+        )
+        assert response.status_code == 200
+    else:
+        assert client.get("/metrics").status_code == 200
