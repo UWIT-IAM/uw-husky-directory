@@ -116,8 +116,21 @@ class SearchBlueprint(Blueprint):
             logger.exception(str(e))
             if isinstance(e, ValidationError):
                 context.status_code = 400
-                bad_fields = [humanize(underscore(err["loc"][0])) for err in e.errors()]
-                context.error = ErrorModel(msg=f"Invalid {', '.join(bad_fields)}")
+                form_input = SearchDirectoryFormInput(
+                    render_query=request.form.get("query"),
+                    render_method=request.form.get("method"),
+                    render_population=request.form.get("population"),
+                    render_length=request.form.get("length"),
+                )
+                context.request_input = form_input
+                bad_fields = []
+                for error in e.errors():
+                    field_name = humanize(underscore(error["loc"][0])).lower()
+                    message = error["msg"]
+                    bad_fields.append(f"{field_name} ({message})")
+                context.error = ErrorModel(
+                    msg=f"Invalid input for {'; '.join(bad_fields)}"
+                )
             else:
                 context.status_code = 500
                 context.error = ErrorModel(

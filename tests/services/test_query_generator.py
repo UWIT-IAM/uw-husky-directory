@@ -94,6 +94,12 @@ class TestSearchQueryGenerator:
         ]
         assert expected_queries == actual_queries
 
+    def test_short_name_input(self):
+        generated = list(self.query_generator.generate(SearchDirectoryInput(name="hi")))
+        assert len(generated) == 2
+        assert generated[0].description == 'First name starts with "hi"'
+        assert generated[1].description == 'Last name starts with "hi"'
+
     def test_two_name_input(self):
         generated = list(
             self.query_generator.generate(SearchDirectoryInput(name="foo bar"))

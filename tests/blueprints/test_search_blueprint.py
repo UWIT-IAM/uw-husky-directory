@@ -114,7 +114,9 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
         with self.html_validator.validate_response(response) as html:
             assert not html.find("table", summary="results")
             assert html.find(string=re.compile("Encountered error"))
-            self.html_validator.assert_has_tag_with_text("b", "invalid box number")
+            self.html_validator.assert_has_tag_with_text(
+                "b", "box number (input can only contain digits)"
+            )
 
     def test_render_full_no_box_number(self):
         self.mock_send_request.return_value = self.mock_people.as_search_output(
@@ -381,6 +383,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
     def test_list_people_sort(self, random_string):
         ada_1 = self.mock_people.published_employee.copy(
             update={
+                "display_name": "Ada Zlovelace",
                 "preferred_last_name": "Zlovelace",
                 "registered_surname": "Alovelace",
                 "netid": random_string(),
@@ -390,6 +393,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
         ada_1.affiliations.employee.directory_listing.phones = ["222-2222"]
         ada_2 = self.mock_people.published_employee.copy(
             update={
+                "display_name": "Ada Blovelace",
                 "registered_surname": "Blovelace",
                 "netid": random_string(),
             },
@@ -398,6 +402,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
         ada_2.affiliations.employee.directory_listing.phones = ["888-8888"]
         ada_3 = self.mock_people.published_employee.copy(
             update={
+                "display_name": "Ada Alovelace",
                 "preferred_last_name": "Alovelace",
                 "netid": random_string(),
             },

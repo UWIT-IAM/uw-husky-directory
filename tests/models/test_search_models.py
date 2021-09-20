@@ -90,3 +90,19 @@ class TestSearchDirectoryFormInput:
 def test_form_input_strips_illegal_chars(query_value, expected_value):
     form_input = SearchDirectoryFormInput(query=query_value)
     assert form_input.query == expected_value
+
+
+@pytest.mark.parametrize(
+    "query, method, is_valid",
+    [
+        ("", "name", False),
+        ("hi", "name", True),
+        ("hi", "department", False),
+        ("h", "name", False),
+    ],
+)
+def test_form_input_validation(query, method, is_valid):
+    try:
+        SearchDirectoryFormInput(query=query, method=method)
+    except ValidationError:
+        assert not is_valid
