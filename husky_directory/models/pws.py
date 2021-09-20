@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, NoReturn, Optional
 
-from inflection import titleize
+from inflection import humanize
 from pydantic import BaseModel, Extra, Field, validator
 
 from .common import RecordConstraint, UWDepartmentRole
@@ -185,8 +185,16 @@ class NamedIdentity(PWSBaseModel):
     )
     def humanize_name_field(cls, value: Optional[str]) -> Optional[str]:
         if value:
-            return titleize(value)
+            return " ".join(humanize(v) for v in value.split())
         return value
+
+    def get_displayed_surname(self):
+        display_name_tokens = self.display_name.split()
+        if self.preferred_last_name and self.preferred_last_name in display_name_tokens:
+            return self.preferred_last_name
+        elif self.registered_surname in display_name_tokens:
+            return self.registered_surname
+        return self.display_name.split()[-1]
 
 
 class PersonOutput(NamedIdentity):

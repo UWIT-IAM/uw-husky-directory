@@ -381,6 +381,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
     def test_list_people_sort(self, random_string):
         ada_1 = self.mock_people.published_employee.copy(
             update={
+                "display_name": "Ada Zlovelace",
                 "preferred_last_name": "Zlovelace",
                 "registered_surname": "Alovelace",
                 "netid": random_string(),
@@ -390,6 +391,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
         ada_1.affiliations.employee.directory_listing.phones = ["222-2222"]
         ada_2 = self.mock_people.published_employee.copy(
             update={
+                "display_name": "Ada Blovelace",
                 "registered_surname": "Blovelace",
                 "netid": random_string(),
             },
@@ -398,6 +400,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
         ada_2.affiliations.employee.directory_listing.phones = ["888-8888"]
         ada_3 = self.mock_people.published_employee.copy(
             update={
+                "display_name": "Ada Alovelace",
                 "preferred_last_name": "Alovelace",
                 "netid": random_string(),
             },

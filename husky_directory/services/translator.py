@@ -93,7 +93,7 @@ class ListPersonsOutputTranslator:
 
             result = Person(
                 name=person.display_name,
-                sort_key=person.preferred_last_name or person.registered_surname,
+                sort_key=person.get_displayed_surname(),
                 phone_contacts=self._resolve_phones(employee, student),
                 **person.dict()
             )
