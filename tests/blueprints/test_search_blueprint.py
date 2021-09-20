@@ -114,7 +114,9 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
         with self.html_validator.validate_response(response) as html:
             assert not html.find("table", summary="results")
             assert html.find(string=re.compile("Encountered error"))
-            self.html_validator.assert_has_tag_with_text("b", "invalid box number")
+            self.html_validator.assert_has_tag_with_text(
+                "b", "box number (input can only contain digits)"
+            )
 
     def test_render_full_no_box_number(self):
         self.mock_send_request.return_value = self.mock_people.as_search_output(

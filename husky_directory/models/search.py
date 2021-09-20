@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import base64
 import re
-from typing import Dict, List, Optional, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from pydantic import Field, PydanticValueError, validator
 
@@ -17,6 +17,8 @@ from husky_directory.models.enum import PopulationType, ResultDetail
 # this protects us from accidentally creating a cyclic dependency between the modules.
 if TYPE_CHECKING:
     pass
+
+BOX_NUMBER_REGEX = re.compile("^([0-9]+)?$")
 
 
 class BoxNumberValueError(PydanticValueError):
@@ -59,18 +61,30 @@ class SearchDirectoryFormInput(DirectoryBaseModel):
 
     include_test_identities: bool = False  # Not currently supported
 
-    @validator("query")
-    def strip_illegal_chars(cls, v: str) -> str:
+    @staticmethod
+    def strip_query_illegal_chars(v: str) -> str:
         """
         PWS is OK with most special chars, and many may be found
         in our population's names.
         The '\' character is not one of them. (And maybe more?)
         For those, we'll assume a typo, and just strip them on input.
         """
+        if not v:
+            return ""
         v = re.sub(r"[\\]", "", v)  # remove illegal chars
         v = re.sub(r"[\t]", " ", v)  # replace whitespace chars
         tokens = list(filter(bool, v.split()))  # Condense multiple spaces to one space
         return " ".join(tokens)
+
+    @validator("query")
+    def validate_query(cls, v: str, values: Dict[str, Any]) -> str:
+        v = SearchDirectoryFormInput.strip_query_illegal_chars(v)
+        if values.get("method") == "name":
+            if len(v) < 2:
+                raise ValueError("Name query string must contain at least 2 characters")
+        elif len(v) < 3:
+            raise ValueError("Query string must contain at least 3 characters")
+        return v
 
     # These methods ensure that, by default, the render_ fields have
     # the same value as the query value.
@@ -111,7 +125,10 @@ class SearchDirectoryInput(DirectoryBaseModel):
         None, max_length=256, search_method=True
     )  # https://tools.ietf.org/html/rfc5321#section-4.5.3
     box_number: Optional[str] = Field(
-        None, search_method=True, min_length=0, max_length=6, regex="^([0-9]+)?$"
+        None,
+        search_method=True,
+        min_length=0,
+        max_length=6,
     )
     phone: Optional[str] = Field(None, search_method=True)
     population: PopulationType = PopulationType.employees
@@ -142,6 +159,19 @@ class SearchDirectoryInput(DirectoryBaseModel):
             )
         return value
 
+    @validator("box_number")
+    def validate_box_number(cls, value: Optional[str]) -> Optional[str]:
+        """
+        In order to keep users from seeing the ugly default error message
+        that pydantic provides for a regex validation, we give our users
+        something a little nicer.
+        :param value:
+        :return:
+        """
+        if value and not re.match(BOX_NUMBER_REGEX, value):
+            raise ValueError("input can only contain digits")
+        return value
+
     @property
     def requested_populations(self) -> List[PopulationType]:
         if self.population == PopulationType.all.value:
@@ -149,10 +179,14 @@ class SearchDirectoryInput(DirectoryBaseModel):
         return [self.population]
 
     @classmethod
-    def from_form_input(cls, simple: SearchDirectoryFormInput) -> SearchDirectoryInput:
+    def from_form_input(
+        cls, simple: SearchDirectoryFormInput, validate: bool = True
+    ) -> SearchDirectoryInput:
         args = simple.dict()
         args[args["method"]] = args["query"]
-        return cls(**args)
+        if validate:
+            return cls(**args)
+        return cls.construct(**args)
 
 
 class PhoneContactMethods(DirectoryBaseModel):
