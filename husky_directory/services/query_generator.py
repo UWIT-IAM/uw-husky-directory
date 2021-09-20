@@ -381,7 +381,34 @@ class SearchQueryGenerator:
             ),
         )
 
+    def _generate_short_name_queries(self, name: str) -> GeneratedQuery:
+        """
+        For very short queries, we should make the assumption that the user
+        is search for a short first name or short surname. We should NOT
+        do "contains" searches as there are likely to be a lot of irrelevant results.gtgt
+        :param name:
+        :return:
+        """
+        yield GeneratedQuery(
+            description=f'First name starts with "{name}"',
+            request_input=ListPersonsInput(
+                employee_affiliation_state=AffiliationState.current,
+                display_name=f"{name}*",
+            ),
+        )
+        yield GeneratedQuery(
+            description=f'Last name starts with "{name}"',
+            request_input=ListPersonsInput(
+                employee_affiliation_state=AffiliationState.current,
+                display_name=f"* {name}*",
+            ),
+        )
+
     def generate_name_queries(self, name: str) -> Tuple[str, ListPersonsInput]:
+        if len(name) == 2:
+            yield from self._generate_short_name_queries(name)
+            return
+
         # No matter the case, we will always be checking for an exact match
         yield GeneratedQuery(
             description=f'Name matches "{name}"',
