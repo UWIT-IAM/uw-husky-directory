@@ -50,7 +50,7 @@ jobs:
 
       - run: gcloud auth configure-docker gcr.io
 
-      - run: ./scripts/pre-push.sh --headless --no-commit
+      - run: ./scripts/pre-push.sh --headless
         name: Validate build
 
       - name: Actions Ecosystem Action Get Merged Pull Request
