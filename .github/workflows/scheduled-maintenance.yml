@@ -24,10 +24,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - if: github.event_name != 'schedule'
-        run: echo "POETRY_VERSION_GUIDANCE=prerelease" >> $GITHUB_ENV
-        name: Update version guidance
-
       - name: Bootstrap Google Cloud
         with:
           service_account_key: ${{ secrets.GCR_TOKEN }}
@@ -95,9 +91,10 @@ jobs:
           set_env NEXT_STEP push-poetry-lock
         name: Advance workflow to next step
 
-      - run: ./scripts/run-image-tests.sh -i $APP_IMAGE_REPO:$new_version --headless
-        env:
-          new_version: ${{ steps.configure.outputs.new-app-version }}
+      - run: |
+          ./scripts/run-image-tests.sh \
+            -i $APP_IMAGE_REPO:scheduled-maintenance-test \
+            --headless
         name: Run tests
 
       - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.5
@@ -114,15 +111,28 @@ jobs:
           set_env NEXT_STEP push-di-fingerprint
         name: Advance workflow to next step
 
-      - name: Add & Commit
-        uses: EndBug/add-and-commit@v7.2.1
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v3
         env:
-          git_tag: ${{ github.event_name == 'schedule' && steps.configure.outputs.new-app-version || '0.0.0-testing --force'}}
+          message: >
+            [bot] Scheduled dependency maintenance
+            [${{ steps.configure.outputs.new-di-version }}]
         with:
-          add: 'pyproject.toml poetry.lock'
-          default_author: github_actions
-          pull_strategy: 'NO-PULL'
-          tag: ${{ env.git_tag }}
+          token: ${{ secrets.ACTIONS_PAT }}  # Allows PR to trigger approval workflows
+          branch: scheduled-maintenance
+          labels: 'semver-guidance:patch'
+          reviewers: 'tomthorogood, jdiverp, goulter'
+          message: ${{ env.message }}
+          commit-message: ${{ env.message }}
+          base: main
+          title: ${{ env.message }}
+          body: |
+            Beep boop, I'm a bot here to keep your dependencies up to date!
+
+            If the automated tests succeeded, you can approve and merge this
+            pull request. Otherwise, the investigation is up to you!
+
+            Have a great week!
 
       - name: create pull request
         run: ${STEP_SCRIPTS}/create-pull-request.sh
@@ -154,12 +164,10 @@ jobs:
           docker tag $BASE_IMAGE_REPO:$fingerprint $BASE_IMAGE_REPO:$new_di_version
           docker push $BASE_IMAGE_REPO:$fingerprint
           docker push $BASE_IMAGE_REPO:$new_di_version
-          docker push $APP_IMAGE_REPO:$new_app_version
-        name: Push images
+        name: Push dependency image tags
         env:
           fingerprint: ${{ steps.configure.outputs.di-fingerprint }}
           new_di_version: ${{ steps.configure.outputs.new-di-version }}
-          new_app_version: ${{ steps.configure.outputs.new-app-version }}
 
       - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.5
         with:

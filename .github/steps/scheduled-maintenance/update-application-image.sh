@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-version=$(poetry version -s)
+version=scheduled-maintenance-test
 
 test -z "${DEBUG}" || set -x
 image_repo=gcr.io/uwit-mci-iam/husky-directory
