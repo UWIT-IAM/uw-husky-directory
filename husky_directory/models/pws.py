@@ -242,7 +242,7 @@ class ListPersonsRequestStatistics(BaseModel):
 
 class ListPersonsOutput(ListResponsesOutputWrapper):
     persons: List[PersonOutput]
-    current: ListPersonsInput
+    current: Optional[ListPersonsInput]
     next: Optional[ListPersonsInput] = Field(
         default=None,
         description="If present, gives the URL of the next page of "
