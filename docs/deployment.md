@@ -7,9 +7,11 @@ docker image be tagged in the format of
 
 `<stage>` refers to `dev`, `eval`, or `prod`.
 
-`<deployment-id>` can be any unique identifier, but when automated will be a 
-pseduo-semver timestamp, for example: `2021.1.13.14.24` would represent
-a deployment tagged on January 13, 2021, at 2:24 pm. 
+`<deployment-id>` , can only be a  
+dot-separated timestamp (2021.01.13.14.24.45 would represent
+a deployment tagged on January 13, 2021, at 2:24:45 pm). 
+For convenience, you should use the tag_timestamp utility in 
+[common-build-scripts]()
 
 Please see [release-process.md] for more information on the how, why, 
 and what of tagging and versioning.

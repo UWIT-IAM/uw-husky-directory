@@ -19,8 +19,7 @@ As a result of this workflow, the following artifacts will be created:
 
 1. A git tag of the new application version (e.g., 1.2.3)
 2. A dependency image tagged both with its sha256 fingerprint as well as the
-   pseduo-semver datetime "version" (e.g., 255.15.7, for a build that ran at 3:07pm 
-   on September 12).
+   timestamp tag.
 3. An application image tagged with its new patch version  (e.g., 1.2.3)
 4. A pull request that can be merged without careful review.
 

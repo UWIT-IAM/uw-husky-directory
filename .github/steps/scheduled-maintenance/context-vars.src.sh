@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+./scripts/install-build-scripts.sh
+source ./.build-scripts/sources/bash-helpers.sh
 source ./.build-scripts/sources/slack.sh
 source ./.build-scripts/sources/github-actions.sh
 
@@ -8,7 +10,7 @@ APP_IMAGE=${APP_IMAGE_REPO}
 PR_URL_BASE=${PR_URL_BASE}
 
 new_app_version=$(poetry version -s)
-new_di_version=$(date +%Y.%-j.%-I.%-M)
+new_di_version=$(tag_timestamp)
 di_fingerprint=$(./scripts/get-snapshot-fingerprint.sh)
 di_img_url=https://${BASE_IMAGE}:${new_di_version}
 app_img_url=https://${APP_IMAGE}:${new_app_version}

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+./scripts/install-build-scripts.sh
+source ./.build-scripts/sources/bash-helpers.sh
+
 REPO_API_URL=https://api.github.com/repos/uwit-iam/uw-husky-directory
 
 REPO_TAGS_URL="${REPO_API_URL}/tags"
@@ -102,13 +105,6 @@ do
   shift
 done
 
-function semver_timestamp {
-  # Not really semver at all, but increments in a way that
-  # is compatible and unique.
-  echo $(date +%Y.%-m.%-d.%-H.%-M.%-S)
-}
-
-
 function version_image_tag {
   local version="$1"
   echo "gcr.io/uwit-mci-iam/husky-directory:$version"
@@ -116,10 +112,10 @@ function version_image_tag {
 
 function deploy_image_tag {
   local stage="$1"
-  qualifier=$(semver_timestamp)
+  qualifier=$(tag_timestamp)
   if [[ -n "${RELEASE_CANDIDATE}" ]]
   then
-    qualifier="$(whoami).${deploy_version}.${qualifier}"
+    qualifier="$${deploy_version}.${qualifier}.$(whoami)"
   fi
   echo "gcr.io/uwit-mci-iam/husky-directory:deploy-${stage}.${qualifier}"
 }
