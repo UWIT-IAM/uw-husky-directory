@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "uwit-mci-iam",
+  "private_key_id": "79622536006b8068eff5d5090af55333610611c0",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCkjWtAFWYZ904E\ntYdE0yK0pXzpY+7IcrABCzeCAkQX6USEgH9dW2kQ/S3FDk8uTxghEfb0UZ7a2VvH\nDZmooq7IGKXRmF5tFbEvJXVWH35jZJGhBtHD5HWT8dxlqL0NI45cohmHZQxh2Cpg\nWOzo7Dlkzk7C6Vn6lxjG3LM2YcieYA6jY/JW/HpXYJap9P6+SmLflmEYWjhqwP4W\nzdSJeXrB4YPTCnHjMWVTXFpQhH+S1MAPRH4RvMpTwaquuUWIAsPnW1jInOlrLvw5\nfo0BJ2aUfAKnmm4W/8w0UpeCFxgOHL5NxlOpji2At20S2lv2jZSxfgbBg2Km9yhR\n773hisbxAgMBAAECggEACPqOd5izUYdlAmzFTMQYiLLe9f018koPwH7UMIvfG07n\nJjO8v2NVgE/QR4hYWbaHIobQatRpTpe9okbjs4fs8Y4mviEKRfmBCYmJtYFSbCn4\nqEiu+Xll0QTJeeKTLjxacEOIERM6cbxR06AGjU8WcqGvOoNxHXNRLsisHrOHNt0A\niLdxQcOq985D77nsZ+hAPiXKl3SRy+tuWHl2gX0hIc0oE9tQI+CEy94xDRz1bd+R\ncQagrumfLfgKk29AM22kOy2Zq2ioCUhFUVCktF5oBUC4q1d4h598hgZq5TrRCQ5C\nsH238z3YJwsEb/sEelN2S+896y+D4xkx1zRevCIsgQKBgQDQjbquU5OmbzzZNSXV\nYXqCu0S3WLMlWNdWTyJRelNckJY5xzY0U6vSjWD4rtsrHaclqwUClS14Xdeau40N\nxbkLwzUyWVD45oLArTzy5/vOFaD3n+r9K9ZjWC2+0OI98fgINQcJAftrd/kL/gXc\nMXdS+TfR/4bD6AJFg0g29h4GLQKBgQDJ/QlW04WycO2jQWs2+fkZhvcfWcVWnUdq\nyx6y9ItMqIonCd5DWH6nE6f8mTabRUkkXxaypHv8FXgN+6HvZ/RpDIl0QCsMcS3D\nvRUSlKb8dREGuu68AhGhvG87gmiFEnUx5AdrzYeiL3X4D7b4zRvwcEoVFckkkn6O\nBJ3wQvviVQKBgDSN8qQpdYS0dW37Aayy4s9854UYehSIPcOHL4u+urER0nl+5P7s\nstjdPbmNPrevwkYwwZN0CkBRzZo1dwcoc0guigJFFa2TURHC1iAUK5U0SBr+lpXz\n7ROdzfFO7CRWDH3s9vfjIvtjAURvYASsBnjHSrTFoq1Nkvz3Z0RKYyiFAoGAbNPG\nal+A00mA38rpZy97hMNw9hU5+5a12dYibizPuLe955ariAFwC7jNc41hHHtSEySg\naBOzMXinvHDtKL4Ls2Wr0VSZXRTFoYaIigBJkA/K4qNo6Sb8NPX/wEJc6gWt2vmO\n/gg4oauMleBxps9r1DnL0FxyiR/cy8u1BLQyXhkCgYBFgRTSM37HIqqgUyjjiG1M\nwvOZWQH2+dnJAs+j/E/C3y9nhi+e9hmYYeOPVCwIOc/XHwQ2F5TMm64yOgmHtZ5J\n0QD65rI7TJklmoqQbcpqO+xPa+/4W2PgvSUz8V7HtriqZQJMY/6URjh9kGcZaCkw\nCLt08K7pYaCicZQFKXOTdw==\n-----END PRIVATE KEY-----\n",
+  "client_email": "uw-directory-github-actions@uwit-mci-iam.iam.gserviceaccount.com",
+  "client_id": "103752954369529776499",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/uw-directory-github-actions%40uwit-mci-iam.iam.gserviceaccount.com"
+}
