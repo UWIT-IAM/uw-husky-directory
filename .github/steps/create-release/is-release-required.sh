@@ -8,7 +8,7 @@ latest_release=$(echo "${latest_release}" | sed 's|"||g')
 
 set_ci_output version "${current_version}"
 set_ci_output latest-release "${latest_release}"
-if [[ "${current_version}" == "${latest_release}" ]]
+if [[ "${current_version}" == "${latest_release}" && "${GITHUB_REF}" == "refs/heads/main" ]]
 then
   set_ci_output release-required false
 else
