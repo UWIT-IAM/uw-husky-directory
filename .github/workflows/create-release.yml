@@ -28,7 +28,7 @@ jobs:
     if: needs.configure-release.outputs.release-required == 'true'
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.get-release.outputs.version }}
+      version: ${{ needs.configure-release.outputs.version }}
     strategy:
       max-parallel: 1
     steps:
@@ -62,16 +62,16 @@ jobs:
       - name: Tag and push release image
         env:
           pr_image: gcr.io/${{ secrets.IAM_GCR_REPO }}/husky-directory:pull-request-${{ steps.pr.outputs.number }}
-          release_image: gcr.io/${{ secrets.IAM_GCR_REPO }}/husky-directory:${{ steps.get-release.outputs.version }}
+          release_image: gcr.io/${{ secrets.IAM_GCR_REPO }}/husky-directory:${{ needs.configure-release.outputs.version }}
           # When using the dry-run branch, there is no PR to draw from, so we hard-code
           # a known-good image.
           testing_image: gcr.io/${{ secrets.IAM_GCR_REPO }}/husky-directory:1.0.1
         run: ${STEP_SCRIPTS}/push-release-image.sh
 
-      - name: Create release ${{ steps.get-release.outputs.version }}
+      - name: Create release ${{ needs.configure-release.outputs.version }}
         uses: ncipollo/release-action@v1
         with:
           # Use PAT so that the release will trigger the deployment workflow.
           token: ${{ secrets.ACTIONS_PAT }}
-          tag: ${{ steps.get-release.outputs.version }}
+          tag: ${{ needs.configure-release.outputs.version }}
         if: github.ref == 'refs/heads/main'
