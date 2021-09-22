@@ -1,3 +1,4 @@
+set -e
 
 if [[ "${GITHUB_REF}" == "refs/heads/main" ]]
 then
@@ -11,7 +12,7 @@ docker tag $pr_image $release_image
 if [[ "${GITHUB_REF}" == 'refs/heads/main' ]]
 then
   docker push $release_image
-  ./scripts/update-dependency-image.sh --push
+  ./scripts/update-dependency-image.sh --push --strict
 else
   echo "Not pushing $release_image in dry-run mode."
 fi

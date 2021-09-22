@@ -7,6 +7,8 @@ function print_help {
    Options:
    -p, --push      Push the fingerprint after building, this is risk-free
                    and saves a lot of time in the future!
+   --head          Include the head (i.e., 'latest') tag on the image
+   --strict        Die on any errors
    -h, --help      Show this message and exit
    -g, --debug     Show commands as they are executing
 EOF
@@ -27,6 +29,15 @@ do
     --push|-p)
       PUSH=1
       ;;
+    --head)
+      TAG_LATEST=1
+      ;;
+    --debug|-g)
+      set -x
+      ;;
+    --strict)
+      set -e
+      ;;
     *)
       echo "Invalid Option: $1"
       print_help
@@ -43,7 +54,10 @@ fingerprint=$(./scripts/get-snapshot-fingerprint.sh)
   -i $image_repo:$fingerprint \
   -d docker/husky-directory-base.dockerfile
 
+test -z "${TAG_LATEST}" || docker tag $image_repo:$fingerprint $image_repo:latest
+
 if [[ -n "$PUSH" ]]
 then
   docker push $image_repo:$fingerprint
+  test -z "${TAG_LATEST}" || docker push $image_repo:latest
 fi

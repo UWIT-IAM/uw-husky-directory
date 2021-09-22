@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -ex
-source .build-scripts/sources/github-actions.sh
+source ./.build-scripts/sources/github-actions.sh
 
 current_version=$(poetry version -s)
 latest_release=$(curl -s https://api.github.com/repos/UWIT-IAM/uw-husky-directory/releases | jq '.[0].tag_name')
