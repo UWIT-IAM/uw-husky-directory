@@ -44,6 +44,7 @@ class SearchDirectoryFormInput(DirectoryBaseModel):
     query: str = ""
     population: PopulationType = PopulationType.employees
     length: ResultDetail = ResultDetail.summary
+    person_href: Optional[str]
 
     # render_ fields are provided as a way to search one thing,
     # but provide a different context to the rendering engine
@@ -133,6 +134,7 @@ class SearchDirectoryInput(DirectoryBaseModel):
     phone: Optional[str] = Field(None, search_method=True)
     population: PopulationType = PopulationType.employees
     include_test_identities: bool = False
+    person_href: Optional[str]
 
     @classmethod
     def search_methods(cls) -> List[str]:

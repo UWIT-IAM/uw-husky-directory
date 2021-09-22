@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import base64
 from logging import Logger
 from typing import Dict, List
 
 from flask_injector import request
 from injector import inject
 
-from husky_directory.models.pws import ListPersonsOutput, ListPersonsRequestStatistics
+from husky_directory.models.pws import (
+    ListPersonsOutput,
+    ListPersonsRequestStatistics,
+    PersonOutput,
+)
 from husky_directory.models.search import (
     DirectoryQueryScenarioOutput,
     SearchDirectoryInput,
@@ -43,6 +48,7 @@ class DirectorySearchService:
     ) -> SearchDirectoryOutput:
         """The main interface for this service. Submits a query to PWS, filters and translates the output,
         and returns a DirectoryQueryScenarioOutput."""
+
         timer_context = {
             "query": request_input.dict(
                 exclude_none=True,
@@ -52,12 +58,30 @@ class DirectorySearchService:
             ),
             "statistics": {},
         }
+        duplicate_netids = set()
         timer = Timer("search_directory", context=timer_context).start()
 
+        if request_input.person_href:
+            url = base64.b64decode(request_input.person_href.encode("UTF-8")).decode(
+                "UTF-8"
+            )
+            person = self._pws.get_explicit_href(url, output_type=PersonOutput)
+            result = self.pws_translator.translate_scenario(
+                ListPersonsOutput(
+                    page_size=1, page_start=1, total_count=1, persons=[person]
+                ),
+                duplicate_netids,
+            )
+            del result["__META__"]
+            scenario = DirectoryQueryScenarioOutput(
+                populations=result, description=person.display_name
+            )
+            timer.stop(emit_log=True)
+            return SearchDirectoryOutput(scenarios=[scenario])
+
+        statistics = ListPersonsRequestStatistics()
         scenarios: List[DirectoryQueryScenarioOutput] = []
         scenario_description_indexes: Dict[str, int] = {}
-        duplicate_netids = set()
-        statistics = ListPersonsRequestStatistics()
 
         if request_input.name:
             statistics.num_user_search_tokens = len(request_input.name.split())

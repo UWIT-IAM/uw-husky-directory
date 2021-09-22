@@ -1,3 +1,4 @@
+import base64
 from contextlib import ExitStack
 from typing import Dict
 from unittest import mock
@@ -9,6 +10,7 @@ from husky_directory.models.common import UWDepartmentRole
 from husky_directory.models.enum import PopulationType
 from husky_directory.models.pws import (
     ListPersonsOutput,
+    PersonOutput,
 )
 from husky_directory.models.search import Person, SearchDirectoryInput
 from husky_directory.services.pws import PersonWebServiceClient
@@ -192,3 +194,12 @@ class TestDirectorySearchService:
         )
         output_person: Person = output.scenarios[0].populations["employees"].people[0]
         assert output_person.box_number == "351234"
+
+    def test_href_query(self):
+        href = base64.b64encode("foo".encode("UTF-8")).decode("UTF-8")
+        request_input = SearchDirectoryInput(person_href=href)
+        self.mock_get_explicit_href.return_value = self.mock_people.published_employee
+        self.client.search_directory(request_input)
+        self.mock_get_explicit_href.assert_called_once_with(
+            "foo", output_type=PersonOutput
+        )

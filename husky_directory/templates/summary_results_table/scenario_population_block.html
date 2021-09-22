@@ -49,6 +49,9 @@ and then 1 or more rows of results. #}
                 <input id="{{ form_id }}-render-length"
                        type="hidden" name="render_length"
                        value="{{ request_input['length'] }}">
+                <input id="{{  form_id }}-person-href"
+                       type="hidden" name="person_href"
+                       value="{{  data['href'] }}" >
                 <!-- This option doesn't affect the query so can stay as-is -->
                 <input id="{{ form_id }}-population"
                        type="hidden" name="population"
