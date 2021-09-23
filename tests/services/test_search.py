@@ -1,4 +1,3 @@
-import base64
 from contextlib import ExitStack
 from typing import Dict
 from unittest import mock
@@ -196,10 +195,8 @@ class TestDirectorySearchService:
         assert output_person.box_number == "351234"
 
     def test_href_query(self):
-        href = base64.b64encode("foo".encode("UTF-8")).decode("UTF-8")
-        request_input = SearchDirectoryInput(person_href=href)
         self.mock_get_explicit_href.return_value = self.mock_people.published_employee
-        self.client.search_directory(request_input)
+        self.client.get_listing("foo")
         self.mock_get_explicit_href.assert_called_once_with(
             "foo", output_type=PersonOutput
         )

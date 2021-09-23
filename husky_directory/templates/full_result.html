@@ -1,0 +1,28 @@
+<h4>{{ person['name'] }}</h4>
+<ul class="dir-listing">
+    <li>{{ person['email'] }}</li>
+    {% for contact_method, numbers in
+                           person['phone_contacts'].items() %}
+        {% if numbers|length %}
+            <li>
+                {{ contact_method|singularize|titleize }}:
+                {{ numbers|join(', ') }}
+            </li>
+        {% endif %}
+    {% endfor %}
+    {% if person['box_number'] %}
+        <li class="dir-boxstuff">Box {{ person['box_number'] }}</li>
+    {% endif %}
+</ul>
+<ul class="multiaddr">
+    {% for entry in person['departments'] %}
+        <li>{{ entry.title }}, {{ entry.department }}</li>
+    {% endfor %}
+</ul>
+<form method="POST" action="/person/vcard">
+    <input type="hidden" name="person_href" value="{{ person['href'] }}">
+    <input class="btn btn-primary"
+           type="submit"
+           name="expand-{{ person['href'] }}"
+           value="Download vcard">
+</form>

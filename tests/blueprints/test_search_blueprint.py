@@ -6,6 +6,7 @@ from unittest import mock
 import pytest
 from bs4 import BeautifulSoup
 from inflection import titleize
+from werkzeug import exceptions
 from werkzeug.local import LocalProxy
 
 from husky_directory.models.enum import PopulationType, ResultDetail
@@ -35,9 +36,7 @@ class BlueprintSearchTestBase:
 
 class TestSearchBlueprint(BlueprintSearchTestBase):
     def test_render_summary_success(self):
-        response = self.flask_client.post(
-            "/search", data={"method": "name", "query": "foo"}
-        )
+        response = self.flask_client.post("/", data={"method": "name", "query": "foo"})
         assert response.status_code == 200
         profile = self.mock_people.contactable_person
         with self.html_validator.validate_response(response) as html:
@@ -68,7 +67,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
             assert self.session.get("uwnetid")
 
         response = self.flask_client.post(
-            "/search", data={"query": "lovelace", "length": "full"}
+            "/", data={"query": "lovelace", "length": "full"}
         )
 
         profile = self.mock_people.contactable_person
@@ -94,7 +93,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
 
     def test_render_no_results(self):
         self.mock_send_request.return_value = self.mock_people.as_search_output()
-        response = self.flask_client.post("/search", data={"query": "foo"})
+        response = self.flask_client.post("/", data={"query": "foo"})
         with self.html_validator.validate_response(response) as html:
             self.html_validator.assert_not_has_scenario_anchor(
                 "employees-name-matches-foo"
@@ -108,7 +107,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
 
     def test_render_invalid_box_number(self):
         response = self.flask_client.post(
-            "/search", data={"query": "abcdef", "method": "box_number"}
+            "/", data={"query": "abcdef", "method": "box_number"}
         )
         assert response.status_code == 400
         with self.html_validator.validate_response(response) as html:
@@ -125,7 +124,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
         self.flask_client.get("/saml/login", follow_redirects=True)
         with self.html_validator.validate_response(
             self.flask_client.post(
-                "/search",
+                "/",
                 data={
                     "query": "foo",
                     "length": "full",
@@ -139,12 +138,12 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
                 "employees-name-matches-foo"
             )
             with self.html_validator.scope("div", class_="usebar"):
-                self.html_validator.assert_has_tag_with_text("button", "Download vcard")
+                self.html_validator.assert_has_submit_button_with_text("Download vcard")
 
     def test_render_unexpected_error(self):
         self.mock_send_request.side_effect = RuntimeError
         response = self.flask_client.post(
-            "/search", data={"query": "123456", "method": "box_number"}
+            "/", data={"query": "123456", "method": "box_number"}
         )
         with self.html_validator.validate_response(response):
             self.html_validator.assert_has_tag_with_text(
@@ -166,7 +165,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
         self.test_user_login_flow()
         with self.html_validator.validate_response(
             self.flask_client.post(
-                "/search",
+                "/",
                 data={
                     "query": "foo",
                     "method": "name",
@@ -197,7 +196,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
         self.mock_send_request.return_value = query_output
         with self.html_validator.validate_response(
             self.flask_client.post(
-                "/search", data={"method": search_field, "query": search_value}
+                "/", data={"method": search_field, "query": search_value}
             )
         ):
             self.html_validator.assert_has_tag_with_text(
@@ -275,7 +274,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
                 assert more_button, str(html)
                 request_input = self._get_request_input_from_more_button(more_button)
                 self.assert_form_fields_match_expected(
-                    self.flask_client.post("/search", data=request_input.dict()),
+                    self.flask_client.post("/", data=request_input.dict()),
                     expected,
                     signed_in=signed_in,
                     recurse=False,
@@ -340,14 +339,12 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
                 self.html_validator.assert_not_has_sign_in_link()
                 assert html.find("label", attrs={"for": "population-option-students"})
 
-        response = self.flask_client.post("/search", data=request.dict())
+        response = self.flask_client.post("/", data=request.dict())
         self.assert_form_fields_match_expected(response, request, sign_in, recurse=True)
 
-    def test_get_person_bad_request(self):
-        response = self.flask_client.get(
-            "/search/person/foo/html", follow_redirects=True
-        )
-        assert response.status_code == 400
+    def test_get_person_method_not_allowed(self):
+        response = self.flask_client.get("/person/listing")
+        assert response.status_code == 405
 
     @pytest.mark.parametrize("search_term", ["Smith", "Lovelace"])
     def test_get_person_non_matching_surname(self, search_term):
@@ -372,7 +369,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
         self.mock_send_request.side_effect = mock_get
 
         response = self.flask_client.post(
-            "/search", data={"method": "name", "query": search_term}
+            "/", data={"method": "name", "query": search_term}
         )
         assert response.status_code == 200
         with self.html_validator.validate_response(response) as html:
@@ -413,7 +410,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
 
         self.mock_send_request.return_value = people
         response = self.flask_client.post(
-            "/search", data={"method": "name", "query": "lovelace"}
+            "/", data={"method": "name", "query": "lovelace"}
         )
         html = response.data.decode("UTF-8")
         assert response.status_code == 200
@@ -428,9 +425,27 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
         person = self.mock_people.published_employee
         href = base64.b64encode("foo".encode("UTF-8")).decode("UTF-8")
         self.mock_send_request.return_value = person.dict(by_alias=True)
-        response = self.flask_client.get(f"/search/person/{href}/vcard")
+        response = self.flask_client.post("/person/vcard", data={"person_href": href})
         assert response.status_code == 200
         assert response.mimetype == "text/vcard"
         vcard = response.data.decode("UTF-8")
         assert vcard.startswith("BEGIN:VCARD")
         assert vcard.endswith("END:VCARD")
+
+    @pytest.mark.parametrize("succeed", (True, False))
+    def test_get_person_listing(self, succeed: bool):
+        person = self.mock_people.contactable_person
+        href = base64.b64encode("foo".encode("UTF-8")).decode("UTF-8")
+        if succeed:
+            self.mock_send_request.return_value = person.dict(by_alias=True)
+        else:
+            self.mock_send_request.side_effect = exceptions.NotFound
+        response = self.flask_client.post("/person/listing", data={"person_href": href})
+        if succeed:
+            assert response.status_code == 200
+            with self.html_validator.validate_response(response):
+                self.html_validator.assert_has_tag_with_text("h4", "Ada Lovelace")
+        else:
+            assert response.status_code == 404
+            with self.html_validator.validate_response(response):
+                self.html_validator.assert_has_tag_with_text("p", "404 not found")
