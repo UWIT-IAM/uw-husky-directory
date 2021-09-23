@@ -56,7 +56,10 @@ class SearchBlueprint(Blueprint):
     @staticmethod
     def index(session: LocalProxy):
         context = RenderingContext(uwnetid=session.get("uwnetid"))
-        return render_template("base.html", **context.dict(exclude_none=True)), 200
+        return (
+            render_template("views/index.html", **context.dict(exclude_none=True)),
+            200,
+        )
 
     @staticmethod
     def get_person_listing(
@@ -76,7 +79,7 @@ class SearchBlueprint(Blueprint):
                 b64decode(request_input.person_href.encode("UTF-8")).decode("UTF-8")
             )
         except Exception as e:
-            template = "views/search_results.html"
+            template = "views/index.html"
             logger.exception(str(e))
             SearchBlueprint.handle_search_exception(e, context)
         finally:
