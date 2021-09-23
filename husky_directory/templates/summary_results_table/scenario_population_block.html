@@ -26,7 +26,7 @@ and then 1 or more rows of results. #}
         <td valign="top">{{ data['email'] }}&nbsp;</td>
         <td>
             {% set form_id = "more-form-" ~ loop.index  %}
-            <form action="/search" id="{{ form_id }}"
+            <form action="/person/listing" id="{{ form_id }}"
                   method="POST" name="{{ form_id }}">
                 <!-- We are running a different query than we are displaying in the
                   -- UI here. We don't want to actually reset the UI with

@@ -11,31 +11,8 @@
                     id="{{ population ~ '-' ~ scenario['description']|linkify }}">
                     {{ population|externalize|titleize}}: {{ scenario['description']}}
                 </h3>
-                {% for data in results['people'] %}
-                    <h4>{{ data['name'] }}</h4>
-                    <ul class="dir-listing">
-                        <li>{{ data['email'] }}</li>
-                        {% for contact_method, numbers in
-                           data['phone_contacts'].items() %}
-                            {% if numbers|length %}
-                                <li>{{ contact_method|singularize|titleize }}:
-                                    {{ numbers|join(', ') }}</li>
-                            {% endif %}
-                        {% endfor %}
-                        {% if data['box_number'] %}
-                            <li class="dir-boxstuff">Box {{ data['box_number'] }}</li>
-                        {% endif %}
-                    </ul>
-                    <ul class="multiaddr">
-                        {% for entry in data['departments'] %}
-                            <li>{{ entry.title }}, {{ entry.department }}</li>
-                        {% endfor %}
-                    </ul>
-                    <button class="btn btn-primary" name="vcard-{{ loop.index }}">
-                        <a href="/search/person/{{ data['href'] }}/vcard"
-                           style="color:white;"
-                           download="{{ data['name'] }}.vcf">Download vcard</a>
-                    </button>
+                {% for person in results['people'] %}
+                    {% include 'full_result.html' %}
                 {% endfor %}
             {% endif %}
         {% endfor %}

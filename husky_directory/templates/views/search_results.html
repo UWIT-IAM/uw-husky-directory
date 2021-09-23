@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% block content %}
+    {% if search_result is not blank and search_result["num_results"] > 0 %}
+        {% include "results.html" %}
+    {% endif %}
+    {% include 'error_display.html' %}
+{% endblock %}

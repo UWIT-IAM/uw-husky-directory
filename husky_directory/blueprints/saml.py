@@ -1,4 +1,5 @@
 import getpass
+import urllib.parse
 from logging import Logger
 from typing import Dict
 
@@ -8,7 +9,6 @@ from injector import Module, inject, provider, singleton
 from uw_saml2.idp import IdpConfig
 from uw_saml2.idp.uw import UwIdp
 from werkzeug.local import LocalProxy
-import urllib.parse
 
 from husky_directory.app_config import ApplicationConfig
 
@@ -21,7 +21,7 @@ class SAMLBlueprint(Blueprint):
         super().__init__("saml", __name__, url_prefix="/saml")
         self.idp_config = idp_config
         self.add_url_rule("/login", view_func=self.login, methods=["GET", "POST"])
-        self.add_url_rule("/logout", view_func=self.logout)
+        self.add_url_rule("/logout", view_func=self.log_out)
         self.auth_settings = settings.auth_settings
         self.logger = logger
 
@@ -59,7 +59,8 @@ class SAMLBlueprint(Blueprint):
 
         return self.process_saml_request(request, session, **args)
 
-    def logout(self, request: Request, session: LocalProxy):
+    @staticmethod
+    def log_out(session: LocalProxy):
         session.clear()
         return redirect("/")
 
@@ -72,7 +73,8 @@ class MockSAMLBlueprint(Blueprint):
             "/login", view_func=self.process_saml_request, methods=["GET"]
         )
 
-    def process_saml_request(self, request: Request, session: LocalProxy):
+    @staticmethod
+    def process_saml_request(session: LocalProxy):
         session["uwnetid"] = getpass.getuser()
         return redirect("/")
 

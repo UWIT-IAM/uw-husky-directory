@@ -1,11 +1,10 @@
 from logging import Logger
 from typing import Optional
 
-from flask import Blueprint, Request, jsonify, render_template
+from flask import Blueprint, Request, jsonify
 from injector import Injector, inject
 from pydantic import BaseModel, Extra
 from werkzeug.exceptions import InternalServerError
-from werkzeug.local import LocalProxy
 
 from husky_directory.app_config import ApplicationConfig
 from husky_directory.services.pws import PersonWebServiceClient
@@ -33,7 +32,6 @@ class AppBlueprint(Blueprint):
         self, app_config: ApplicationConfig, logger: Logger, injector: Injector
     ):
         super().__init__("uw-directory", __name__)
-        self.add_url_rule("/", view_func=self.index)
         self.add_url_rule("/health", view_func=self.health)
         self.config = app_config
         self.start_time = app_config.start_time
@@ -45,10 +43,6 @@ class AppBlueprint(Blueprint):
     @property
     def version(self) -> Optional[str]:
         return self.config.version
-
-    @staticmethod
-    def index(request: Request, session: LocalProxy):
-        return render_template("index.html", uwnetid=session.get("uwnetid"))
 
     @property
     def pws_is_ready(self):

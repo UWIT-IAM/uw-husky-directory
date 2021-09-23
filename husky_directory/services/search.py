@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import base64
 from logging import Logger
 from typing import Dict, List
 
@@ -14,6 +13,7 @@ from husky_directory.models.pws import (
 )
 from husky_directory.models.search import (
     DirectoryQueryScenarioOutput,
+    Person,
     SearchDirectoryInput,
     SearchDirectoryOutput,
 )
@@ -43,6 +43,11 @@ class DirectorySearchService:
         self.pws_translator = pws_translator
         self.auth_service = auth_service
 
+    def get_listing(self, href: str) -> Person:
+        return self.pws_translator.translate_person(
+            self._pws.get_explicit_href(href, output_type=PersonOutput)
+        )
+
     def search_directory(
         self, request_input: SearchDirectoryInput
     ) -> SearchDirectoryOutput:
@@ -60,24 +65,6 @@ class DirectorySearchService:
         }
         duplicate_netids = set()
         timer = Timer("search_directory", context=timer_context).start()
-
-        if request_input.person_href:
-            url = base64.b64decode(request_input.person_href.encode("UTF-8")).decode(
-                "UTF-8"
-            )
-            person = self._pws.get_explicit_href(url, output_type=PersonOutput)
-            result = self.pws_translator.translate_scenario(
-                ListPersonsOutput(
-                    page_size=1, page_start=1, total_count=1, persons=[person]
-                ),
-                duplicate_netids,
-            )
-            del result["__META__"]
-            scenario = DirectoryQueryScenarioOutput(
-                populations=result, description=person.display_name
-            )
-            timer.stop(emit_log=True)
-            return SearchDirectoryOutput(scenarios=[scenario])
 
         statistics = ListPersonsRequestStatistics()
         scenarios: List[DirectoryQueryScenarioOutput] = []
@@ -115,11 +102,6 @@ class DirectorySearchService:
                 populations=populations,
             )
 
-            # Merges populations when a scenario is spread
-            # over multiple queries. This is not my favorite thing,
-            # and smells of a future API refactor.
-            # TODO Brainstorm a better way to handle this, then create a Jira once
-            # you know what the problem (and hopefully solution) is.
             if generated.description in scenario_description_indexes:
                 index = scenario_description_indexes[generated.description]
                 existing_scenario = scenarios[index]

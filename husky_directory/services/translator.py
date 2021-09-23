@@ -7,6 +7,7 @@ from husky_directory.models.enum import PopulationType
 from husky_directory.models.pws import (
     EmployeePersonAffiliation,
     ListPersonsOutput,
+    PersonOutput,
     StudentPersonAffiliation,
 )
 from husky_directory.models.search import (
@@ -70,6 +71,23 @@ class ListPersonsOutputTranslator:
             if position.department and position.title
         )
 
+    def translate_person(self, person: PersonOutput) -> Person:
+        employee = person.affiliations.employee
+        student = person.affiliations.student
+        result = Person(
+            name=person.display_name,
+            sort_key=person.get_displayed_surname(),
+            phone_contacts=self._resolve_phones(
+                person.affiliations.employee, person.affiliations.student
+            ),
+            **person.dict()
+        )
+        if student:
+            self._translate_student_attributes(student, result)
+        if employee:
+            self._translate_employee_attributes(employee, result)
+        return result
+
     def translate_scenario(
         self, request_output: ListPersonsOutput, netid_tracker: Set[str]
     ) -> Dict[PopulationType, DirectoryQueryPopulationOutput]:
@@ -90,20 +108,12 @@ class ListPersonsOutputTranslator:
 
             student = person.affiliations.student
             employee = person.affiliations.employee
-
-            result = Person(
-                name=person.display_name,
-                sort_key=person.get_displayed_surname(),
-                phone_contacts=self._resolve_phones(employee, student),
-                **person.dict()
-            )
+            result = self.translate_person(person)
 
             if student:
-                self._translate_student_attributes(student, result)
                 results[PopulationType.students].people.append(result)
 
             if employee:
-                self._translate_employee_attributes(employee, result)
                 results[PopulationType.employees].people.append(result)
 
             netid_tracker.add(person.netid)
