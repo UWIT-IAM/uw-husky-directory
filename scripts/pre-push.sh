@@ -17,6 +17,7 @@ VIRTUAL_ENV=$(poetry env list --full-path 2>/dev/null | cut -f1 -d\ )
 test -e ${VIRTUAL_ENV}/.envrc && source ${VIRTUAL_ENV}/.envrc
 DOCKER_RUN_ARGS="${DOCKER_RUN_ARGS}"
 
+./scripts/install-build-scripts.sh >/dev/null
 source ./.build-scripts/sources/fingerprints.sh
 
 function print_help {
@@ -41,6 +42,11 @@ function print_help {
    --test          Run all validations even if some fail;
                    do not amend the HEAD commit to blacken code.
                    Use this until you're ready to actually push.
+
+   -k, --skip-auto-format
+                   Use this if you don't want to pre-blacken
+                   your code. Note: this will not prevent a style
+                   check from failing validations!
 
    -v, --version   Tag an application version. (i.e., -v TAG_NAME).
                    Use with --test to build release candidates locally for
@@ -70,6 +76,12 @@ do
     --test)
       NO_EXIT_ON_FAIL=1
       NO_COMMIT=1
+      ;;
+    --no-commit)
+      NO_COMMIT=1
+      ;;
+    --skip-auto-format|-k)
+      SKIP_AUTO_FORMAT=1
       ;;
     --headless)
       HEADLESS=1
@@ -105,8 +117,6 @@ function conditional_echo {
   test -z "${QUIET}" && echo $1
 }
 
-test -z "${NO_ENV_VARS}" && mkdir -p .pre_push
-
 if test -n "$(git status --porcelain)"
 then
   echo "🧹 Your git branch is dirty. Please resolve all outstanding changes before running this script."
@@ -132,20 +142,23 @@ then
   echo "::set-output name=image::$IMAGE_NAME"
 fi
 
-if ! black --check $SRC_DIR $TST_DIR > /dev/null
+if [[ -z "${SKIP_AUTO_FORMAT}" ]]
 then
-  conditional_echo "ℹ️ Blackening all code . . ."
-  black $SRC_DIR $TST_DIR
-  if test -z "${NO_COMMIT}"
+  if ! black --check $SRC_DIR $TST_DIR > /dev/null
   then
-    conditional_echo "Amending your commit with blackened code."
-    # Because the script won't run if the branch isn't clean, the only changes we should see are
-    # those made by Black.
-    git add -u
-    git commit --amend --no-edit
+    conditional_echo "ℹ️ Blackening all code . . ."
+    black $SRC_DIR $TST_DIR
+    if [[ -z "${NO_COMMIT}" ]]
+    then
+      conditional_echo "Amending your commit with blackened code."
+      # Because the script won't run if the branch isn't clean, the only changes we should see are
+      # those made by Black.
+      git add -u
+      git commit --amend --no-edit
+    fi
+  else
+    conditional_echo "🖤 Your code is already blackened. Good job! 🏴"
   fi
-else
-  conditional_echo "🖤 Your code is already blackened. Good job! 🏴"
 fi
 
 conditional_echo "Building development server image"

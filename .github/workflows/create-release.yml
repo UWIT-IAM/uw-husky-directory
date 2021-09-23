@@ -53,21 +53,6 @@ jobs:
       - run: ./scripts/pre-push.sh --headless
         name: Validate build
 
-      - name: Actions Ecosystem Action Get Merged Pull Request
-        uses: actions-ecosystem/action-get-merged-pull-request@v1.0.1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-        id: pr
-
-      - name: Tag and push release image
-        env:
-          pr_image: gcr.io/${{ secrets.IAM_GCR_REPO }}/husky-directory:pull-request-${{ steps.pr.outputs.number }}
-          release_image: gcr.io/${{ secrets.IAM_GCR_REPO }}/husky-directory:${{ needs.configure-release.outputs.version }}
-          # When using the dry-run branch, there is no PR to draw from, so we hard-code
-          # a known-good image.
-          testing_image: gcr.io/${{ secrets.IAM_GCR_REPO }}/husky-directory:1.0.1
-        run: ${STEP_SCRIPTS}/push-release-image.sh
-
       - name: Create release ${{ needs.configure-release.outputs.version }}
         uses: ncipollo/release-action@v1
         with:
@@ -75,3 +60,26 @@ jobs:
           token: ${{ secrets.ACTIONS_PAT }}
           tag: ${{ needs.configure-release.outputs.version }}
         if: github.ref == 'refs/heads/main'
+
+  push-release-image:
+    needs: [configure-release, create-release]
+    runs-on: ubuntu-latest
+    env:
+      version: ${{ needs.configure-release.outputs.version }}
+    steps:
+      - run: |
+          if [[ "${GITHUB_REF}" == "refs/heads/main" ]]
+          then
+            echo ::set-output name=release-ref::$version
+          else
+            echo ::set-output name=release-ref::${GITHUB_REF}
+          fi
+        name: Set the ref to check out from github
+        id: release-ref
+
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ steps.release-ref.outputs.release-ref }}
+
+      - run: |
+          ${STEP_SCRIPTS}/push-release-image.sh -v ${{ env.version }} --strict
