@@ -367,6 +367,25 @@ class HTMLValidator:
                 deletion_offset += 1
         return " ".join(sanitized)
 
+    def has_submit_button_with_text(
+        self, search_text: str, assert_=False, assert_expected_=True
+    ):
+        result = False
+        search_text = search_text.lower()
+        for element in self.html.find_all("input", attrs={"type": "submit"}):
+            text = element.attrs.get("value")
+            if text and text.lower() == search_text:
+                result = True
+
+        if not assert_:
+            return result
+
+        if assert_expected_ != result:
+            raise AssertionError(
+                f"Expected {'not' if not assert_expected_ else ''}"
+                f"to find an input[type=submit] with text '{search_text}' in {self.html}"
+            )
+
     def has_tag_with_text(
         self, target_tag: str, search_text: str, assert_=False, assert_expected_=True
     ):
