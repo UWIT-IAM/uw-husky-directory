@@ -27,43 +27,11 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: actions/checkout@v2
+      - uses: uwit-iam/actions/update-pr-branch-version@update-pr-branch-version
         with:
-          ref: ${{ github.event.pull_request.base.ref }}
-        if: steps.guidance.outputs.guidance != 'no-bump'
-
-      - run: echo ::set-output name=version::$(poetry version -s)
-        id: get-version
-        if: steps.guidance.outputs.guidance != 'no-bump'
-
-      - uses: actions/checkout@v2
-        if: steps.guidance.outputs.guidance != 'no-bump'
-
-      - name: Update PR version to base_version+guidance
-        if: steps.guidance.outputs.guidance != 'no-bump'
-        env:
-          BASE_VERSION: ${{ steps.get-version.outputs.version }}
-        run: |
-          set -x
-          poetry version $BASE_VERSION
-          poetry version ${{ steps.guidance.outputs.guidance }}
-          if [[ -n "$(git diff)" ]]
-          then
-            new_version=$(poetry version -s)
-            echo ::set-output name=new-version::$new_version
-          fi
+          github-token: ${{ env.GITHUB_TOKEN }}
+          version-guidance: ${{ steps.guidance.outputs.guidance }}
         id: update-version
-
-      - if: steps.update-version.outputs.new-version
-        uses: EndBug/add-and-commit@v7.2.1
-        env:
-          version: ${{ steps.update-version.outputs.new-version }}
-        with:
-          add: pyproject.toml
-          default_author: github_actions
-          pull_strategy: NO-PULL
-          push: true
-          message: "[Bot] Update version to ${{ env.version }}"
 
   validate-image-quality:
     needs: [update-pr-branch-version]
