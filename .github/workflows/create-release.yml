@@ -81,5 +81,18 @@ jobs:
         with:
           ref: ${{ steps.release-ref.outputs.release-ref }}
 
+      - uses: google-github-actions/setup-gcloud@v0.2.1
+        with:
+          project_id: ${{ secrets.IAM_GCR_REPO }}
+          service_account_key: ${{ secrets.GCR_TOKEN }}
+          export_default_credentials: true
+          credentials_file_path: /tmp/gcloud.json
+        name: Bootstrap gcloud
+
+      - run: gcloud auth configure-docker gcr.io
+
       - run: |
           ${STEP_SCRIPTS}/push-release-image.sh -v ${{ env.version }} --strict
+      - run: |
+          ./scripts/deploy.sh -v ${{ env.version }} -t dev
+        if: github.ref == 'refs/heads/main'
