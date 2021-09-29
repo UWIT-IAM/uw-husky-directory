@@ -6,7 +6,6 @@ These are not 1:1 models of that API; only fields we care about are declared her
 """
 from __future__ import annotations
 
-import logging
 from typing import Any, Dict, List, NoReturn, Optional
 
 from inflection import humanize
@@ -236,7 +235,6 @@ class ListPersonsRequestStatistics(BaseModel):
     def aggregate(self, other: ListPersonsRequestStatistics) -> NoReturn:
         for field, val in self:
             incr = getattr(other, field, 0)
-            logging.getLogger("gunicorn.error.app").info(f"{field}: {val}+{incr}")
             setattr(self, field, val + incr)
 
 
