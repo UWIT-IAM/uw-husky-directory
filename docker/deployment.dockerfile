@@ -10,5 +10,4 @@ RUN echo $DEPLOYMENT_ID >> .deployment
 CMD poetry run gunicorn -b 0.0.0.0:${FLASK_PORT} \
     --log-level ${GUNICORN_LOG_LEVEL} \
     -c "/app/husky_directory/gunicorn.conf.py" \
-    --preload \
     "husky_directory.app:create_app()"
