@@ -201,6 +201,7 @@ class ApplicationConfig(FlaskConfigurationSettings):
     version: Optional[str] = Field(None, env="HUSKY_DIRECTORY_VERSION")
     start_time: datetime = Field(datetime.now())
     deployment_id: Optional[str] = Field(None, env="DEPLOYMENT_ID")
+    show_experimental: Optional[bool] = Field(None, env='SHOW_EXPERIMENTAL_FEATURES')
 
     # Aggregated Settings
     pws_settings: PWSSettings = PWSSettings()

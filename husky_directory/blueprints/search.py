@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from werkzeug.exceptions import BadRequest, HTTPException
 from werkzeug.local import LocalProxy
 
+from husky_directory.app_config import ApplicationConfig
 from husky_directory.models.search import (
     DirectoryBaseModel,
     Person,
@@ -33,6 +34,7 @@ class RenderingContext(DirectoryBaseModel):
     error: Optional[ErrorModel]
     status_code: int = 200
     uwnetid: Optional[str] = None
+    show_experimental: bool = False
 
 
 @singleton
@@ -124,9 +126,12 @@ class SearchBlueprint(Blueprint):
         service: DirectorySearchService,
         logger: Logger,
         session: LocalProxy,
+        settings: ApplicationConfig,
     ):
-        context = RenderingContext.construct()
-        context.uwnetid = session.get("uwnetid")
+        context = RenderingContext.construct(
+            uwnetid=session.get('uwnetid'),
+            show_experimental=settings.show_experimental,
+        )
         try:
             form_input = SearchDirectoryFormInput.parse_obj(request.form)
             context.request_input = form_input
