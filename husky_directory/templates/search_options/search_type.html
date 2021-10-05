@@ -1,0 +1,39 @@
+{#
+    This component is unlikely to ever be seen by "real" users;
+    however, it's a way for developers to easily switch between
+    search modes when testing.
+
+    Once the new search function is preferred over the
+    classic, we can remove this component.
+#}
+{% if show_experimental %}
+    {% if request_input is not blank %}
+        {% set search_type = request_input['search_type'] %}
+    {% else %}
+        {% set search_type = 'classic' %}
+    {% endif %}
+    <hr/>
+    <h4>Search Method</h4>
+    <label for="search-type-classic">
+        <input type="radio"
+               id="search-type-classic"
+               name="search_type",
+               value="classic"
+                {% if search_type is blank or search_type == 'classic' %}
+               checked
+                {% endif %}
+        >
+        Classic
+    </label>
+    <label for="search-type-experimental">
+        <input type="radio"
+               id="search-type-experimental"
+               name="search_type",
+               value="experimental"
+                {% if search_type == 'experimental' %}
+               checked
+                {% endif %}
+        >
+        Experimental
+    </label>
+{% endif %}

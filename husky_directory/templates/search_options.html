@@ -46,7 +46,7 @@
         </a>
     {%  endif %}
 </div>
-
+{% include "search_options/search_type.html" %}
 {% set selected_length = 'summary' %}
 {% if request_input is not blank %}
     {% set selected_length = request_input['render_length'] %}
