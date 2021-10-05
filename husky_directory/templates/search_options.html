@@ -4,49 +4,51 @@
 {% endif %}
 <div id="search-population" class="col-md-3">
     <h3>Search options</h3>
-    <label for="population-option-employees">
-        <input type="radio"
-               id="population-option-employees"
-               name="population"
-               value="employees"
-               {% if requested_population is blank
+    <div>
+        <label for="population-option-employees">
+            <input type="radio"
+                   id="population-option-employees"
+                   name="population"
+                   value="employees"
+                    {% if requested_population is blank
                   or requested_population == 'employees' %}
                    checked
-               {% endif %}
-        >
-        Faculty/Staff Only
-    </label>
-    {% if uwnetid is not blank %}
-        <label for="population-option-students">
-            <input type="radio"
-                   id="population-option-students"
-                   name="population"
-                   value="students"
-                   {% if requested_population == 'students' %}
-                       checked
-                   {% endif %}
-            >
-            Students Only
-        </label>
-        <label for="population-option-all">
-            <input type="radio"
-                   id="population-option-all"
-                   name="population"
-                   value="all"
-                    {% if requested_population == 'all' %}
-                        checked
                     {% endif %}
             >
-            Faculty/Staff and Students
+            Faculty/Staff Only
         </label>
-    {% else %}
-        <a id="sign-in"
-           href="/saml/login">
-            Sign in for student search
-        </a>
-    {%  endif %}
+        {% if uwnetid is not blank %}
+            <label for="population-option-students">
+                <input type="radio"
+                       id="population-option-students"
+                       name="population"
+                       value="students"
+                        {% if requested_population == 'students' %}
+                       checked
+                        {% endif %}
+                >
+                Students Only
+            </label>
+            <label for="population-option-all">
+                <input type="radio"
+                       id="population-option-all"
+                       name="population"
+                       value="all"
+                        {% if requested_population == 'all' %}
+                       checked
+                        {% endif %}
+                >
+                Faculty/Staff and Students
+            </label>
+        {% else %}
+            <a id="sign-in"
+               href="/saml/login">
+                Sign in for student search
+            </a>
+        {%  endif %}
+    </div>
+    {% include "search_options/search_type.html" %}
 </div>
-{% include "search_options/search_type.html" %}
 {% set selected_length = 'summary' %}
 {% if request_input is not blank %}
     {% set selected_length = request_input['render_length'] %}

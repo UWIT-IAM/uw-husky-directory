@@ -3,6 +3,7 @@ from importlib import reload
 from unittest import mock
 
 import pytest
+
 import husky_directory.util
 
 
@@ -112,3 +113,24 @@ def test_metrics_class_override(env, expected):
     with mock.patch.dict(os.environ, env, clear=True):
         reload(husky_directory.util)
         assert husky_directory.util.MetricsClientCls.__name__ == expected
+
+
+@pytest.mark.parametrize(
+    "sequence, expected",
+    [
+        (["foo"], '"foo"'),
+        (["foo", "bar"], '"foo" and "bar"'),
+        (["foo", "bar", "baz"], '"foo," "bar," and "baz"'),
+    ],
+)
+def test_readable_list(sequence, expected):
+    assert husky_directory.util.readable_list(sequence) == expected
+
+
+@pytest.mark.parametrize("query, display_name,", [("aloe", "aloe vera")])
+@pytest.mark.parametrize(
+    "coefficient, expected",
+    [(0, False), (0.25, False), (0.5, False), (0.75, True), (1, True)],
+)
+def test_is_similar(query, display_name, coefficient, expected):
+    assert husky_directory.util.is_similar(query, display_name, coefficient) == expected

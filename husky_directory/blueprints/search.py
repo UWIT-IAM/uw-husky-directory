@@ -56,8 +56,10 @@ class SearchBlueprint(Blueprint):
         )
 
     @staticmethod
-    def index(session: LocalProxy):
-        context = RenderingContext(uwnetid=session.get("uwnetid"))
+    def index(session: LocalProxy, settings: ApplicationConfig):
+        context = RenderingContext(
+            uwnetid=session.get("uwnetid"), show_experimental=settings.show_experimental
+        )
         return (
             render_template("views/index.html", **context.dict(exclude_none=True)),
             200,
@@ -129,7 +131,7 @@ class SearchBlueprint(Blueprint):
         settings: ApplicationConfig,
     ):
         context = RenderingContext.construct(
-            uwnetid=session.get('uwnetid'),
+            uwnetid=session.get("uwnetid"),
             show_experimental=settings.show_experimental,
         )
         try:

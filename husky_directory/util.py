@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import functools
 import logging
-import time
+import math
 import os
+import time
 from contextlib import contextmanager
-from typing import Any, Callable, Dict, Optional, TypeVar
+from typing import Any, Callable, Dict, List, Optional, TypeVar
 
+import Levenshtein
 import inflection
 from prometheus_flask_exporter import PrometheusMetrics
 from prometheus_flask_exporter.multiprocess import GunicornInternalPrometheusMetrics
@@ -189,3 +191,46 @@ def timed(function: Callable):
         return result
 
     return inner
+
+
+def readable_list(seq: List[str]) -> str:
+    """
+    Return a grammatically correct human readable string (with an Oxford comma).
+    All values will be quoted:
+            [foo, bar, baz]
+        becomes
+            "foo," "bar," and "baz"
+    """
+    # Ref: https://stackoverflow.com/a/53981846/
+    if len(seq) < 3:
+        seq = [f'"{s}"' for s in seq]
+        return " and ".join(seq)
+    punctuation = [f'"{s},"' for s in seq[:-1]]
+    punctuation.append(f'and "{seq[-1]}"')
+    return " ".join(punctuation)
+
+
+def is_similar(query, display_name, fuzziness: float):
+    """
+    The fuzziness tells the search result reducer how
+    much of a variance is allowed for a result that otherwise has no
+    "bucket" in order to count as a "similar" result.
+
+    Setting this to 0 would require a result to match exactly;
+    Setting this to 1 would allow any result to match
+
+    For the display name of "aloe vera," a search for the result of
+    "aloe" would have a Levenshtein distance of 5 (' vera', which includes the whitespace).
+    This would then be compared to the overall length of the strength, which is 9.
+    Here is a table exemplifying how the query for 'aloe' would match 'aloe vera':
+
+        coefficient | required num matching | match? | what would match?
+                  0 |   9                   | No     | 'aloe vera'
+               0.25 |   6                   | No     | 'alo vira'
+               0.50 |   4                   | No     | 'alo v'
+               0.75 |   2                   | Yes    | 'aloe', 'vera'
+               1.00 |   0                   | Yes    | anything!
+    """
+    max_distance = math.floor(len(display_name) * fuzziness)
+    distance = Levenshtein.distance(query, display_name)
+    return distance <= max_distance
