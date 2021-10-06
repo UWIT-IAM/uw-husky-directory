@@ -8,6 +8,7 @@ from husky_directory.models.pws import (
     EmployeePersonAffiliation,
     ListPersonsOutput,
     PersonOutput,
+    ResultBucket,
     StudentPersonAffiliation,
 )
 from husky_directory.models.search import (
@@ -76,7 +77,6 @@ class ListPersonsOutputTranslator:
         student = person.affiliations.student
         result = Person(
             name=person.display_name,
-            sort_key=person.get_displayed_surname(),
             phone_contacts=self._resolve_phones(
                 person.affiliations.employee, person.affiliations.student
             ),
@@ -87,6 +87,20 @@ class ListPersonsOutputTranslator:
         if employee:
             self._translate_employee_attributes(employee, result)
         return result
+
+    def translate_bucket(
+        self, bucket: ResultBucket
+    ) -> Dict[PopulationType, DirectoryQueryPopulationOutput]:
+        return {
+            PopulationType.employees: DirectoryQueryPopulationOutput(
+                population=PopulationType.employees,
+                people=[self.translate_person(p) for p in bucket.sorted_employees],
+            ),
+            PopulationType.students: DirectoryQueryPopulationOutput(
+                population=PopulationType.students,
+                people=[self.translate_person(p) for p in bucket.sorted_students],
+            ),
+        }
 
     def translate_scenario(
         self, request_output: ListPersonsOutput, netid_tracker: Set[str]

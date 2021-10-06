@@ -377,7 +377,8 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
                 len(html.find_all("tr", class_="summary-row")) == expected_num_results
             )
 
-    def test_list_people_sort(self, random_string):
+    @pytest.mark.parametrize("search_type", ("classic", "experimental"))
+    def test_list_people_sort(self, random_string, search_type):
         ada_1 = self.mock_people.published_employee.copy(
             update={
                 "display_name": "Ada Zlovelace",
@@ -410,7 +411,8 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
 
         self.mock_send_request.return_value = people
         response = self.flask_client.post(
-            "/", data={"method": "name", "query": "lovelace"}
+            "/",
+            data={"method": "name", "query": "lovelace", "search_type": search_type},
         )
         html = response.data.decode("UTF-8")
         assert response.status_code == 200

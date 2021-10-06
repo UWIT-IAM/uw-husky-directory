@@ -34,6 +34,7 @@ class TestApplicationConfig:
             "deployment_id",
             "secrets",
             "metrics_settings",
+            "show_experimental",
         }
         assert set(self.app_config.dict().keys()) == expected_field_names
 

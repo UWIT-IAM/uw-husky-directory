@@ -10,7 +10,6 @@ from husky_directory.models.pws import (
     EmployeeDirectoryListing,
     EmployeePersonAffiliation,
     EmployeePosition,
-    NamedIdentity,
     PersonAffiliations,
     PersonOutput,
     StudentDirectoryListing,
@@ -114,14 +113,14 @@ class TestVCardServiceVCardGeneration:
                 with mock_injected(VCardService, self.service):
                     yield
 
-        self.mock_pws_person: Optional[PersonOutput] = None
+        self.mock_person: Optional[PersonOutput] = None
 
     def prepare_pws(self):
         mock_pws_get = mock.patch.object(self.pws, "_get_search_request_output").start()
-        mock_pws_get.return_value = self.mock_pws_person
+        mock_pws_get.return_value = self.mock_person
 
     def get_vcard_result(self, person: PersonOutput) -> List[str]:
-        self.mock_pws_person = person.dict(by_alias=True)
+        self.mock_person = person.dict(by_alias=True)
         self.prepare_pws()
 
         result = self.service.get_vcard("foo")
@@ -148,92 +147,13 @@ class TestVCardServiceVCardGeneration:
         ]
 
     def test_employee_vcard(self, employee):
-        self.mock_pws_person = self.mock_people.as_search_output(employee)
+        self.mock_person = self.mock_people.as_search_output(employee)
         self.prepare_pws()
 
         result = self.get_vcard_result(employee)
         # Go line by line to make it easier to find issues
         for i, line in enumerate(result):
             assert line == self.expected_employee_vcard[i]
-
-    @pytest.mark.parametrize(
-        "name_attrs, expected_last, expected_extras",
-        [
-            # Standard guessing
-            (
-                NamedIdentity(display_name="Alpha Beta Gamma"),
-                "Gamma",
-                ["Alpha", "Beta"],
-            ),
-            # Not sure how this would happen, but just in case, ensure we honor
-            # preferences and registered names before resorting to making
-            # guesses about the display name that is somehow different.
-            (
-                NamedIdentity(
-                    preferred_first_name="Alpha",
-                    display_name="Foo Bar Baz",
-                    registered_first_middle_name="Alpha Beta",
-                    registered_surname="Gamma",
-                ),
-                "Gamma",
-                ["Alpha"],
-            ),
-            # Using first name prefs to filter the rest; aka the 'Ana Mari' case.
-            (
-                NamedIdentity(
-                    display_name="Alpha Beta Gamma", preferred_first_name="Alpha Beta"
-                ),
-                "Gamma",
-                ["Alpha Beta"],
-            ),
-            # Using preferences to override all fields;
-            (
-                NamedIdentity(
-                    display_name="Alpha Beta Gamma Delta",
-                    preferred_first_name="Alpha",
-                    preferred_middle_name="Gamma",
-                    preferred_last_name="Delta",
-                ),
-                "Delta",
-                ["Alpha", "Gamma"],
-            ),
-            # Similar to a combined first name, but for last names.
-            (
-                NamedIdentity(
-                    display_name="Alpha Beta St. Gamma", preferred_last_name="St. Gamma"
-                ),
-                "St. Gamma",
-                ["Alpha", "Beta"],
-            ),
-            # Partial overrides for first and middle, leaving last alone.
-            (
-                NamedIdentity(
-                    display_name="Alpha Beta Gamma",
-                    preferred_first_name="Iota",
-                    preferred_middle_name="Kappa",
-                ),
-                "Gamma",
-                ["Iota", "Kappa"],
-            ),
-            # This person gets tired of correcting their middle name, but leaves the
-            # rest alone; we can deal with that.
-            (
-                NamedIdentity(
-                    display_name="Alpha Beta Gamma Delta",
-                    preferred_middle_name="Beta Gamma",
-                ),
-                "Delta",
-                ["Alpha", "Beta Gamma"],
-            ),
-        ],
-    )
-    def test_parse_person_name(
-        self, name_attrs, expected_last, expected_extras, generate_person
-    ):
-        person = generate_person(**name_attrs.dict())
-        last, extras = self.service.parse_person_name(person)
-        assert last == expected_last
-        assert extras == expected_extras
 
     @pytest.mark.parametrize("log_in", (True, False))
     def test_student_vcard(self, student, client, log_in):

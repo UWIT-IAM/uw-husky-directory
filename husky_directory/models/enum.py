@@ -24,3 +24,13 @@ class PopulationType(Enum):
 class ResultDetail(Enum):
     full = "full"
     summary = "summary"
+
+
+class SearchType(Enum):
+    # Old-school cool. It's inefficient but
+    # very explicit.
+    classic = "classic"
+
+    # In active development, constantly striving to
+    # provide more relevant results, faster!
+    experimental = "experimental"

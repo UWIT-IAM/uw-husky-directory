@@ -65,13 +65,14 @@ class TestDirectorySearchService:
         assert output.scenarios
         assert output.scenarios[0].populations["employees"].people
 
-    def test_search_removes_duplicates(self):
+    @pytest.mark.parametrize("search_type", ("classic", "experimental"))
+    def test_search_removes_duplicates(self, search_type):
         orig = self.mock_people.as_search_output(self.mock_people.published_employee)
         dupe = orig.copy()
         orig["Next"] = {"Href": "foo"}
         self.set_list_persons_output(orig)
         self.set_get_next_output(ListPersonsOutput.parse_obj(dupe))
-        request_input = SearchDirectoryInput(name="foo")
+        request_input = SearchDirectoryInput(name="ada", search_type=search_type)
         output = self.client.search_directory(request_input)
 
         # But we should only expect a single result because it was de-duplicated
