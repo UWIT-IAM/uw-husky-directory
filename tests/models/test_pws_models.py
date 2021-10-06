@@ -24,6 +24,7 @@ def test_name_formatting():
         "displayed_middle_name": None,
         "displayed_surname": "Vera",
         "sort_key": "Vera Aloe",
+        "canonical_tokens": ["Vera", "Aloe"],
         "name_tokens": ["Aloe", "Vera"],
     }
 

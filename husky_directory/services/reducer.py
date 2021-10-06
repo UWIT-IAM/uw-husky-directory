@@ -3,7 +3,6 @@ from functools import cached_property
 from logging import Logger
 from typing import Dict, Optional, Tuple
 
-from flask_injector import request
 from injector import inject
 
 from husky_directory.models.pws import ListPersonsOutput, NamedIdentity, ResultBucket
@@ -25,10 +24,6 @@ class NamedIdentityAnalyzer:
         self.cmp_query_tokens = self.cmp_query.split()
 
         self.num_query_tokens = len(self.cmp_query_tokens)
-
-    @cached_property
-    def name_starts_with_query(self) -> bool:
-        return self.cmp_name.startswith(self.cmp_query)
 
     @cached_property
     def name_matches_query(self) -> bool:
@@ -62,6 +57,11 @@ class NamedIdentityAnalyzer:
 
     @cached_property
     def relevant_bucket(self) -> Optional[Tuple[str, int]]:
+        """
+        :return: A tuple whose first entry is the bucket description, and whose second
+                 entry is the bucket priority/sort key. This helps to make sure that
+                 results are printed to users in order of (what we declare as) relevance.
+        """
         if self.name_matches_query:
             return f'Name is "{self.query_string}"', 1
         if self.last_name_matches_query:
@@ -81,7 +81,6 @@ class NamedIdentityAnalyzer:
             return f"Name contains {readable}", 7
 
 
-@request
 class NameSearchResultReducer:
     @inject
     def __init__(self, logger: Logger):
@@ -107,6 +106,8 @@ class NameSearchResultReducer:
             bucket, relevance = analyzer.relevant_bucket or (None, None)
 
             if not bucket:
+                # This is unlikely to happen unless PWS starts serving
+                # some highly irrelevant results for some reason
                 self.logger.info(
                     f"Could not find relevant bucket for person {pws_person.display_name} matching "
                     f"query {query_string}"

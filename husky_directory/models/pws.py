@@ -198,6 +198,7 @@ class NamedIdentity(PWSBaseModel):
     displayed_first_name: Optional[str]
     displayed_middle_name: Optional[str]
     name_tokens: List[str] = []
+    canonical_tokens: List[str] = []
     sort_key: Optional[str]
 
     @validator(
@@ -208,13 +209,14 @@ class NamedIdentity(PWSBaseModel):
         "preferred_first_name",
         "preferred_middle_name",
         "preferred_last_name",
+        always=True,
     )
     def sanitize_name_fields(cls, value: Optional[str]) -> Optional[str]:
         if value:
             return " ".join(humanize_(v) for v in value.split())
         return value
 
-    @validator("displayed_surname")
+    @validator("displayed_surname", always=True)
     def populate_displayed_surname(cls, v: Any, values: Dict):
         """
         Returns the canonical surname for the identity, if there is one;
@@ -226,7 +228,7 @@ class NamedIdentity(PWSBaseModel):
 
         if preferred_last_name and preferred_last_name in display_name:
             return preferred_last_name
-        elif registered_surname in display_name:
+        elif registered_surname and registered_surname in display_name:
             return registered_surname
 
         # This should only happen if we have dirty data.
@@ -234,7 +236,7 @@ class NamedIdentity(PWSBaseModel):
         # default of a one-token surname.
         return display_name.split()[-1]
 
-    @validator("displayed_first_name")
+    @validator("displayed_first_name", always=True)
     def populate_displayed_first_name(cls, v: Any, values: Dict):
         """
         Returns the canonical first name for the identity, if there is one;
@@ -255,9 +257,9 @@ class NamedIdentity(PWSBaseModel):
         # This should only happen if we have dirty data.
         # If nothing makes sense, we'll just assume the
         # default of a one-token name.
-        return display_name.split()[1]
+        return display_name.split()[0]
 
-    @validator("displayed_middle_name")
+    @validator("displayed_middle_name", always=True)
     def populate_displayed_middle_name(cls, v: Any, values: Dict):
         """
         Returns the canonical middle name for the identity, if
@@ -275,7 +277,10 @@ class NamedIdentity(PWSBaseModel):
 
         splice_index = len(displayed_first_name) + 1
 
-        if displayed_first_name in registered_first_middle_name:
+        if (
+            registered_first_middle_name
+            and displayed_first_name in registered_first_middle_name
+        ):
             middle_name = registered_first_middle_name[splice_index:]
         else:
             surname_index = display_name.index(displayed_surname)
@@ -285,7 +290,7 @@ class NamedIdentity(PWSBaseModel):
             return middle_name
         return None
 
-    @validator("name_tokens")
+    @validator("name_tokens", always=True)
     def populate_name_tokens(cls, v: Any, values: Dict):
         """
         Populates a name tokens field to be used for processing,
@@ -302,7 +307,17 @@ class NamedIdentity(PWSBaseModel):
             if values.get(field)
         ]
 
-    @validator("sort_key")
+    @validator("canonical_tokens", always=True)
+    def populate_sorted_name_tokens(cls, v: Any, values: Dict):
+        tokens = values.get("name_tokens")
+        result = [tokens[0]]
+        if len(tokens) > 1:
+            result.insert(0, tokens[-1])
+            if len(tokens) > 2:
+                result.extend(tokens[1:-1])
+        return result
+
+    @validator("sort_key", always=True)
     def populate_sort_key(cls, v: Any, values: Dict):
         """
         Pre-calculates the sort key for the display name,
@@ -310,13 +325,7 @@ class NamedIdentity(PWSBaseModel):
 
         "Ana Mari Cauce" becomes "Cauce Ana Mari"
         """
-        tokens = values.get("name_tokens")
-        result = [tokens[0]]
-        if len(tokens) > 1:
-            result.insert(0, tokens[-1])
-            if len(tokens) > 2:
-                result.extend(tokens[1:-1])
-        return " ".join(result)
+        return " ".join(values.get("canonical_tokens"))
 
 
 class PersonOutput(NamedIdentity):
