@@ -105,7 +105,8 @@ class DirectorySearchService:
                     student_affiliation_state=(
                         AffiliationState.current if population == "students" else None
                     ),
-                )
+                ),
+                populations=request_input.requested_populations,
             )
 
             statistics.aggregate(pws_output.request_statistics)
@@ -163,7 +164,7 @@ class DirectorySearchService:
             )
             statistics.num_queries_generated += 1
             pws_output: ListPersonsOutput = self._pws.list_persons(
-                generated.request_input
+                generated.request_input, populations=request_input.requested_populations
             )
             aggregate_output = pws_output
             statistics.aggregate(pws_output.request_statistics)
