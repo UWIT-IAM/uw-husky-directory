@@ -58,7 +58,9 @@ class TestDirectorySearchService:
         self.mock_get_explicit_href.return_value = output
 
     def test_search_directory_happy(self):
-        request_input = SearchDirectoryInput(name="foo")
+        request_input = SearchDirectoryInput(
+            name="foo", population=PopulationType.employees
+        )
         output = self.client.search_directory(request_input)
 
         assert output.num_results
@@ -72,7 +74,9 @@ class TestDirectorySearchService:
         orig["Next"] = {"Href": "foo"}
         self.set_list_persons_output(orig)
         self.set_get_next_output(ListPersonsOutput.parse_obj(dupe))
-        request_input = SearchDirectoryInput(name="ada", search_type=search_type)
+        request_input = SearchDirectoryInput(
+            name="ada", search_type=search_type, population=PopulationType.all
+        )
         output = self.client.search_directory(request_input)
 
         # But we should only expect a single result because it was de-duplicated
@@ -82,7 +86,7 @@ class TestDirectorySearchService:
         person = self.mock_people.contactable_person
         self.list_persons_output["Persons"] = [person.dict(by_alias=True)]
         self.session["uwnetid"] = "foo"
-        request_input = SearchDirectoryInput(name="foo")
+        request_input = SearchDirectoryInput(name="foo", population=PopulationType.all)
         output = self.client.search_directory(request_input)
         contacts = output.scenarios[0].populations["employees"].people[0].phone_contacts
 

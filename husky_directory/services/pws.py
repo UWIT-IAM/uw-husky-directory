@@ -11,6 +11,7 @@ from werkzeug.exceptions import NotFound
 
 from husky_directory.app_config import ApplicationConfig
 from husky_directory.models.common import RecordConstraint
+from husky_directory.models.enum import PopulationType
 from husky_directory.models.pws import (
     ListPersonsInput,
     ListPersonsOutput,
@@ -227,7 +228,9 @@ class PersonWebServiceClient:
         """
         return self._GLOBAL_CONSTRAINTS
 
-    def list_persons(self, request_input: ListPersonsInput) -> ListPersonsOutput:
+    def list_persons(
+        self, request_input: ListPersonsInput, populations=List[PopulationType]
+    ) -> ListPersonsOutput:
         """
         Given an input request, queries PWS and returns the output.
         For more information on this request,
@@ -235,6 +238,26 @@ class PersonWebServiceClient:
         """
         payload = request_input.payload
         constraints = self.global_constraints + request_input.constraints
+
+        # These constraints can only be created when a request is made, because
+        # this method only knows about one population at a time, as each
+        # list_persons query can only target one "OR" population.
+        student_population_constraint = RecordConstraint(
+            namespace="PersonAffiliations.StudentPersonAffiliation",
+            predicate=lambda v: "students" in populations,
+            failure_callback=partial(
+                clear_namespace, "PersonAffiliations.StudentPersonAffiliation"
+            ),
+        )
+        employee_population_constraint = RecordConstraint(
+            namespace="PersonAffiliations.EmployeePersonAffiliation",
+            predicate=lambda v: "employees" in populations,
+            failure_callback=partial(
+                clear_namespace, "PersonAffiliations.EmployeePersonAffiliation"
+            ),
+        )
+        constraints.insert(0, student_population_constraint)
+        constraints.insert(0, employee_population_constraint)
 
         url = f"{self.pws_url}/person"
         output = self._get_sanitized_request_output(

@@ -67,7 +67,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
             assert self.session.get("uwnetid")
 
         response = self.flask_client.post(
-            "/", data={"query": "lovelace", "length": "full"}
+            "/", data={"query": "lovelace", "length": "full", "population": "all"}
         )
 
         profile = self.mock_people.contactable_person
