@@ -1,5 +1,3 @@
-from typing import Dict, Optional
-
 import pytest
 from injector import Injector
 from werkzeug.local import LocalProxy
@@ -7,38 +5,9 @@ from werkzeug.local import LocalProxy
 from husky_directory.models.enum import PopulationType
 from husky_directory.models.search import SearchDirectoryInput
 from husky_directory.services.query_generator import (
-    Query,
-    QueryTemplate,
     SearchQueryGenerator,
     WildcardFormat,
 )
-
-
-class TestQueryTemplate:
-    @pytest.fixture(autouse=True)
-    def initialize(self):
-        self.template = QueryTemplate(
-            description_fmt='First name "{}", last name "{}"',
-            query_generator=lambda first, last: Query(first_name=first, last_name=last),
-        )
-        self.args = ["Bill", "Waterson"]
-
-    def test_get_query(self):
-        query = self.template.get_query(self.args)
-        assert query.first_name == "Bill"
-        assert query.last_name == "Waterson"
-
-    def test_get_description(self):
-        description = self.template.get_description(self.args)
-        assert description == 'First name "Bill", last name "Waterson"'
-
-    def test_description_formatter(self):
-        self.template.description_formatter = lambda first, last: (
-            " ".join([first, last]),
-        )
-        self.template.description_fmt = 'Name "{}"'
-        description = self.template.get_description(self.args)
-        assert description == 'Name "Bill Waterson"'
 
 
 @pytest.mark.parametrize(
@@ -66,120 +35,10 @@ class TestSearchQueryGenerator:
 
     def test_wildcard_input(self):
         generated = list(
-            self.query_generator.generate(SearchDirectoryInput(name="foo*"))
+            self.query_generator.generate(SearchDirectoryInput(email="foo*"))
         )
         assert len(generated) == 1
-        assert generated[0].description == 'Name matches "foo*"'
-
-    def test_single_name_input(self):
-        generated = list(
-            self.query_generator.generate(SearchDirectoryInput(name="foo"))
-        )
-        assert len(generated) == 5  # 1 global query, 4 from name_query_templates[1]
-        expected_queries = [
-            dict(display_name="foo"),
-            dict(last_name="foo"),
-            dict(last_name="foo*"),
-            dict(first_name="foo"),
-            dict(display_name="*foo*"),
-        ]
-        actual_queries = [
-            query.request_input.dict(
-                exclude_unset=True,
-                exclude_none=True,
-                exclude_defaults=True,
-                exclude={"constraints"},
-            )
-            for query in generated
-        ]
-        assert expected_queries == actual_queries
-
-    def test_short_name_input(self):
-        generated = list(self.query_generator.generate(SearchDirectoryInput(name="hi")))
-        assert len(generated) == 2
-        assert generated[0].description == 'First name starts with "hi"'
-        assert generated[1].description == 'Last name starts with "hi"'
-
-    def test_two_name_input(self):
-        generated = list(
-            self.query_generator.generate(SearchDirectoryInput(name="foo bar"))
-        )
-        assert len(generated) == 6  # 1 global query, 5 fro name_query_templates[2]
-        expected_queries = [
-            dict(display_name="foo bar"),
-            dict(first_name="foo", last_name="bar"),
-            dict(first_name="foo*", last_name="bar"),
-            dict(first_name="foo", last_name="bar*"),
-            dict(first_name="foo*", last_name="bar*"),
-            dict(last_name="foo bar*"),
-        ]
-        actual_queries = [
-            query.request_input.dict(
-                exclude_unset=True,
-                exclude_none=True,
-                exclude_defaults=True,
-                exclude={"constraints"},
-            )
-            for query in generated
-        ]
-        assert expected_queries == actual_queries
-
-    @pytest.mark.parametrize(
-        "request_input, expected_num_queries, assert_included",
-        [
-            (
-                "foo bar baz",
-                10,
-                [
-                    dict(display_name="foo bar baz"),
-                    dict(display_name="foo* bar* baz*"),
-                    dict(first_name="foo", last_name="bar baz"),
-                    dict(first_name="foo", last_name="bar baz*"),
-                    dict(first_name="foo*", last_name="bar baz"),
-                    dict(first_name="foo*", last_name="bar baz*"),
-                    dict(first_name="foo bar", last_name="baz"),
-                    dict(first_name="foo bar", last_name="baz*"),
-                    dict(first_name="foo bar*", last_name="baz"),
-                    dict(first_name="foo bar*", last_name="baz*"),
-                ],
-            ),
-            # Skipping the detailed tests for the cardinalities, because that's a whole lot of typing. Just checking
-            # a couple of cases to verify that the slicing is being handled as expected.
-            (
-                "foo bar baz bop",
-                14,
-                [
-                    dict(first_name="foo", last_name="bar baz bop"),
-                    dict(first_name="foo bar", last_name="baz bop"),
-                    dict(first_name="foo bar baz", last_name="bop"),
-                ],
-            ),
-            ("foo bar baz bop blop", 18, None),
-        ],
-    )
-    def test_multi_name_input_generation(
-        self,
-        request_input: str,
-        expected_num_queries: int,
-        assert_included: Optional[Dict[str, str]],
-    ):
-        generated = list(
-            self.query_generator.generate(SearchDirectoryInput(name=request_input))
-        )
-        if assert_included:
-            actual_queries = [
-                query.request_input.dict(
-                    exclude_unset=True,
-                    exclude_none=True,
-                    exclude_defaults=True,
-                    exclude={"constraints"},
-                )
-                for query in generated
-            ]
-            for case in assert_included:
-                assert case in actual_queries
-
-        assert len(generated) == expected_num_queries
+        assert generated[0].description == 'Email matches "foo*"'
 
     def test_phone_input_short_number(self):
         request_input = SearchDirectoryInput(phone="2065554321")
@@ -277,7 +136,7 @@ class TestSearchQueryGenerator:
         if authenticate:
             self.session["uwnetid"] = "foo"
         request_input = SearchDirectoryInput(
-            name="*whatever", population=PopulationType.all
+            email="*whatever", population=PopulationType.all
         )
         queries = list(self.query_generator.generate(request_input))
 
@@ -292,7 +151,7 @@ class TestSearchQueryGenerator:
         if authenticate:
             self.session["uwnetid"] = "foo"
         request_input = SearchDirectoryInput(
-            name="*whatever", population=PopulationType.students
+            email="*whatever", population=PopulationType.students
         )
 
         queries = list(self.query_generator.generate(request_input))

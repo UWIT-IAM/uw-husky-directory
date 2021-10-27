@@ -10,6 +10,7 @@ from werkzeug import exceptions
 from werkzeug.local import LocalProxy
 
 from husky_directory.models.enum import PopulationType, ResultDetail
+from husky_directory.models.pws import ListPersonsInput, ListPersonsOutput
 from husky_directory.models.search import SearchDirectoryFormInput, SearchDirectoryInput
 from husky_directory.services.pws import PersonWebServiceClient
 
@@ -35,9 +36,11 @@ class BlueprintSearchTestBase:
 
 
 class TestSearchBlueprint(BlueprintSearchTestBase):
-    def test_render_summary_success(self):
+    def test_render_summary_success(
+        self, search_method: str = "name", search_query: str = "lovelace"
+    ):
         response = self.flask_client.post(
-            "/", data={"method": "name", "query": "lovelace"}
+            "/", data={"method": search_method, "query": search_query}
         )
         assert response.status_code == 200
         profile = self.mock_people.contactable_person
@@ -52,6 +55,23 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
                     profile.affiliations.employee.directory_listing.emails[0],
                 )
             assert "autofocus" not in html.find("input", attrs={"name": "query"}).attrs
+
+    def _set_up_multipage_search(self):
+        page_one = self.mock_people.as_search_output(
+            next_=ListPersonsInput(href="https://foo/page-2")
+        )
+        page_two = self.mock_send_request.return_value
+        self.mock_send_request.return_value = page_one
+        mock_next_page = mock.patch.object(self.pws_client, "get_explicit_href").start()
+        mock_next_page.return_value = ListPersonsOutput.parse_obj(page_two)
+
+    def test_render_multi_page_experimental_search(self):
+        self._set_up_multipage_search()
+        self.test_render_summary_success()
+
+    def test_render_multi_page_classic_search(self):
+        self._set_up_multipage_search()
+        self.test_render_summary_success(search_method="email", search_query="foo")
 
     def test_copyright_footer(self):
         response = self.flask_client.get("/")

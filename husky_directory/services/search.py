@@ -118,7 +118,9 @@ class DirectorySearchService:
                 pws_output = self._pws.get_explicit_href(
                     pws_output.next.href, output_type=ListPersonsOutput
                 )
-                self.reducer.reduce_output(pws_output, request_input.name, results)
+                results = self.reducer.reduce_output(
+                    pws_output, request_input.name, results
+                )
                 statistics.aggregate(pws_output.request_statistics)
 
         statistics.num_duplicates_found = self.reducer.duplicate_hit_count
@@ -153,9 +155,6 @@ class DirectorySearchService:
         statistics = ListPersonsRequestStatistics()
         scenarios: List[DirectoryQueryScenarioOutput] = []
         scenario_description_indexes: Dict[str, int] = {}
-
-        if request_input.name:
-            statistics.num_user_search_tokens = len(request_input.name.split())
 
         for generated in self.query_generator.generate(request_input):
             self.logger.debug(

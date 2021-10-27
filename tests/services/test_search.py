@@ -196,7 +196,7 @@ class TestDirectorySearchService:
         person = self.mock_people.published_employee
         self.list_persons_output["Persons"] = [person.dict(by_alias=True)]
         output = self.client.search_directory(
-            SearchDirectoryInput(name="*blah", population=PopulationType.employees)
+            SearchDirectoryInput(email="*blah", population=PopulationType.employees)
         )
         output_person: Person = output.scenarios[0].populations["employees"].people[0]
         assert output_person.box_number == "351234"
