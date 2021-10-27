@@ -36,7 +36,9 @@ class BlueprintSearchTestBase:
 
 class TestSearchBlueprint(BlueprintSearchTestBase):
     def test_render_summary_success(self):
-        response = self.flask_client.post("/", data={"method": "name", "query": "foo"})
+        response = self.flask_client.post(
+            "/", data={"method": "name", "query": "lovelace"}
+        )
         assert response.status_code == 200
         profile = self.mock_people.contactable_person
         with self.html_validator.validate_response(response) as html:
@@ -67,18 +69,24 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
             assert self.session.get("uwnetid")
 
         response = self.flask_client.post(
-            "/", data={"query": "lovelace", "length": "full", "population": "all"}
+            "/",
+            data={
+                "query": "lovelace",
+                "method": "name",
+                "length": "full",
+                "population": "all",
+            },
         )
 
         profile = self.mock_people.contactable_person
         with self.html_validator.validate_response(response):
             self.html_validator.assert_has_tag_with_text("h4", profile.display_name)
             self.html_validator.assert_has_scenario_anchor(
-                "employees-name-matches-lovelace"
+                "employees-last-name-is-lovelace"
             )
             if log_in:
                 self.html_validator.assert_has_scenario_anchor(
-                    "students-name-matches-lovelace"
+                    "students-last-name-is-lovelace"
                 )
             with self.html_validator.scope("ul", class_="dir-listing"):
                 self.html_validator.assert_has_tag_with_text(
@@ -93,17 +101,17 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
 
     def test_render_no_results(self):
         self.mock_send_request.return_value = self.mock_people.as_search_output()
-        response = self.flask_client.post("/", data={"query": "foo"})
+        response = self.flask_client.post("/", data={"query": "lovelace"})
         with self.html_validator.validate_response(response) as html:
             self.html_validator.assert_not_has_scenario_anchor(
-                "employees-name-matches-foo"
+                "employees-name-matches-lovelace"
             )
             self.html_validator.assert_not_has_scenario_anchor(
-                "students-name-matches-foo"
+                "students-name-matches-lovelace"
             )
             assert not html.find("table", summary="results")
             assert html.find(string=re.compile("No matches for"))
-            self.html_validator.assert_has_tag_with_text("b", 'Name is "foo"')
+            self.html_validator.assert_has_tag_with_text("b", 'Name is "lovelace"')
 
     def test_render_invalid_box_number(self):
         response = self.flask_client.post(
@@ -126,16 +134,18 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
             self.flask_client.post(
                 "/",
                 data={
-                    "query": "foo",
+                    "query": "lovelace",
                     "length": "full",
                     "population": "all",
                 },
             )
         ) as html:
             assert not html.find_all("li", class_="dir-boxstuff")
-            self.html_validator.assert_has_scenario_anchor("students-name-matches-foo")
+            self.html_validator.assert_has_scenario_anchor(
+                "students-last-name-is-lovelace"
+            )
             self.html_validator.assert_not_has_scenario_anchor(
-                "employees-name-matches-foo"
+                "employees-last-name-is-lovelace"
             )
             with self.html_validator.scope("div", class_="usebar"):
                 self.html_validator.assert_has_submit_button_with_text("Download vcard")
@@ -167,7 +177,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
             self.flask_client.post(
                 "/",
                 data={
-                    "query": "foo",
+                    "query": "lovelace",
                     "method": "name",
                 },
             )
@@ -322,7 +332,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
         based on its input.
         """
         query_value = (
-            "abcdefg" if search_field not in ("phone", "box_number") else "12345"
+            "lovelace" if search_field not in ("phone", "box_number") else "12345"
         )
 
         request = SearchDirectoryFormInput(
@@ -354,19 +364,11 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
         """
         profile = self.mock_people.published_employee
         profile.preferred_last_name = "Smith"
-        empty_results = self.mock_people.as_search_output()
+        profile.display_name = "Ada Smith"
 
         expected_num_results = 1 if profile.preferred_last_name == search_term else 0
 
-        outputs = [
-            empty_results,
-            self.mock_people.as_search_output(profile),
-        ]
-
-        def mock_get(*args, **kwargs):
-            return outputs.pop(0) if outputs else empty_results
-
-        self.mock_send_request.side_effect = mock_get
+        self.mock_send_request.return_value = self.mock_people.as_search_output(profile)
 
         response = self.flask_client.post(
             "/", data={"method": "name", "query": search_term}
@@ -375,10 +377,9 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
         with self.html_validator.validate_response(response) as html:
             assert (
                 len(html.find_all("tr", class_="summary-row")) == expected_num_results
-            )
+            ), str(html)
 
-    @pytest.mark.parametrize("search_type", ("classic", "experimental"))
-    def test_list_people_sort(self, random_string, search_type):
+    def test_list_people_sort(self, random_string):
         ada_1 = self.mock_people.published_employee.copy(
             update={
                 "display_name": "Ada Zlovelace",
@@ -412,7 +413,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
         self.mock_send_request.return_value = people
         response = self.flask_client.post(
             "/",
-            data={"method": "name", "query": "lovelace", "search_type": search_type},
+            data={"method": "name", "query": "lovelace"},
         )
         html = response.data.decode("UTF-8")
         assert response.status_code == 200

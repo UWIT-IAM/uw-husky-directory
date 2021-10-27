@@ -6,7 +6,7 @@ from typing import Dict, List
 from flask_injector import request
 from injector import inject
 
-from husky_directory.models.enum import AffiliationState, SearchType
+from husky_directory.models.enum import AffiliationState
 from husky_directory.models.pws import (
     ListPersonsInput,
     ListPersonsOutput,
@@ -211,12 +211,10 @@ class DirectorySearchService:
         and returns a DirectoryQueryScenarioOutput."""
 
         if (
-            SearchType(request_input.search_type) == SearchType.experimental
             # Only name search is implemented in experimental mode right now.
-            and request_input.name
+            request_input.name
             # Wildcard searches are already accounted for in "classic" mode.
             and "*" not in request_input.name
         ):
             return self.search_directory_experimental(request_input)
-
         return self.search_directory_classic(request_input)

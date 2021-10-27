@@ -92,8 +92,6 @@ def mock_people(generate_person):
         cases, it's probably better to just declare them in situ.
         """
 
-        no_affiliations = generate_person()
-        test_entity = generate_person(is_test_entity=True)
         published_employee = generate_person(
             affiliations=PersonAffiliations(
                 employee=EmployeePersonAffiliation(
@@ -110,15 +108,7 @@ def mock_people(generate_person):
                 )
             ),
         )
-        unpublished_employee = generate_person(
-            affiliations=PersonAffiliations(
-                employee=EmployeePersonAffiliation(
-                    directory_listing=EmployeeDirectoryListing(
-                        publish_in_directory=False
-                    )
-                )
-            )
-        )
+
         published_student = generate_person(
             affiliations=PersonAffiliations(
                 student=StudentPersonAffiliation(

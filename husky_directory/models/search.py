@@ -11,7 +11,7 @@ from pydantic import Field, PydanticValueError, validator
 
 from husky_directory.models.base import DirectoryBaseModel
 from husky_directory.models.common import UWDepartmentRole
-from husky_directory.models.enum import PopulationType, ResultDetail, SearchType
+from husky_directory.models.enum import PopulationType, ResultDetail
 
 # There is no direct dependency on the model here, we only need it for type checking;
 # this protects us from accidentally creating a cyclic dependency between the modules.
@@ -59,7 +59,6 @@ class SearchDirectoryFormInput(DirectoryBaseModel):
     render_query: Optional[str]
     render_population: Optional[PopulationType]
     render_length: Optional[ResultDetail]
-    search_type: SearchType = SearchType.classic
 
     include_test_identities: bool = False  # Not currently supported
 
@@ -136,7 +135,6 @@ class SearchDirectoryInput(DirectoryBaseModel):
     population: PopulationType = PopulationType.employees
     include_test_identities: bool = False
     person_href: Optional[str]
-    search_type: SearchType = SearchType.classic
 
     @classmethod
     def search_methods(cls) -> List[str]:

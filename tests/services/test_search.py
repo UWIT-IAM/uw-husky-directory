@@ -59,7 +59,7 @@ class TestDirectorySearchService:
 
     def test_search_directory_happy(self):
         request_input = SearchDirectoryInput(
-            name="foo", population=PopulationType.employees
+            name="lovelace", population=PopulationType.employees
         )
         output = self.client.search_directory(request_input)
 
@@ -86,7 +86,9 @@ class TestDirectorySearchService:
         person = self.mock_people.contactable_person
         self.list_persons_output["Persons"] = [person.dict(by_alias=True)]
         self.session["uwnetid"] = "foo"
-        request_input = SearchDirectoryInput(name="foo", population=PopulationType.all)
+        request_input = SearchDirectoryInput(
+            name="lovelace", population=PopulationType.all
+        )
         output = self.client.search_directory(request_input)
         contacts = output.scenarios[0].populations["employees"].people[0].phone_contacts
 
@@ -184,7 +186,7 @@ class TestDirectorySearchService:
         person.affiliations.employee.directory_listing.positions[0].department = None
         self.list_persons_output["Persons"] = [person.dict(by_alias=True)]
         request_input = SearchDirectoryInput(
-            name="whatever", population=PopulationType.employees
+            name="lovelace", population=PopulationType.employees
         )
         output = self.client.search_directory(request_input)
         output_person: Person = output.scenarios[0].populations["employees"].people[0]
