@@ -6,7 +6,7 @@ from typing import Dict, List
 from flask_injector import request
 from injector import inject
 
-from husky_directory.models.enum import AffiliationState, SearchType
+from husky_directory.models.enum import AffiliationState
 from husky_directory.models.pws import (
     ListPersonsInput,
     ListPersonsOutput,
@@ -118,7 +118,9 @@ class DirectorySearchService:
                 pws_output = self._pws.get_explicit_href(
                     pws_output.next.href, output_type=ListPersonsOutput
                 )
-                self.reducer.reduce_output(pws_output, request_input.name, results)
+                results = self.reducer.reduce_output(
+                    pws_output, request_input.name, results
+                )
                 statistics.aggregate(pws_output.request_statistics)
 
         statistics.num_duplicates_found = self.reducer.duplicate_hit_count
@@ -153,9 +155,6 @@ class DirectorySearchService:
         statistics = ListPersonsRequestStatistics()
         scenarios: List[DirectoryQueryScenarioOutput] = []
         scenario_description_indexes: Dict[str, int] = {}
-
-        if request_input.name:
-            statistics.num_user_search_tokens = len(request_input.name.split())
 
         for generated in self.query_generator.generate(request_input):
             self.logger.debug(
@@ -211,12 +210,10 @@ class DirectorySearchService:
         and returns a DirectoryQueryScenarioOutput."""
 
         if (
-            SearchType(request_input.search_type) == SearchType.experimental
             # Only name search is implemented in experimental mode right now.
-            and request_input.name
+            request_input.name
             # Wildcard searches are already accounted for in "classic" mode.
             and "*" not in request_input.name
         ):
             return self.search_directory_experimental(request_input)
-
         return self.search_directory_classic(request_input)
