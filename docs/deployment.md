@@ -58,4 +58,4 @@ derived from that instance's `/health` endpoint, which includes the
 
 
 [release-process.md]: release-process.md
-[workflow]: https://github.com/uwit-iam/uw-husky-directory/...
+[workflow]: https://github.com/uwit-iam/uw-husky-directory/actions/workflows/deploy.yml
