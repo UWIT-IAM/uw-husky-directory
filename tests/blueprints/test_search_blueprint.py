@@ -119,6 +119,27 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
                     "li", str(profile.affiliations.employee.mail_stop)
                 )
 
+    def test_render_student_no_phone(self):
+        self.flask_client.get("/saml/login", follow_redirects=True)
+        profile = self.mock_people.published_student
+        profile.affiliations.student.directory_listing.phone = None
+        profile.affiliations.employee = None
+        self.mock_send_request.return_value = self.mock_people.as_search_output(profile)
+
+        response = self.flask_client.post(
+            "/",
+            data={
+                "query": "lovelace",
+                "method": "name",
+                "length": "full",
+                "population": "all",
+            },
+        )
+
+        with self.html_validator.validate_response(response):
+            assert response.status_code == 200
+            self.html_validator.assert_not_has_tag_with_text("li", "Phone:")
+
     def test_render_no_results(self):
         self.mock_send_request.return_value = self.mock_people.as_search_output()
         response = self.flask_client.post("/", data={"query": "lovelace"})

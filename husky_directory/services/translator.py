@@ -35,7 +35,8 @@ class ListPersonsOutputTranslator:
             model = PhoneContactMethods()
 
         if student_affiliation:
-            model.phones.append(student_affiliation.directory_listing.phone)
+            if student_affiliation.directory_listing.phone:
+                model.phones.append(student_affiliation.directory_listing.phone)
 
         return model
 
