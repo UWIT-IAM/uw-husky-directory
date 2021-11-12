@@ -83,6 +83,10 @@ class SearchDirectoryFormInput(DirectoryBaseModel):
         if values.get("method") == "name":
             if len(v) < 2:
                 raise ValueError("Name query string must contain at least 2 characters")
+            # Allow users to input "last, first" for names.
+            if "," in v:
+                tokens = reversed(v.split(","))
+                v = " ".join(tokens).strip()
         elif len(v) < 3:
             raise ValueError("Query string must contain at least 3 characters")
         return v
