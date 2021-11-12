@@ -69,6 +69,19 @@ class TestSearchDirectoryFormInput:
         form_input = SearchDirectoryFormInput(render_population=render_population)
         assert PopulationType(form_input.render_population) == PopulationType(expected)
 
+    @pytest.mark.parametrize(
+        "name, expected",
+        [
+            ("lovelace, ada", "ada lovelace"),
+            ("ada lovelace", "ada lovelace"),
+            # Please note that "Ada" is already Ada Lovelace's middle name;
+            # she did not have a middle initial of "M" in real life.
+            ("lovelace, ada m", "ada m lovelace"),
+        ],
+    )
+    def test_sanitized_name(self, name, expected):
+        assert SearchDirectoryFormInput(method="name", query=name).query == expected
+
 
 @pytest.mark.parametrize(
     "query_value, expected_value",
@@ -79,9 +92,9 @@ class TestSearchDirectoryFormInput:
         # automatically stripped by pydantic
         ("\tfoo\t", "foo"),
         ("  foo bar  ", "foo bar"),
-        # Ensure tab characters are converted to spacees
+        # Ensure tab characters are converted to spaces
         ("foo\tbar", "foo bar"),
-        # Ensure multiple spaces are condensed to a single spacee
+        # Ensure multiple spaces are condensed to a single space
         ("foo     bar", "foo bar"),
         # Ensure all the things
         ("  foo\t   \t  bar    \t", "foo bar"),
