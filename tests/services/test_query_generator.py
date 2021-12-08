@@ -33,12 +33,20 @@ class TestSearchQueryGenerator:
             self.query_generator = injector.get(SearchQueryGenerator)
             yield
 
-    def test_wildcard_input(self):
+    def test_email_wildcard_input(self):
         generated = list(
             self.query_generator.generate(SearchDirectoryInput(email="foo*"))
         )
         assert len(generated) == 1
         assert generated[0].description == 'Email matches "foo*"'
+
+    def test_name_wildcard_input(self):
+        generated = list(
+            self.query_generator.generate(SearchDirectoryInput(name="foo*"))
+        )
+        assert len(generated) == 2
+        assert generated[0].description == 'Name matches "foo*"'
+        assert generated[1].description == 'Name includes "foo*"'
 
     def test_phone_input_short_number(self):
         request_input = SearchDirectoryInput(phone="2065554321")
