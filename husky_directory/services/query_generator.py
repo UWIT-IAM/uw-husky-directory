@@ -157,6 +157,23 @@ class SearchQueryGenerator:
         )
 
     @staticmethod
+    def generate_name_queries(name):
+        """
+        We only execute this if a user has given  us a name
+        with a wildcard in it. Otherwise, the wildcard/reducer strategy is used.
+        """
+        if "*" in name:
+            yield GeneratedQuery(
+                description=f'Name matches "{name}"',
+                request_input=ListPersonsInput(display_name=name),
+            )
+        if not name.startswith("*"):
+            yield GeneratedQuery(
+                description=f'Name includes "{name}"',
+                request_input=ListPersonsInput(display_name=f"*{name}"),
+            )
+
+    @staticmethod
     def generate_email_queries(partial: str) -> Tuple[str, ListPersonsInput]:
         # If a user has supplied a full, valid email address, we will search only for the complete
         # listing as an 'is' operator.
