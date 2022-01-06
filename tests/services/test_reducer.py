@@ -3,7 +3,7 @@ import pytest
 from husky_directory.models.pws import ListPersonsOutput, NamedIdentity
 from husky_directory.services.reducer import (
     NameSearchResultReducer,
-    NamedIdentityAnalyzer,
+    NameQueryResultAnalyzer,
 )
 
 
@@ -25,7 +25,9 @@ class TestNamedIdentityAnalyzer:
         ],
     )
     def test_relevant_bucket(self, query, bucket):
-        assert NamedIdentityAnalyzer(self.identity, query).relevant_bucket[0] == bucket
+        assert (
+            NameQueryResultAnalyzer(self.identity, query).relevant_bucket[0] == bucket
+        )
 
 
 class TestNameSearchResultReducer:

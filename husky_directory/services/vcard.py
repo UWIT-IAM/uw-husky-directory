@@ -8,6 +8,7 @@ from injector import inject
 
 from husky_directory.models.pws import PersonOutput
 from husky_directory.models.vcard import VCard, VCardAddress, VCardPhone, VCardPhoneType
+from husky_directory.services.name_analyzer import NameAnalyzer
 from husky_directory.services.pws import PersonWebServiceClient
 
 
@@ -102,7 +103,7 @@ class VCardService:
     def get_vcard(self, href: str) -> BytesIO:
         person = self.pws.get_explicit_href(href, output_type=PersonOutput)
 
-        last_name, *other_names = person.canonical_tokens
+        last_name, *other_names = NameAnalyzer(person).canonical_name_tokens
         vcard = VCard.construct(
             last_name=last_name,
             name_extras=other_names,
