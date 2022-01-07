@@ -5,21 +5,24 @@ from typing import Dict, Optional, Tuple
 
 from injector import inject
 
-from husky_directory.models.pws import ListPersonsOutput, NamedIdentity, ResultBucket
+from husky_directory.models.pws import ListPersonsOutput, NamedIdentity
+from husky_directory.models.transforms import ResultBucket
+from husky_directory.services.name_analyzer import NameAnalyzer
 from husky_directory.util import is_similar, readable_list
 
 
-class NamedIdentityAnalyzer:
+class NameQueryResultAnalyzer:
     def __init__(
         self, entity: NamedIdentity, query_string: str, fuzziness: float = 0.25
     ):
         self.entity = entity
+        self.name_analyzer = NameAnalyzer(self.entity)
         self.query_string = query_string
         self.fuzziness = fuzziness
 
         self.cmp_name = entity.display_name.lower()
-        self.cmp_surname = entity.displayed_surname.lower()
-        self.cmp_first_name = entity.displayed_first_name.lower()
+        self.cmp_surname = self.name_analyzer.displayed_surname.lower()
+        self.cmp_first_name = self.name_analyzer.displayed_first_name.lower()
         self.cmp_query = query_string.lower()
         self.cmp_query_tokens = self.cmp_query.split()
 
@@ -100,7 +103,7 @@ class NameSearchResultReducer:
             if pws_person.netid in self.duplicate_netids:
                 self.duplicate_hit_count += 1
                 continue
-            analyzer = NamedIdentityAnalyzer(
+            analyzer = NameQueryResultAnalyzer(
                 entity=pws_person, query_string=query_string
             )
             bucket, relevance = analyzer.relevant_bucket or (None, None)

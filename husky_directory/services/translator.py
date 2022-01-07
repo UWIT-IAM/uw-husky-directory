@@ -8,7 +8,6 @@ from husky_directory.models.pws import (
     EmployeePersonAffiliation,
     ListPersonsOutput,
     PersonOutput,
-    ResultBucket,
     StudentPersonAffiliation,
 )
 from husky_directory.models.search import (
@@ -16,6 +15,7 @@ from husky_directory.models.search import (
     Person,
     PhoneContactMethods,
 )
+from husky_directory.models.transforms import ResultBucket
 
 
 @singleton
