@@ -4,12 +4,16 @@
 # container so that you can test changes live.
 set -e
 
+source ./scripts/globals.sh
+
 unset MOUNTLOCAL
 export UWCA_CERT_PATH="${UWCA_CERT_PATH}"
 export UWCA_CERT_NAME=${UWCA_CERT_NAME:-uwca}
 APP_ENV_FILE=${APP_ENV_FILE:-husky_directory/settings/local.dotenv}
 RUNENV="${RUNENV}"
 USE_TEST_IDP=1
+
+
 
 function print_help {
    cat <<EOF
@@ -23,18 +27,12 @@ function print_help {
    -c, --cert-name  The name of your cert/key within --cert-path (not required if
                     UWCA_CERT_NAME is set)
 
-   +di, --rebuild-base  If you are testing new dependencies, this flag will
-                        ensure they are included in your image.
-
    -e, --env       Passes the argument to the docker run command, e.g.,
                    `-e FOO=BAR` will make sure `FOO` is set to `BAR` on the
                    running instance.
 
    -i, --image     A complete image name you want to run; useful when testing something
                    that has already been pushed, e.g., gcr.io/uwit-mci-iam/uw-directory:2.0.1
-
-   --no-pull       Run the image that is stored locally; do not attempt to pull or
-                   update it.
 
    --idp           Use a real IdP. Not likely to work when running from your laptop!
 
@@ -67,11 +65,6 @@ do
       export UWCA_CERT_NAME=$1
       RUNENV="${RUNENV} -e UWCA_CERT_NAME=${UWCA_CERT_NAME}"
       ;;
-    --rebuild-base|+di)  # Use this if your dependencies differ from `edge`
-      docker build -f docker/husky-directory-base.dockerfile \
-        -t gcr.io/uwit-mci-iam/husky-directory-base:local .
-      export BASE_VERSION=local
-      ;;
     # You can provide environment variable arguments here to pass into Docker.
     -e|--env)
       shift
@@ -80,9 +73,6 @@ do
     --image|-i)
       shift
       IMAGE=$1
-      ;;
-    --no-pull)
-      NO_PULL_IMAGE=1
       ;;
     --idp)
       USE_TEST_IDP=0
@@ -133,14 +123,9 @@ fi
 
 if test -z "${IMAGE}"
 then
-  IMAGE="uw-husky-directory-local"
-  docker build --build-arg BASE_VERSION -f docker/development-server.dockerfile \
-    -t "${IMAGE}" .
-else
-  if [[ -z "${NO_PULL_IMAGE}" ]]
-  then
-    docker pull "${IMAGE}"
-  fi
+  ./scripts/build-app.sh || exit 1
+  fingerprint=$(./scripts/get-snapshot-fingerprint.sh -p aggregate)
+  IMAGE="${DOCKER_REPOSITORY}.development-server:${fingerprint}"
 fi
 
 if [[ "$USE_COMPOSE" = "1" ]]

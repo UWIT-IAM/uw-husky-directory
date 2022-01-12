@@ -19,7 +19,7 @@ class BlueprintSearchTestBase:
     @pytest.fixture(autouse=True)
     def initialize(self, client, mock_people, injector, html_validator, mock_injected):
         self.flask_client = client
-        self.session = injector.get(LocalProxy)
+        self.session = {}
         self.html_validator = html_validator
         self.mock_people = mock_people
 
@@ -83,10 +83,11 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
             assert f"© {current_year}" in element.text
 
     @pytest.mark.parametrize("log_in", (True, False))
-    def test_render_full_success(self, log_in):
+    def test_render_full_success(self, log_in, app):
         if log_in:
-            self.flask_client.get("/saml/login", follow_redirects=True)
-            assert self.session.get("uwnetid")
+            with app.test_client() as client:
+                client.get("/saml/login", follow_redirects=True)
+                assert self.session.get("uwnetid")
 
         response = self.flask_client.post(
             "/",

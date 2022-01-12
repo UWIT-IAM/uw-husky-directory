@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-./scripts/install-build-scripts.sh
+source ./scripts/globals.sh
 source ./.build-scripts/sources/bash-helpers.sh
 
 REPO_API_URL=https://api.github.com/repos/uwit-iam/uw-husky-directory
@@ -35,6 +35,10 @@ function print_help {
    -w, --wait-time-secs  The number of seconds to wait for the deployment to be ready.
                          Default is 600 (10 minutes).
    -x, --dry-run         Do not actually push the tag.
+
+   --no-validation       Use this to skip validation; this will exit the script after
+                         pushing the docker image, without waiting for an update to
+                         occur or running any tests.
 
    --dev-promotion-strategy   By default, we deploy the latest github tag to dev;
                               however you can choose to deploy any of the following
@@ -82,6 +86,10 @@ do
       shift
       WAIT_TIME_SECS=$1
       ;;
+    --no-validation)
+      shift
+      UNSAFE=1
+      ;;
     --dev-promotion-strategy)
       shift
       DEV_STRATEGY="$1"
@@ -107,7 +115,7 @@ done
 
 function version_image_tag {
   local version="$1"
-  echo "gcr.io/uwit-mci-iam/husky-directory:$version"
+  echo "${DOCKER_REPOSITORY}.app:${version}"
 }
 
 function deploy_image_tag {
@@ -117,15 +125,7 @@ function deploy_image_tag {
   then
     qualifier="$${deploy_version}.${qualifier}.$(whoami)"
   fi
-  echo "gcr.io/uwit-mci-iam/husky-directory:deploy-${stage}.${qualifier}"
-}
-
-function get_version {
-    local stage="$1"
-    local url="https://directory.iam${stage}.s.uw.edu/health"
-    local stage_status=$(curl -sk $url)
-    local version=$(echo "$stage_status" | jq .version | sed 's|"||g')
-    echo "$version"
+  echo "${DOCKER_REPOSITORY}:deploy-${stage}.${qualifier}"
 }
 
 function get_latest_github_tag {
@@ -163,7 +163,7 @@ function configure_deployment {
       echo "No version supplied, deploying latest tag ($deploy_version) to dev."
       ;;
     eval)
-      deploy_version=$(get_version dev)
+      deploy_version=$(get_instance_version dev)
       echo "No version supplied, promoting $deploy_version from dev to eval."
       ;;
     prod)
@@ -172,11 +172,12 @@ function configure_deployment {
         >&2 echo "--rfc-number/-r required when target is prod!"
         return 1
       fi
-      deploy_version=$(get_version eval)
+      deploy_version=$(get_instance_version eval)
       echo "No version supplied, promoting $deploy_version from eval to prod."
       ;;
     *)
-      echo "No promotion configured for cluster: ${target_cluster}"
+      echo "No promotion configured for cluster: ${target_cluster}; you must supply
+            a version number instead."
       return 1
       ;;
   esac
@@ -199,7 +200,7 @@ function wait_for_version_update {
       echo "Deployment did not complete within $WAIT_TIME_SECS seconds; aborting."
       return 1
     fi
-    local cur_version=$(get_version $target_cluster)
+    local cur_version=$(get_instance_version $target_cluster)
     if [[ "$cur_version" == "$deploy_version" ]]
     then
       echo "Deployed version matches target of $deploy_version"
@@ -210,25 +211,21 @@ function wait_for_version_update {
   done
 }
 
-function pull_version {
-  test -z "${NO_PULL}" || return 0
-  local version="$1"
-  local image=$(version_image_tag $version)
-  if ! docker pull $image
-  then
-    >&2 echo "Could not pull docker image $image"
-    return 1
-  fi
-}
-
 function deploy {
   gcloud auth configure-docker gcr.io
   local version_tag=$(version_image_tag $deploy_version)
   local deploy_tag=$(deploy_image_tag $target_cluster)
-  pull_version $deploy_version
+  if [[ -z "$(docker images -q ${version_tag})" ]] && ! docker pull "${version_tag}"
+  then
+    echo "Source image ${version_tag} does not exist locally or remotely."
+    echo "You may be able to build from a git tag, if this version was already released."
+    echo "Try: "
+    echo "    git fetch && git checkout ${deploy_version} && ./scripts/pre-push.sh -v ${deploy_version}"
+    return 1
+  fi
+
   docker build \
     -f docker/deployment.dockerfile \
-    --no-cache \
     --build-arg IMAGE=$version_tag \
     --build-arg DEPLOYMENT_ID=$deploy_tag \
     -t $deploy_tag .
@@ -241,8 +238,18 @@ function deploy {
     then
       echo "::set-output name=deployed-tag::$deploy_tag"
     fi
-    echo "Waiting for deployment to complete."
-    wait_for_version_update
+    if [[ -z "${UNSAFE}" ]]
+    then
+      echo "Waiting for deployment to complete."
+      wait_for_version_update
+      server_update_settle_time=30
+      echo
+      echo "Deployment succeeded for one pod;
+            waiting ${server_update_settle_time}s for others to complete."
+      sleep ${server_update_settle_time}
+      echo "Settling period has ended. Running selenium tests."
+      ./scripts/run-selenium-tests.sh -u "${target_cluster}"
+    fi
   else
     echo "Not pushing; dry-run only."
   fi
