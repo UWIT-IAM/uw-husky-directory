@@ -3,6 +3,8 @@
 # uw-husky-directory-local)
 set -e
 
+source ./scripts/globals.sh
+
 DOCKER_RUN_ARGS=
 
 while (( $# ))
@@ -34,20 +36,14 @@ do
 done
 
 test -n "${HEADLESS}" || DOCKER_RUN_ARGS+="-it "
-
-IMAGE_NAME="${IMAGE_NAME:-uw-husky-directory-local}"
+fingerprint=$(./scripts/get-snapshot-fingerprint.sh --profile aggregate)
 DEFAULT_PYTEST_ARGS="/tests --cov=/app/husky_directory --cov-fail-under=95"
 PYTEST_ARGS=${PYTEST_ARGS:-$DEFAULT_PYTEST_ARGS}
-
-if test -n "${BUILD_FIRST}"
-then
-  echo "Building image and tagging as ${IMAGE_NAME}"
-  ./scripts/update-dependency-image.sh
-  fingerprint=$(./scripts/get-snapshot-fingerprint.sh)
-  docker build -f docker/development-server.dockerfile \
-    --build-arg BASE_VERSION=${fingerprint} \
-    -t "${IMAGE_NAME}" .
-fi
-
+./scripts/build-app.sh
+LAYER="test-runner"
+IMAGE_NAME="${DOCKER_REPOSITORY}.${LAYER}:${fingerprint}"
+docker build -f docker/husky-directory.dockerfile \
+  --target "${LAYER}" \
+  -t "${IMAGE_NAME}" .
 set -x
-docker run ${DOCKER_RUN_ARGS} "${IMAGE_NAME}" pytest ${PYTEST_ARGS}
+docker run ${DOCKER_RUN_ARGS} ${IMAGE_NAME} pytest ${PYTEST_ARGS}

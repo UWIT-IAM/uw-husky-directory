@@ -9,12 +9,8 @@
     },
     {
       "stepId": "deploy",
-      "description": "Deploy version ${{ version }} to ${{ stage }}",
+      "description": "Deploy version ${{ version }} to ${{ stage }} and validate",
       "status": "in progress"
-    },
-    {
-      "stepId": "validate-deployment",
-      "description": "Test deployed ${{ stage }} instance"
     }
   ]
 }

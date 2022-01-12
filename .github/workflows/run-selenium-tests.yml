@@ -1,0 +1,24 @@
+on:
+  workflow_dispatch:
+    inputs:
+      instance:
+        required: true
+        default: dev
+        description: dev/eval/prod
+  push:
+    branches:
+      - run-selenium-tests-workflow
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: ./scripts/run-selenium-tests.sh
+      - run: test -f webdriver-report/index.html && echo ::set-output name=ready::true
+        id: report-status
+      - if: always() && steps.report-status.outputs.ready == 'true'
+        uses: actions/upload-artifact@v2
+        with:
+          name: web test storyboards for for ${{ github.sha }}
+          path: ./webdriver-report

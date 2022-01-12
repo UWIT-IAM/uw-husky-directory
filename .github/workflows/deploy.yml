@@ -31,6 +31,7 @@ jobs:
       max-parallel: 1
     steps:
       - uses: actions/checkout@v2
+      - uses: abatilo/actions-poetry@v2.1.4
       - run: ./scripts/install-build-scripts.sh
         name: Install common-build-scripts
       - uses: google-github-actions/setup-gcloud@v0.2.1
@@ -65,40 +66,33 @@ jobs:
         id: configure-env
         name: Configure manual deployment
 
-      - name: Fetch the promotion version if no version is provided
-        run:  |
-          ./scripts/deploy.sh --configure-only \
-            -t "${target_cluster}" \
-            -v "${target_version}" \
-            -r "${rfc_number}"
-        id: configure-promotion
-        if: '! env.target_version'
-
       - name: Update env with promotion version
+        # This runs as a separate step so that the entrypoint (manual vs. auto)
+        # doesn't matter.
         run: |
+          source ./scripts/globals.sh
           source ./.build-scripts/sources/github-actions.sh
-          set_env target_version '${{ steps.configure-promotion.outputs.target-version }}'
+          target_version=$(get_promotion_version ${{ inputs.cluster }})
+          set_env target_version "${target_version}"
         if: '! env.target_version'
 
       - name: Configure slack notification canvas
         id: configure-canvas
         run: ${STEP_SCRIPTS}/configure-canvas.sh
 
-      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.4
+      - uses: uwit-iam/actions/set-up-slack-notification-canvas@0.1.8
         with:
           json: ${{ steps.configure-canvas.outputs.slack-canvas }}
-          command: create-canvas
-        id: create-canvas
+        id: slack
         name: Create slack notification canvas
 
       - run: |
           source ./.build-scripts/sources/github-actions.sh
-          set_env SLACK_CANVAS_ID "${{ steps.create-canvas.outputs.canvas-id }}"
           set_env CURRENT_STEP deploy
           set_env NEXT_STEP validate-deployment
         name: Set up slack notification env
 
-      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.4
+      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.8
         with:
           command: add-artifact
           description: ${{ steps.configure-canvas.outputs.context-artifact }}
@@ -108,51 +102,24 @@ jobs:
         id: deploy
         name: Deploy version ${{ env.target_version }}
 
-      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.4
-        with:
-          command: update-workflow
-          step-id: ${{ env.CURRENT_STEP }}, ${{ env.NEXT_STEP }}
-          step-status: succeeded, in progress
-        name: Update canvas and progress to ${{ env.NEXT_STEP }}
-      - run: |
-          source ./.build-scripts/sources/github-actions.sh
-          set_env CURRENT_STEP $NEXT_STEP
-          set_env NEXT_STEP ""
-        name: Update canvas steps in env
-
-      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.4
+      - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.8
         with:
           command: update-workflow
           step-id: ${{ env.CURRENT_STEP }}
           step-status: succeeded
-        name: Mark step as successful
 
-      - if: failure() && steps.create-canvas.outputs.canvas-id
-        uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.4
+      - if: always() && steps.slack.outputs.canvas-id
+        uses: uwit-iam/actions/finalize-slack-notification-canvas@0.1.8
         with:
-          command: update-workflow
-          step-id: ${{ env.CURRENT_STEP }}
-          workflow-status: failed
-          step-status: failed
-        name: Mark workflow as failed
+          workflow-status: ${{ job.status == 'success' && 'succeeded' || 'failed' }}
 
-      - if: always() && steps.create-canvas.outputs.canvas-id
-        uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.4
-        with:
-          command: remove-step
-          step-id: '*'
-          step-status: succeeded
-        name: Clean up workflow canvas
+      - run: >
+         test -f webdriver-report/index.html
+         && echo "::set-output name=upload-report::true"
+        id: report
 
-      - if: success()
-        uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.4
+      - if: always() && steps.report.outputs.upload-report == 'true'
+        uses: actions/upload-artifact@v2
         with:
-          command: update-workflow
-          workflow-status: succeeded
-        name: Mark workflow as successful
-
-      - if: always() && steps.create-canvas.outputs.canvas-id
-        uses: uwit-iam/actions/update-slack-workflow-canvas@0.1.4
-        with:
-          command: finalize-workflow
-        name: Finalize workflow
+          name: web test storyboards for for ${{ github.sha }}
+          path: ./webdriver-report

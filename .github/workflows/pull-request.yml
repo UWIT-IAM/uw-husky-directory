@@ -20,7 +20,7 @@ jobs:
       new-version: ${{ steps.update-version.outputs.new-version }}
     steps:
       - name: Python Poetry Action
-        uses: abatilo/actions-poetry@v2.1.0
+        uses: abatilo/actions-poetry@v2.1.4
 
       - uses: uwit-iam/actions/require-semver-guidance-label@0.1.6
         id: guidance
@@ -40,6 +40,7 @@ jobs:
       APP_VERSION: ${{ needs.update-pr-branch-version.outputs.new-version }}
     steps:
       - uses: actions/checkout@v2
+      - uses: abatilo/actions-poetry@v2.1.4
 
       - run: |
           ./.github/scripts/gcr-login.sh
@@ -47,7 +48,7 @@ jobs:
         id: configure
 
       - name: Run validation checks and tests
-        run: ./scripts/pre-push.sh --headless --version $APP_VERSION
+        run: ./scripts/pre-push.sh --headless --version $APP_VERSION --skip-auto-format -g
         id: run-validations
 
       - name: Push tag for pull request
