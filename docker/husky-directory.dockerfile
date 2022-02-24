@@ -7,25 +7,31 @@ RUN apt-get update && apt-get -y install gcc curl jq
 
 COPY poetry.lock pyproject.toml ./
 
-ENV PATH="$POETRY_HOME/bin:$PATH"
+ENV PATH="$POETRY_HOME/bin:$PATH" \
+    PROMETHEUS_MULTIPROC_DIR="/tmp/prometheus"
 
 RUN poetry install --no-dev --no-interaction \
     && apt-get -y remove gcc \
-    && apt-get -y autoremove
+    && apt-get -y autoremove \
+    && mkdir -pv $PROMETHEUS_MULTIPROC_DIR  \
+    && mkdir "/tmp/flask_session"
 
 FROM base as app
 ARG HUSKY_DIRECTORY_VERSION
 COPY ./husky_directory ./husky_directory/
 ENV PYTHONPATH="/app:${PYTHONPATH}" \
     DOTENV_FILE="/app/husky_directory/settings/base.dotenv" \
-    PROMETHEUS_MULTIPROC_DIR="/tmp/prometheus" \
     FLASK_PORT=8000 \
     HUSKY_DIRECTORY_VERSION=${HUSKY_DIRECTORY_VERSION} \
     GUNICORN_LOG_LEVEL=DEBUG
 
-RUN mkdir -pv $PROMETHEUS_MULTIPROC_DIR && mkdir "/tmp/flask_session"
 
-FROM app AS test-runner
+FROM app AS dev-dependencies-base
+ENV FLASK_PORT=8000
+# Install dev dependencies
+RUN poetry install --no-interaction
+
+FROM dev-dependencies-base AS test-runner
 WORKDIR /scripts
 COPY ./scripts/validate-development-image.sh ./scripts/run-image-tests.sh ./
 COPY ./tests /tests
@@ -42,9 +48,20 @@ WORKDIR /tests
 FROM test-runner AS selenium-runner
 WORKDIR /selenium-tests
 
-FROM app AS development-server
-ENV FLASK_ENV=development
+
+FROM app AS production-server
+ENV FLASK_ENV=production
 EXPOSE 8000
+# 0.0.0.0 binding is necessary for the endpoint to be available externally.
+CMD poetry run gunicorn -b 0.0.0.0:${FLASK_PORT} \
+    -c "/app/husky_directory/gunicorn.conf.py" \
+    "husky_directory.app:create_app()"
+
+FROM dev-dependencies-base AS development-server
+ENV FLASK_ENV=development
+COPY --from=app /app /app
+EXPOSE 8000
+RUN mkdir /tmp/profiles  # DELETEME
 # 0.0.0.0 binding is necessary for the endpoint to be available externally.
 CMD poetry run gunicorn -b 0.0.0.0:${FLASK_PORT} \
     -c "/app/husky_directory/gunicorn.conf.py" \

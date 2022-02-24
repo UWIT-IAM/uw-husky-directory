@@ -14,6 +14,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - run: |
+          dep_fingerprint=$(./scripts/get-snapshot-fingerprint.sh -p dep)
+          if ! docker pull gcr.io/uwit-mci-iam/husky-directory.base:${dep_fingerprint}
+          then
+            echo "Dependency fingerprint ${dep_fingerprint} has not been cached and
+                  will be built. This may take a few minutes!"
+          fi
+
+          app_fingerprint=$(./scripts/get-snapshot-fingerprint.sh -p aggregate)
+          if ! docker pull gcr.io/uwit-mci-iam/husky-directory.app:${app_fingerprint}
+          then
+            echo "App fingerprint ${app_fingerprint} has not been cached and will be
+                  built."
+          fi
       - run: ./scripts/run-selenium-tests.sh
       - run: test -f webdriver-report/index.html && echo ::set-output name=ready::true
         id: report-status
