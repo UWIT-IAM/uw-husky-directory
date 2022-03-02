@@ -119,6 +119,7 @@ class SessionSettings(FlaskConfigurationSettings):
     cookie_name: str = Field(
         "edu.uw.directory.session", env="SESSION_COOKIE_NAME", flask_config_key="_env"
     )
+    preferences_cookie_name: str = Field("edu.uw.directory.preferences")
     secret_key: SecretStr = Field(None, env="SECRET_KEY", flask_config_key="_env")
     lifetime_seconds: int = Field(
         600, env="PERMANENT_SESSION_LIFETIME", flask_config_key="_env"

@@ -1,7 +1,11 @@
 import base64
 import re
 from datetime import datetime
+from typing import cast
 from unittest import mock
+
+from flask import Response
+from flask.testing import FlaskClient
 
 import pytest
 from bs4 import BeautifulSoup
@@ -17,7 +21,9 @@ from husky_directory.services.pws import PersonWebServiceClient
 
 class BlueprintSearchTestBase:
     @pytest.fixture(autouse=True)
-    def initialize(self, client, mock_people, injector, html_validator, mock_injected):
+    def initialize(
+        self, client: FlaskClient, mock_people, injector, html_validator, mock_injected
+    ):
         self.flask_client = client
         self.session = injector.get(LocalProxy)
         self.html_validator = html_validator
@@ -460,6 +466,32 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
         assert response.status_code == 200
         assert html.index("999-9999") < html.index("888-8888")
         assert html.index("888-8888") < html.index("222-2222")
+
+    def test_get_set_cookie(self):
+        # First, we make sure that the default is set to "summary"
+
+        def assert_is_checked(rv: Response, length: str):
+            with self.html_validator.validate_response(rv) as html:
+                assert (
+                    "checked"
+                    in html.find("input", attrs={"id": f"length-{length}"}).attrs
+                )
+
+        response = cast(Response, self.flask_client.get("/"))
+        assert_is_checked(response, "summary")
+
+        # Then, we make a second request and change it to "full"
+        response = cast(
+            Response,
+            self.flask_client.post(
+                "/", data={"method": "name", "query": "lovelace", "length": "full"}
+            ),
+        )
+        assert_is_checked(response, "full")
+
+        # Now on a fresh get(), "full" should still be selected.
+        response = cast(Response, self.flask_client.get("/"))
+        assert_is_checked(response, "full")
 
     def test_get_person_vcard(self):
         """
