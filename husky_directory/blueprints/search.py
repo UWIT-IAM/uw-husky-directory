@@ -2,7 +2,14 @@ from base64 import b64decode
 from logging import Logger
 from typing import Optional, Union
 
-from flask import Blueprint, Request, render_template, send_file
+from flask import (
+    Blueprint,
+    Request,
+    Response,
+    make_response,
+    render_template,
+    send_file,
+)
 from inflection import humanize, underscore
 from injector import Injector, inject, singleton
 from pydantic import ValidationError
@@ -10,6 +17,7 @@ from werkzeug.exceptions import BadRequest, HTTPException
 from werkzeug.local import LocalProxy
 
 from husky_directory.app_config import ApplicationConfig
+from husky_directory.models.common import PreferencesCookie
 from husky_directory.models.search import (
     DirectoryBaseModel,
     Person,
@@ -56,9 +64,20 @@ class SearchBlueprint(Blueprint):
         )
 
     @staticmethod
-    def index(session: LocalProxy, settings: ApplicationConfig):
-        context = RenderingContext(
-            uwnetid=session.get("uwnetid"), show_experimental=settings.show_experimental
+    def index(request: Request, session: LocalProxy, settings: ApplicationConfig):
+        preferences_cookie = request.cookies.get(
+            settings.session_settings.preferences_cookie_name
+        )
+        if preferences_cookie:
+            preferences = PreferencesCookie.parse_raw(preferences_cookie)
+        else:
+            preferences = PreferencesCookie()
+        context = RenderingContext.construct(
+            uwnetid=session.get("uwnetid"),
+            show_experimental=settings.show_experimental,
+            request_input=SearchDirectoryFormInput.construct(
+                render_length=preferences.result_detail
+            ),
         )
         return (
             render_template("views/index.html", **context.dict(exclude_none=True)),
@@ -144,9 +163,16 @@ class SearchBlueprint(Blueprint):
             logger.exception(str(e))
             SearchBlueprint.handle_search_exception(e, context)
         finally:
-            return (
+            response: Response = make_response(
                 render_template(
                     "views/search_results.html", **context.dict(exclude_none=True)
                 ),
                 context.status_code,
             )
+            preferences = PreferencesCookie(
+                result_detail=context.request_input.length
+            ).json(exclude_unset=True, exclude_none=True)
+            response.set_cookie(
+                settings.session_settings.preferences_cookie_name, value=preferences
+            )
+            return response
