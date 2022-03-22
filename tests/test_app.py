@@ -33,7 +33,7 @@ def test_get_metrics(client):
 
 @pytest.mark.parametrize("pws_is_ready", (True, False))
 @pytest.mark.parametrize("version", (None, "1.2.3"))
-def test_get_health(client, pws_is_ready, version, app_config, injector, mock_injected):
+def test_get_status(client, pws_is_ready, version, app_config, injector, mock_injected):
     app_config.version = version
     should_be_ready = bool(pws_is_ready) and bool(version)
     pws_client = injector.get(PersonWebServiceClient)
@@ -41,7 +41,7 @@ def test_get_health(client, pws_is_ready, version, app_config, injector, mock_in
         mock.patch.object(pws_client, "validate_connection", RuntimeError()).start()
 
     with mock_injected(PersonWebServiceClient, pws_client):
-        response = client.get("/health")
+        response = client.get("/status")
         assert response.status_code == 200
         assert (
             response.json["ready"] == should_be_ready
@@ -55,7 +55,7 @@ def test_get_ready(client, app_config, is_ready: bool):
     else:
         app_config.version = None
 
-    response = client.get("/health?ready")
+    response = client.get("/status?ready")
     if is_ready:
         assert response.status_code == 200, response.data
         assert response.json["ready"] is True, response.json
