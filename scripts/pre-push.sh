@@ -1,23 +1,23 @@
 #!/usr/bin/env bash
-
-# This script does some sanity checks on your code base, autoformats our code using 'black', and
-# builds an image that will match the image used by our CI exactly. This will also invoke the
-# dev validation tests (scripts/validate-development-image.sh) within the image, as a
-# pretty good guarantee that your push will result in a successful post-push workflow.
+# TODO: Replace with tox...
+# This script does some validation checks on our code base,
+# auto-formats our code using 'black', and
+# builds an image that will match the image used by our CI exactly.
+# Validation tests (scripts/validate-development-image.sh) are invoked from
+# within the image itself pretty good guarantee that your push will result in a
+# successful post-push workflow.
 #
 # To run this, simply do:
-#   ./scripts/pre-push.sh
-#
-REPO_HOST=gcr.io
-REPO_PROJECT=uwit-mci-iam
-APP_NAME=husky-directory
+#   ./scripts/pre-push.sh --test  # Run any time!
+#   ./scripts/pre-push.sh         # Run once your commit is ready
+#   ./scripts/pre-push.sh --version 1.2.3  # Prepares a release image for docker push
 SRC_DIR=husky_directory
 TST_DIR=tests
-VIRTUAL_ENV=$(poetry env list --full-path 2>/dev/null | cut -f1 -d\ )
-test -e ${VIRTUAL_ENV}/.envrc && source ${VIRTUAL_ENV}/.envrc
+CACHE_BUILD=1
+
 DOCKER_RUN_ARGS="${DOCKER_RUN_ARGS}"
 
-./scripts/install-build-scripts.sh >/dev/null
+source ./scripts/globals.sh
 source ./.build-scripts/sources/fingerprints.sh
 
 function print_help {
@@ -53,6 +53,11 @@ function print_help {
                    remote testing. The image will be stored locally
                    as ${REPO_HOST}/${REPO_PROJECT}/${APP_NAME}:TAG_NAME
 
+   --no-cache      Do not cache the resulting images in our docker repository.
+                   When running with --test, this is always implied. You may want
+                   to set this if you have a slow internet connection and don't want
+                   to pre-push the fingerprinted images.
+
    --headless      Do not run docker in interactive mode; required when running
                    via remote automation (i.e., Github Actions)
 
@@ -72,10 +77,14 @@ do
     # This flag will keep executing the script even if some gateway steps fail
     # Be careful; this may have undefined behavior! If you use this flag, the script will
     # always fail (exit code 2); that way, this doesn't accidentally allow something automated to
-    # succeed. Implies --no-commit
+    # succeed. Implies --no-commit and --no-cache
     --test)
       NO_EXIT_ON_FAIL=1
       NO_COMMIT=1
+      CACHE_BUILD=
+      ;;
+    --no-cache)
+      CACHE_BUILD=
       ;;
     --no-commit)
       NO_COMMIT=1
@@ -96,6 +105,7 @@ do
       exit 0
       ;;
     --debug|-g)
+      DEBUG=1
       set -x
       ;;
     *)
@@ -119,75 +129,67 @@ function conditional_echo {
 
 if test -n "$(git status --porcelain)"
 then
-  echo "🧹 Your git branch is dirty. Please resolve all outstanding changes before running this script."
-  if test -z "${QUIET}"
-  then
-    echo "This script requires a clean git branch."
-    git status
-    echo "You can commit, stash, or reset changes you do not wish to include as part of the pre-push workflow."
-  fi
+  echo "Your git branch is dirty.
+        If your commit is not ready, re-run with the '--test' flag."
   conditional_exit
 fi
 
-di_fingerprint=$(./scripts/get-snapshot-fingerprint.sh)
-./scripts/update-dependency-image.sh
+./scripts/build-app.sh --set-version ${VERSION} \
+  $(test -z "${DEBUG}" || echo "-g") \
+  $(test -z "${CACHE_BUILD}" || echo "--push")
 
-COMMIT_SHA=$(git log | head -n 1 | cut -f2 -d\ | cut -c 1-10)
-COMMIT_TAG="commit-${COMMIT_SHA}"
-conditional_echo "ℹ️ Commit tag is: ${COMMIT_TAG}"
 
-IMAGE_NAME="$REPO_HOST/$REPO_PROJECT/$APP_NAME:$COMMIT_TAG"
-if [[ -n "${GITHUB_REF}" ]]
-then
-  echo "::set-output name=image::$IMAGE_NAME"
-fi
-
-if [[ -z "${SKIP_AUTO_FORMAT}" ]]
-then
-  if ! black --check $SRC_DIR $TST_DIR > /dev/null
+autoformat_code() {
+  if ! poetry run black --check $SRC_DIR $TST_DIR > /dev/null
   then
-    conditional_echo "ℹ️ Blackening all code . . ."
-    black $SRC_DIR $TST_DIR
+    poetry run black $SRC_DIR $TST_DIR
     if [[ -z "${NO_COMMIT}" ]]
     then
       conditional_echo "Amending your commit with blackened code."
-      # Because the script won't run if the branch isn't clean, the only changes we should see are
-      # those made by Black.
+      # Because the script won't run if the branch isn't clean,
+      # the only changes we should see are those made by Black.
       git add -u
       git commit --amend --no-edit
     fi
   else
-    conditional_echo "🖤 Your code is already blackened. Good job! 🏴"
+    conditional_echo "Your code is already blackened. Good job!"
   fi
+}
+
+
+test -n "${SKIP_AUTO_FORMAT}" || autoformat_code
+
+APP_FINGERPRINT="$(./scripts/get-snapshot-fingerprint.sh -p agg)"
+APP_IMAGE="${DOCKER_REPOSITORY}.app:${APP_FINGERPRINT}"
+TEST_IMAGE="${DOCKER_REPOSITORY}.test-runner:${APP_FINGERPRINT}"
+
+if [[ -n "${GITHUB_REF}" ]]
+then
+  echo "::set-output name=image::${APP_IMAGE}"
 fi
 
-conditional_echo "Building development server image"
-BUILD_ARGS="${BUILD_ARGS} --build-arg BASE_VERSION=${di_fingerprint}"
-docker build -f docker/development-server.dockerfile ${BUILD_ARGS} -t "${IMAGE_NAME}" .
-conditional_echo "Tagged image ${IMAGE_NAME} with version: ${VERSION:-'<none provided>'}"
-if [[ -n "${VERSION}" ]]
+docker build -f docker/husky-directory.dockerfile \
+  --target test-runner \
+  -t "${TEST_IMAGE}" .
+
+if ! docker run \
+  -v "$(pwd)"/htmlcov:/app/htmlcov -e USE_TEST_IDP=True \
+  ${DOCKER_RUN_ARGS} "${TEST_IMAGE}" /scripts/validate-development-image.sh
 then
-  version_tag="${REPO_HOST}/${REPO_PROJECT}/${APP_NAME}:${VERSION}"
-  docker tag "${IMAGE_NAME}" "${version_tag}"
-  conditional_echo "Tagged image ${version_tag}"
-fi
-if ! docker run -v "$(pwd)"/htmlcov:/app/htmlcov ${DOCKER_RUN_ARGS} "${IMAGE_NAME}" /scripts/validate-development-image.sh
-then
-  echo "☠️ Your commit should NOT be pushed."
-  conditional_exit
+  FAILURE=1
 fi
 
-if test "$(git rev-parse --abbrev-ref HEAD)" == "main"
+if [[ -n "${FAILURE}" ]]
 then
-  echo "⚠️ Your commit looks OK, but it's on the wrong branch."
-  conditional_echo "Run 'git switch -c feature-branch-name' to create a new branch, then run this script again."
-fi
-
-test -z "${NO_EXIT_ON_FAIL}" && echo "🛳 Your commit is good to go! 🌈"
-
-if test -n "${NO_EXIT_ON_FAIL}"
+  echo "One or more validations failed. This commit is not ready!"
+  echo "DO NOT PUSH."
+  exit ${FAILURE}
+elif [[ -n "${NO_EXIT_ON_FAIL}" ]]
 then
-  echo "👻 You ran this command in test mode so you could see the results of all validations."
-  echo "Because of this, I can't validate your image. Therefore, I will fail now. Goodbye."
-  exit 2
+  echo "All validations succeeded, but you ran this in test mode."
+  echo "DO NOT PUSH."
+  echo "(When you are ready, run without the '--test' flag!)"
+else
+  echo "🌈 Your commit is good to go! 🌈"
+  echo "PUSH WHEN READY!"
 fi

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+source ./scripts/globals.sh
 source ./.build-scripts/sources/github-actions.sh
 
 function print_help {
@@ -38,7 +40,7 @@ done
 pr_number=$(jq --raw-output .pull_request.number "$GITHUB_EVENT_PATH")
 test -n "pr_number" || exit 1
 tag_name="pull-request-${pr_number}"
-dest_image=gcr.io/uwit-mci-iam/husky-directory:${tag_name}
+dest_image="${DOCKER_REPOSITORY}.app:${tag_name}"
 docker tag "${source_image}" ${dest_image}
 docker push "${dest_image}"
 set_ci_output image "${dest_image}"

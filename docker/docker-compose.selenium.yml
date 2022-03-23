@@ -1,0 +1,48 @@
+# You can use this composition to run tests
+# backed by webdriver-recorder. This is helpful if your
+# test suite is simple and has no additional dependencies.
+# TEST_DIR=/path/to/your/tests docker-compose up --build.
+version: '3.1'
+services:
+  selenium:
+    image: selenium/standalone-chrome:4.1
+    environment:
+      SE_NODE_MAX_SESSIONS: 2  # Allows up to two concurrent browser instances to use
+                               # the node.
+      SE_START_XFVB: "false"   # Prevents some expensive overhead we don't need
+    ports:
+      - "4444:4444"            # This is the port where you can access the selenium
+                               # dashboard
+      - "7900:7900"
+    logging:
+      driver: "none"
+    volumes:
+      # We want for test files to available on the selenium
+      # container because tests may have files the test browser
+      # needs to serve.
+      - ../selenium-tests:/selenium-tests
+
+  test-runner:
+    build:
+      dockerfile: ./docker/husky-directory.dockerfile
+      target: selenium-runner
+      context: ../
+    environment:
+      TZ: America/Los_Angeles
+      pytest_args: ${pytest_args}
+      pytest_log_level: ${pytest_log_level}
+      uw_directory_url: ${uw_directory_url}
+      USE_TEST_IDP: True
+    volumes:
+      - ../webdriver-report:/webdriver-report
+      - ../selenium-tests:/selenium-tests
+    depends_on:
+      - selenium
+    entrypoint: /selenium-tests/entrypoint.sh
+    command: >
+      pytest
+      --report-dir /webdriver-report
+      --selenium-server selenium:4444
+      --uw-directory-url ${uw_directory_url:-prod}
+      -o log_cli=true -o log_cli_level=${pytest_log_level:-error}
+      ${pytest_args}

@@ -8,3 +8,5 @@ SAML_ENTITY_ID=https://${HOST}/saml
 SAML_ACS_PATH=/saml/login
 PROMETHEUS_METRIC_PREFIX=uw_directory
 SHOW_EXPERIMENTAL_FEATURES=False
+SESSION_FILE_DIR=/tmp/flask_session
+USE_TEST_IDP=True

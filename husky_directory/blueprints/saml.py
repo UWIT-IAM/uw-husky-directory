@@ -39,7 +39,12 @@ class SAMLBlueprint(Blueprint):
         return redirect(dest_url)
 
     def login(self, request: Request, session: LocalProxy):
+        session_permanent = session.get("permanent")
+        # A recent update clears the 'permanent' setting when the
+        # session is cleared; this override preserves the original
+        # value.
         session.clear()
+        session["permanent"] = session_permanent
         acs_hostname = urllib.parse.urlparse(request.host_url).hostname
         acs_host = f"https://{acs_hostname}"
         acs_url = urllib.parse.urljoin(acs_host, self.auth_settings.saml_acs_path)
