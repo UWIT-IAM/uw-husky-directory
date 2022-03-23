@@ -41,6 +41,21 @@ Use `./scripts/deploy.sh -t <stage> -v <version> -r <rfc_number>`
 
 If no `-v`ersion is specified, a [promotion](#promotions) will occur instead.
 
+If you need to test something in a deployed environment, you can 
+deploy to the dev cluster from your terminal with the following commands:
+
+```
+./scripts/pre-push.sh --test -v $(poetry version -s)-${USER}
+./scripts/deploy.sh -t dev --candidate -v $(poetry version -s)-${USER}
+```
+
+When you are done testing, you can reset it back to the previously deployed 
+version with:
+
+```
+./scripts/deploy.sh -t dev -v $(poetry version -s)
+```
+
 # Promotions
 
 A promotion is simply a deployment that doesn't require a version input, because the 
@@ -53,7 +68,7 @@ A promotion _to_ `prod` will deploy the version to prod that is currently deploy
 to eval.
 
 When promoting to `eval` or `prod`, the previous stage's deployed version will be 
-derived from that instance's `/health` endpoint, which includes the 
+derived from that instance's `/status` endpoint, which includes the 
 `version` information.
 
 

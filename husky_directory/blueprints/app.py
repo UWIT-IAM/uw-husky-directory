@@ -32,7 +32,7 @@ class AppBlueprint(Blueprint):
         self, app_config: ApplicationConfig, logger: Logger, injector: Injector
     ):
         super().__init__("uw-directory", __name__)
-        self.add_url_rule("/health", view_func=self.health)
+        self.add_url_rule("/status", view_func=self.health)
         self.config = app_config
         self.start_time = app_config.start_time
         self._app_config = app_config

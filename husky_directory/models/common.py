@@ -12,6 +12,8 @@ from typing import Any, Callable, Dict, Optional, Union
 
 from pydantic import BaseModel, validator
 
+from husky_directory.models.enum import ResultDetail
+
 
 class UWDepartmentRole(BaseModel):
     """Denotes that an identity has some role within the UW (e.g., a job title, or class level)."""
@@ -129,3 +131,14 @@ class RecordConstraint(BaseModel):
         if not isinstance(v, RecordNamespace):
             return RecordNamespace.validate(v)
         return v
+
+
+class PreferencesCookie(BaseModel):
+    class Config:
+        use_enum_values = True
+
+    result_detail: ResultDetail = ResultDetail.summary
+
+    @property
+    def result_detail_enum(self) -> ResultDetail:
+        return ResultDetail(self.result_detail)
