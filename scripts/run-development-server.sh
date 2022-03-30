@@ -117,5 +117,14 @@ else
   echo "WARNING: No certificate is being mounted. You can still view the UI, but the search function will fail."
 fi
 
-./scripts/build-layers.sh
-docker-compose -f docker/docker-compose.app.yaml up --build --exit-code-from app
+if [[ -z "${IMAGE}" ]]
+then
+  ./scripts/build-layers.sh
+  docker-compose -f docker/docker-compose.app.yaml up --build --exit-code-from app
+else
+  export development_server_image="${IMAGE}"
+  echo "Running ${development_server_image}"
+  docker-compose -f docker/docker-compose.app.yaml \
+                 -f docker/docker-compose.app.image-override.yml \
+                 up --exit-code-from=app
+fi

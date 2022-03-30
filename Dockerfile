@@ -43,6 +43,6 @@ FROM app AS development-server
 ENV FLASK_ENV=development
 EXPOSE 8000
 # 0.0.0.0 binding is necessary for the endpoint to be available externally.
-CMD poetry run gunicorn -b 0.0.0.0:${FLASK_PORT} \
+CMD gunicorn -b 0.0.0.0:${FLASK_PORT} \
     -c "/app/husky_directory/gunicorn.conf.py" \
     "husky_directory.app:create_app()"

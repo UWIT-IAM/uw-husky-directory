@@ -29,8 +29,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ needs.configure-release.outputs.version }}
-    strategy:
-      max-parallel: 1
+    concurrency:
+      group: ${{ github.repository }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v2
 
@@ -64,6 +65,9 @@ jobs:
   push-release-image:
     needs: [configure-release, create-release]
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.repository }}
+      cancel-in-progress: false
     env:
       version: ${{ needs.configure-release.outputs.version }}
     steps:
@@ -90,9 +94,11 @@ jobs:
         name: Bootstrap gcloud
 
       - run: gcloud auth configure-docker gcr.io
+        name: Configure docker
 
       - run: |
           ${STEP_SCRIPTS}/push-release-image.sh -v ${{ env.version }} --strict
-      - run: |
-          ./scripts/deploy.sh -v ${{ env.version }} -t dev
+        name: Push release image
+      - run: ./scripts/deploy.sh -v ${{ env.version }} -t dev
         if: github.ref == 'refs/heads/main'
+        name: Deploy to dev

@@ -1,0 +1,5 @@
+services:
+  app:
+    environment:
+      development_server_image: ${development_server_image}
+    image: ${development_server_image}
