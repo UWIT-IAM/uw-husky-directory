@@ -35,31 +35,61 @@ jobs:
         id: update-version
 
   validate-image-quality:
+    permissions:
+      contents: write
+      id-token: write
+      pull-requests: write
+
     needs: [update-pr-branch-version]
     runs-on: ubuntu-latest
     env:
       APP_VERSION: ${{ needs.update-pr-branch-version.outputs.new-version }}
     steps:
       - uses: actions/checkout@v2
+
       - uses: abatilo/actions-poetry@v2.1.4
 
+      - uses: google-github-actions/auth@v0
+        with:
+          credentials_json: ${{ secrets.GCR_TOKEN }}
+        name: Authenticate to gcloud
+      - uses: google-github-actions/setup-gcloud@v0
+        with:
+          # This version has to stay pinned in order
+          # to work with docker-compose; there is a bug
+          # either in Docker's or Google's software.
+          # Ref: https://stackoverflow.com/questions/65295958/docker-compose-not-working-with-gcloud-cannot-find-openssl
+          version: 297.0.1
+
       - run: |
+          gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+          gcloud auth configure-docker --quiet gcr.io
           ./scripts/install-build-scripts.sh
-          poetry install
+          ./scripts/build-layers.sh
         id: configure
+        name: Set up environment
 
       - name: Run validation checks and tests
         run: poetry run tox
         id: run-validations
 
       - name: Cache fingerprinted layers
-        run: ./scripts/build-layers.sh --cache
+        run: |
+          gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+          ./scripts/build-layers.sh --cache
 
       - name: Push tag for pull request
-        run: ${STEP_SCRIPTS}/create-pr-tag.sh -s ${{ env.source_image }}
+        run: |
+          gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+          ${STEP_SCRIPTS}/create-pr-tag.sh -s ${{ env.source_image }}
         id: create-pr-tag
         env:
           source_image: gcr.io/uwit-mci-iam/husky-directory.app:tox
+
+      - if: failure()
+        run: |
+          gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+          gcloud info --run-diagnostics
 
       - uses: mshick/add-pr-comment@v1
         env:

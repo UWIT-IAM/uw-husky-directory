@@ -46,4 +46,4 @@ jobs:
           reviewers: tomthorogood
           labels: semver-guidance:patch
         env:
-          message: [bot] patch dependencies
+          message: '[bot] patch dependencies'

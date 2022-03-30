@@ -108,7 +108,8 @@ function build_layers {
   done
 }
 
-parse_args "$@" || exit $?
-poetry install
+set -e
+parse_args "$@"
+poetry install --no-interaction
 layers="$(grep "^FROM" ${DOCKERFILE} | cut -f4 -d' ')"
 build_layers ${layers}
