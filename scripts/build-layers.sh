@@ -2,6 +2,8 @@ function print_help {
    cat <<EOF
    Use: build-layers.sh [--debug --help]
    Options:
+   -v,
+   -f, --force     Execute docker builds even if no changes are detected
    -h, --help      Show this message and exit
    -g, --debug     Show commands as they are executing
 EOF
@@ -29,10 +31,6 @@ function parse_args {
         ;;
       --cache)
         CACHE_LAYERS=1
-        ;;
-      -v|--set-version)
-        shift
-        HUSKY_DIRECTORY_VERSION="$1"
         ;;
       -t|--add-tag)
         shift

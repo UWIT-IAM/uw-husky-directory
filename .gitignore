@@ -1,4 +1,5 @@
 webdriver-report
+.docker
 gcloud-credentials.json
 .idea
 node_modules

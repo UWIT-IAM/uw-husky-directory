@@ -31,80 +31,22 @@ on how to get started on Windows.
 
 ## Pre-requisites:
 
-- Docker, with a running docker daemon
 - Python, preferably 3+, to install poetry (if not already installed)
-- Python 3.8, somewhere on your system, so that poetry can link your virtualenv to 
-  the right python binary for the application.
+- [Poetry](https://python-poetry.org)
+- Docker desktop, with a running docker daemon (required for deployments and selenium tests)
+- Python 3.8+, somewhere on your system, so that poetry can link your virtualenv to 
+  the right python binary for the application. (For instance, at `~/.pyenv/versions/3.8.6`)
 
-## Bootstrapping
+Validate that everything works by running `poetry run tox`.
 
-Clone the repository:
+# Build Dependencies
 
-```
-git clone git@github.com:UWIT-IAM/uw-husky-directory
-cd uw-husky-directory
-```
+## poetry
 
-Run the boostrapping script which:
+- Poetry manages our dependencies and application version. (For more, refer to 
+  [docs/poetry](docs/poetry.md))
+- Docker builds our application to prepare it for deployment, and docker-compose 
+  runs our selenium tests. (For more, refer to [docs/docker](docs/docker.md)).
+- Tox invokes build and testing tasks. (For more, refer to [docs/tox](docs/tox.md))
 
-- Makes sure [poetry](https://python-poetry.org/) is installed
-- Installs dependencies for this package using poetry
-- Creates a startup script in your virtualenv that you can (and should feel free to) edit
-
-```
-./scripts/bootstrap-dev-local.sh
-```
-
-Take a moment to read the output from the bootstrapper; there may be helpful information or other optional 
-steps you can do.
-
-Validate everything works by running the pre-push script which:
-
-```
-./scripts/pre-push.sh --no-commit --pro
-```
-
-You should see a message at the end reading:
- 
-> "🚢 Your commit looks good to go! 🌈"
-
-This indicates everything works properly inside of a docker image.
-
-# Key Dependencies
-
-We are using [poetry](https://python-poetry.org/) as a dependency management tool. Poetry takes care of setting up 
-virtual environments and installing dependencies. No more having to muck about with any of that yourself. It is 
-_highly_ recommended to read poetry's documentation so you know its capabilities and commands, and how to add 
-dependencies to the project the "right" way.
-
-We also use [docker]() for testing and production use cases. Learn more about out how we use docker in 
-[docs/docker.md](https://github.com/uwit-iam/uw-husky-directory/tree/main/docs/docker.md)
-
-# Pre-push checks
-
-You can rest easy knowing your code will probably pass its validation workflow by running the pre-push script. 
-This script is responsible for checking the state of your repository, linting your code, building in image, and
-running tests on that image.
-
-This should be the last step before you push with the intent of receiving a code review. 
-
-Running without arguments performs the full validation suite, and may amend your commit; if it passes validation,
-your commit will also be amended with a little output from the workflow as a visual cue to your code reviewers.
-
-```
-./scripts/pre-push.sh
-```
-
-This full validation mode requires a clean branch; the intent is to validate that your code, exactly as it is now,
-is ready for testing and review.
-
-The `--no-commit` option will not amend your commit (but your commit will also not be validated). 
-
-The `--test` option will run the full script even if certain conditions are not met; this is good for taking a look at 
-the state of a change commit _before_ committing. This option implies `--no-commit`; you do not need to set both.
-
-The `--incognito` behaves the same as normal validation, except it will not add a entry in your `.pre_push` cache. I'm 
-not sure if this is useful, but people should have control over what gets preserved on their system.
-
-Lastly, the `--pro` option limits the output of the script for people who just want the deets without any opinions
-or helpful hints mixed in.
+#
