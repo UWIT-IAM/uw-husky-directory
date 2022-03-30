@@ -25,7 +25,6 @@ RUN mkdir -pv $PROMETHEUS_MULTIPROC_DIR && mkdir "/tmp/flask_session"
 
 FROM app AS test-runner
 WORKDIR /scripts
-COPY ./scripts/validate-development-image.sh ./scripts/run-image-tests.sh ./
 COPY ./tests /tests
 COPY ./selenium-tests /selenium-tests
 # Re-running install without the `--no-dev` arg to get the extra dependencies;

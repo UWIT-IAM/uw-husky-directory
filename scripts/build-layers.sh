@@ -8,7 +8,8 @@ EOF
 }
 
 ./scripts/install-build-scripts.sh
-source ./.build-scripts/sources/docker-layers.sh || exit 1
+source ./.build-scripts/sources/docker-layers.sh # || exit 1
+source ./scripts/globals.sh
 export DOCKERFILE=Dockerfile
 export DOCKER_REPOSITORY=gcr.io/uwit-mci-iam/husky-directory
 
@@ -31,7 +32,7 @@ function parse_args {
         ;;
       -v|--set-version)
         shift
-        INPUT_IDENTITY_UW_VERSION="$1"
+        HUSKY_DIRECTORY_VERSION="$1"
         ;;
       -t|--add-tag)
         shift
@@ -62,7 +63,7 @@ function get_layer_fingerprint {
     base)
       fp_target=dependencies
       ;;
-    test-runner)
+    test-runner|selenium-runner)
       fp_target=tests
       ;;
     *)
@@ -74,6 +75,13 @@ function get_layer_fingerprint {
 
 function build_layer {
   local layer_name=$1
+  local build_args=
+  case "${layer_name}" in
+    app)
+      build_args="--build-arg HUSKY_DIRECTORY_VERSION=$(get_poetry_version) "
+      ;;
+  esac
+
   local fingerprint=$(get_layer_fingerprint ${layer_name})
   echo "Reconciling layer: ${layer}:${fingerprint}"
   get_or_create_layer "${layer_name}" "${fingerprint}" \

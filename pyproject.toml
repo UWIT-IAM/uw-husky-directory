@@ -20,14 +20,14 @@ python-dotenv = "^0.19.0"
 uw-saml = {version = "^1.1.0"}
 Flask-Session = "^0.3.2"
 redis = "^4.1.0"
-pytz = "^2021.1"
-prometheus-flask-exporter = "^0.18.2"
+pytz = "^2022.1"
+prometheus-flask-exporter = "^0.19"
 Flask-HTTPAuth = "^4.4.0"
 python-Levenshtein = "^0.12.2"
 
 [tool.poetry.dev-dependencies]
-black = "^21.12b0"
-pytest = "^6.1.2"
+black = "^22.0"
+pytest = "^7.1.1"
 pytest-flask = "^1.1.0"
 pytest-cov = "^3.0.0"
 flake8 = "^4.0.1"
@@ -35,6 +35,7 @@ coverage = "^6.2"
 beautifulsoup4 = "^4.9.3"
 uw-webdriver-recorder = "^5.0"
 fingerprinter = { git = "https://github.com/UWIT-IAM/fingerprinter.git", tag="0.1.2" }
+tox = "^3.24.5"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

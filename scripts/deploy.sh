@@ -71,9 +71,6 @@ do
       shift
       deploy_version="$1"
       ;;
-    --configure-only)
-      CONFIGURE_ONLY=1
-      ;;
     --target-cluster|-t)
       shift
       target_cluster="$1"
@@ -120,10 +117,11 @@ function version_image_tag {
 
 function deploy_image_tag {
   local stage="$1"
-  qualifier=$(tag_timestamp)
+  local app_version="$2"
+  qualifier=$(tag_timestamp).v${app_version}
   if [[ -n "${RELEASE_CANDIDATE}" ]]
   then
-    qualifier="$${deploy_version}.${qualifier}.$(whoami)"
+    qualifier="${qualifier}.${USER}"
   fi
   echo "${DOCKER_REPOSITORY}:deploy-${stage}.${qualifier}"
 }
@@ -211,10 +209,14 @@ function wait_for_version_update {
   done
 }
 
+function get_image_app_version {
+  local image_tag="${1}"
+  docker run ${image_tag} env | grep 'HUSKY_DIRECTORY_VERSION' | cut -f2 -d= | sed 's| ||g'
+}
+
 function deploy {
   gcloud auth configure-docker gcr.io
   local version_tag=$(version_image_tag $deploy_version)
-  local deploy_tag=$(deploy_image_tag $target_cluster)
   if [[ -z "$(docker images -q ${version_tag})" ]] && ! docker pull "${version_tag}"
   then
     echo "Source image ${version_tag} does not exist locally or remotely."
@@ -224,11 +226,15 @@ function deploy {
     return 1
   fi
 
+  local app_version=$(get_image_app_version ${version_tag})
+  local deploy_tag=$(deploy_image_tag $target_cluster ${app_version})
+
   docker build \
     -f docker/deployment.dockerfile \
     --build-arg IMAGE=$version_tag \
     --build-arg DEPLOYMENT_ID=$deploy_tag \
     -t $deploy_tag .
+
   echo "Tagged $deploy_version for deployment: $deploy_tag"
   if [[ -z "${DRY_RUN}" ]]
   then
@@ -242,7 +248,7 @@ function deploy {
     then
       echo "Waiting for deployment to complete."
       wait_for_version_update
-      server_update_settle_time=30
+      local server_update_settle_time=30
       echo
       echo "Deployment succeeded for one pod;
             waiting ${server_update_settle_time}s for others to complete."
@@ -257,7 +263,4 @@ function deploy {
 
 set -e
 configure_deployment
-if [[ -z "${CONFIGURE_ONLY}" ]]
-then
-  deploy
-fi
+deploy
