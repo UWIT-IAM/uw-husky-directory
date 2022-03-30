@@ -3,11 +3,9 @@ FROM ghcr.io/uwit-iam/uw-saml-poetry:${uw_saml_poetry_version} as base
 WORKDIR /app
 
 # gcc is required to install the Levenshtein library.
-RUN apt-get update && apt-get -y install gcc curl jq
+RUN apt-get update && apt-get -y install gcc curl jq git
 
 COPY poetry.lock pyproject.toml ./
-
-ENV PATH="$POETRY_HOME/bin:$PATH"
 
 RUN poetry install --no-dev --no-interaction \
     && apt-get -y remove gcc \

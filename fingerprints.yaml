@@ -1,0 +1,26 @@
+ignore-paths:
+  - '**/webdriver-report/**'
+
+targets:
+  dependencies:
+    include-paths:
+      - poetry.lock
+      - fingerprints.yaml
+      - Dockerfile
+
+  configuration:
+    include-paths:
+      - husky_directory/settings/base.dotenv
+      - husky_directory/settings/logging.yml
+
+  source:
+    depends-on: [dependencies, configuration]
+    include-paths:
+      - husky_directory/**/*.py
+      - husky_directory/templates
+      - husky_directory/static
+
+  tests:
+    depends-on: [source]
+    include-paths:
+      - tests
