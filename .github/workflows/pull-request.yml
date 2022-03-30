@@ -43,7 +43,9 @@ jobs:
       - uses: actions/checkout@v2
       - uses: abatilo/actions-poetry@v2.1.4
 
-      - run: ./scripts/install-build-scripts.sh
+      - run: |
+          ./scripts/install-build-scripts.sh
+          poetry install
         id: configure
 
       - name: Run validation checks and tests
