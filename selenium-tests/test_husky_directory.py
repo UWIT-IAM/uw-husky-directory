@@ -4,7 +4,7 @@ from webdriver_recorder.browser import By, Locator
 
 
 def test_instance_status(session_browser, directory_url):
-    session_browser.get(f'{directory_url}/health')
+    session_browser.get(f'{directory_url}/status')
     with session_browser.autocapture_off():
         output = session_browser.wait_for_tag('pre', '').text
     output = json.loads(output)
