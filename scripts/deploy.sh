@@ -150,35 +150,23 @@ function configure_deployment {
   then
     target_cluster=dev
   fi
-  test -z "${target_cluster}" && echo "--target-cluster/-t must be supplied" && return 1
-  test -n "${deploy_version}" && return 0
+  if [[ -z "${target_cluster}" ]]
+  then
+    >&2 echo "--target-cluster/-t must be supplied"
+    return 1
+  fi
+  if [[ "${target_cluster}" == 'prod' ]] && [[ -z "${rfc_number}" ]]
+  then
+    >&2 echo "--rfc-number/-r required when target is prod!"
+    return 1
+  fi
+
   # If no version was explicitly provided, we have to
   # determine the promotion version.
-  case "${target_cluster}" in
-    dev)
-      echo "Determining deployment version for dev from latest github tag."
-      deploy_version=$(get_latest_github_tag)
-      echo "No version supplied, deploying latest tag ($deploy_version) to dev."
-      ;;
-    eval)
-      deploy_version=$(get_instance_version dev)
-      echo "No version supplied, promoting $deploy_version from dev to eval."
-      ;;
-    prod)
-      if [[ -z "${rfc_number}" ]]
-      then
-        >&2 echo "--rfc-number/-r required when target is prod!"
-        return 1
-      fi
-      deploy_version=$(get_instance_version eval)
-      echo "No version supplied, promoting $deploy_version from eval to prod."
-      ;;
-    *)
-      echo "No promotion configured for cluster: ${target_cluster}; you must supply
-            a version number instead."
-      return 1
-      ;;
-  esac
+  if [[ -z "${deploy_version}" ]]
+  then
+    deploy_version=$(get_promotion_version ${target_cluster})
+  fi
   if [[ -n "${GITHUB_REF}" ]]
   then
     echo "::set-output name=target-cluster::$target_cluster"
@@ -186,10 +174,11 @@ function configure_deployment {
   fi
 }
 
-function wait_for_version_update {
+function wait_for_deployment {
   local attempts=0
   local pause_secs=10
   local max_attempts=$(( $WAIT_TIME_SECS / $pause_secs ))
+  local deployment_id="${1}"
   while [[ -n "1" ]]
   do
     attempts=$(( $attempts+1 ))
@@ -198,13 +187,13 @@ function wait_for_version_update {
       echo "Deployment did not complete within $WAIT_TIME_SECS seconds; aborting."
       return 1
     fi
-    local cur_version=$(get_instance_version $target_cluster)
-    if [[ "$cur_version" == "$deploy_version" ]]
+    local cur_id=$(get_instance_deployment_id $target_cluster)
+    if [[ "$cur_id" == "$deployment_id" ]]
     then
-      echo "Deployed version matches target of $deploy_version"
+      echo "Deployment ID matches target: ${deployment_id}"
       return 0
     fi
-    echo "Attempt #${attempts}: Deployed $target_cluster version is $cur_version, waiting for $deploy_version" [$(date)]""
+    echo "Attempt #${attempts}: Deployed $target_cluster deployment ID is $cur_id, waiting for $deployment_id" [$(date)]""
     sleep 10
   done
 }
@@ -247,7 +236,7 @@ function deploy {
     if [[ -z "${UNSAFE}" ]]
     then
       echo "Waiting for deployment to complete."
-      wait_for_version_update
+      wait_for_deployment ${deploy_tag}
       local server_update_settle_time=30
       echo
       echo "Deployment succeeded for one pod;
