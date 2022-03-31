@@ -1,4 +1,7 @@
 ignore-paths:
+  # Some environments may put the webdriver-report in
+  # inside the tests directory; this ensures we don't
+  # consider any report artifacts in our fingerprints.
   - '**/webdriver-report/**'
 
 targets:
@@ -8,17 +11,10 @@ targets:
       - fingerprints.yaml
       - Dockerfile
 
-  configuration:
-    include-paths:
-      - husky_directory/settings/base.dotenv
-      - husky_directory/settings/logging.yml
-
   source:
-    depends-on: [dependencies, configuration]
+    depends-on: [dependencies]
     include-paths:
-      - husky_directory/**/*.py
-      - husky_directory/templates
-      - husky_directory/static
+      - husky_directory
 
   tests:
     depends-on: [source]

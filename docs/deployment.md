@@ -45,7 +45,8 @@ If you need to test something in a deployed environment, you can
 deploy to the dev cluster from your terminal with the following commands:
 
 ```
-./scripts/pre-push.sh --test -v $(poetry version -s)-${USER}
+app_version=$(poetry version -s)-${USER}
+./scripts/build-layers.sh -t ${app_version} --tag-release
 ./scripts/deploy.sh -t dev --candidate -v $(poetry version -s)-${USER}
 ```
 

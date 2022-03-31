@@ -24,27 +24,28 @@ jobs:
         name: Get version and determine release requirement
 
   create-release:
-    permissions:
-      contents: write
-      id-token: write
-    if: needs.configure-release.outputs.release-required == 'true'
     needs: [configure-release]
-    env:
-      version: ${{ needs.configure-release.outputs.version }}
+    if: needs.configure-release.outputs.release-required == 'true'
     runs-on: ubuntu-latest
-    outputs:
+    env:
       version: ${{ needs.configure-release.outputs.version }}
     concurrency:
       group: ${{ github.repository }}
       cancel-in-progress: false
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v2
+
       - name: Install poetry
         uses: abatilo/actions-poetry@v2.1.0
+
       - uses: google-github-actions/auth@v0
         with:
           credentials_json: ${{ secrets.GCR_TOKEN }}
         name: Authenticate to gcloud
+
       - uses: google-github-actions/setup-gcloud@v0
         with:
           # This version has to stay pinned in order
@@ -55,40 +56,30 @@ jobs:
 
       - run: |
           poetry run pip install tox uw-it-build-fingerprinter
-
-      - run: ./scripts/install-build-scripts.sh
-        name: Install UWIT-IAM/common-build-scripts
-
-      - name: Install poetry
-        uses: abatilo/actions-poetry@v2.1.0
-
-      - run: |
-          poetry run pip install tox uw-it-build-fingerprinter
+          ./scripts/install-build-scripts.sh
           gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
           gcloud auth configure-docker --quiet gcr.io
+        name: Install build dependencies and authenticate docker
       - run: |
-          poetry run tox -e build-layers -- -k
+          poetry run tox -e build-layers \
+            -- -k -t ${{ env.version }} --tag-release-image ${{ env.version }}
           poetry run tox -e unit-tests
+        # Build layers with the -k option to avoid installing a lot of
+        # unnecessary dependencies. We can also skip black/flake8 for
+        # this phase, because the code has already been accepted into
+        # the repository.
         name: Validate build
-
-      - name: Push release image
-        env:
-          release_layer: gcr.io/uwit-mci-iam/husky-directory.app:${{ env.version }}
-          release_image: gcr.io/uwit-mci-iam/husky-directory:${{ env.version }}
-        run: |
-          set -x
-          gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
-          ./scripts/build-layers.sh -k -t ${{ env.version }} --cache
-          docker tag ${{ env.release_layer }} ${{ env.release_image }}
-          if [[ "${{ github.ref }}" == 'refs/heads/main' ]]
-          then
-            docker push ${{ env.release_image }}
-          fi
 
       - name: Create release ${{ needs.configure-release.outputs.version }}
         uses: ncipollo/release-action@v1
         with:
-          # Use PAT so that the release will trigger the deployment workflow.
-          token: ${{ secrets.ACTIONS_PAT }}
           tag: ${{ needs.configure-release.outputs.version }}
         if: github.ref == 'refs/heads/main'
+
+      - run: docker push gcr.io/uwit-mci-iam/husky-directory:${{ env.version }}
+        if: github.ref == 'refs/heads/main'
+
+      - run: |
+          gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+          ./scripts/deploy.sh -t dev -v ${{ env.version }} \
+            ${{ github.ref != 'refs/heads/main' && '-x' || '' }}

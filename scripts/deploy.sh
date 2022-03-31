@@ -112,7 +112,7 @@ done
 
 function version_image_tag {
   local version="$1"
-  echo "${DOCKER_REPOSITORY}.app:${version}"
+  echo "${DOCKER_REPOSITORY}:${version}"
 }
 
 function deploy_image_tag {
@@ -204,14 +204,10 @@ function get_image_app_version {
 }
 
 function deploy {
-  gcloud auth configure-docker gcr.io
   local version_tag=$(version_image_tag $deploy_version)
   if [[ -z "$(docker images -q ${version_tag})" ]] && ! docker pull "${version_tag}"
   then
     echo "Source image ${version_tag} does not exist locally or remotely."
-    echo "You may be able to build from a git tag, if this version was already released."
-    echo "Try: "
-    echo "    git fetch && git checkout ${deploy_version} && ./scripts/pre-push.sh -v ${deploy_version}"
     return 1
   fi
 
