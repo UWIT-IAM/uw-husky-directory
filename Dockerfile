@@ -33,6 +33,12 @@ WORKDIR /app
 RUN poetry install --no-interaction
 # Make sure that unit tests are available at the root directory of the test-runner
 WORKDIR /tests
+CMD pytest \
+        --cov husky_directory \
+        --cov-fail-under 99 \
+        --cov-report html \
+        --cov-report term-missing \
+        ${pytest_args}
 
 # Make sure that selenium tests are
 # available at the root directory of the selenium-runner

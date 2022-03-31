@@ -2,8 +2,18 @@ function print_help {
    cat <<EOF
    Use: build-layers.sh [--debug --help]
    Options:
-   -v,
-   -f, --force     Execute docker builds even if no changes are detected
+   -t, --add-tag   Can be declared multiple times. Tag built images using this tag
+                   in addition to the fingerprint tag.
+
+   -f, --force     Execute docker builds even if no changes are detected.
+                   Docker may still use cached layers of its own.
+
+   -k, --skip-dependency-sync  The default behavior is to keep your dependencies
+                              up to date with the poetry.lock file. However, in
+                              temporary environments (like CI build servers),
+                              this can take up a lot of extra time with no
+                              benefit.
+
    -h, --help      Show this message and exit
    -g, --debug     Show commands as they are executing
 EOF
@@ -26,6 +36,9 @@ function parse_args {
       --debug|-g)
         DEBUG=1
         ;;
+      -k|--skip-dependency-sync)
+        SKIP_DEPENDENCY_SYNC=1
+        ;;
       -f|--force)
         FORCE_REBUILD=1
         ;;
@@ -45,8 +58,8 @@ function parse_args {
     shift
   done
 
-test -z "${DEBUG}" || set -x
-export DEBUG="${DEBUG}"
+  test -z "${DEBUG}" || set -x
+  export DEBUG="${DEBUG}"
 }
 
 function get_layer_tag {
@@ -68,7 +81,7 @@ function get_layer_fingerprint {
       fp_target=source
       ;;
   esac
-  poetry run python -m fingerprinter.cli -t "${fp_target}" -f fingerprints.yaml
+  poetry run fingerprinter -t "${fp_target}" -f fingerprints.yaml
 }
 
 function build_layer {
@@ -108,8 +121,22 @@ function build_layers {
   done
 }
 
-set -e
+if ! type poetry
+then
+  >&2 echo "Poetry is not installed. Cannot continue."
+  >&2 echo "Please visit https://python-poetry.org and follow installation instructions."
+  exit 1
+fi
+
 parse_args "$@"
-poetry install --no-interaction
+
+if [[ -z "${SKIP_DEPENDENCY_SYNC}" ]]
+then
+  poetry install --no-interaction
+elif ! poetry run type fingerprinter
+then
+  echo "fingerprinter utility not installed; installing it to the poetry virtualenv."
+  poetry run pip install uw-it-build-fingerprinter
+fi
 layers="$(grep "^FROM" ${DOCKERFILE} | cut -f4 -d' ')"
 build_layers ${layers}

@@ -62,15 +62,19 @@ jobs:
           version: 297.0.1
 
       - run: |
+          poetry run pip install tox uw-it-build-fingerprinter
           gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
           gcloud auth configure-docker --quiet gcr.io
           ./scripts/install-build-scripts.sh
-          ./scripts/build-layers.sh
         id: configure
         name: Set up environment
 
+      - run: |
+          gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+          poetry run tox -e build-layers -- -k
+
       - name: Run validation checks and tests
-        run: poetry run tox
+        run: poetry run tox -e black,flake8,unit-tests
         id: run-validations
 
       - name: Cache fingerprinted layers
@@ -85,11 +89,6 @@ jobs:
         id: create-pr-tag
         env:
           source_image: gcr.io/uwit-mci-iam/husky-directory.app:tox
-
-      - if: failure()
-        run: |
-          gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
-          gcloud info --run-diagnostics
 
       - uses: mshick/add-pr-comment@v1
         env:

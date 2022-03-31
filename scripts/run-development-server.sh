@@ -123,6 +123,7 @@ then
   docker-compose -f docker/docker-compose.app.yaml up --build --exit-code-from app
 else
   export development_server_image="${IMAGE}"
+  docker pull ${development_server_image}
   echo "Running ${development_server_image}"
   docker-compose -f docker/docker-compose.app.yaml \
                  -f docker/docker-compose.app.image-override.yml \
