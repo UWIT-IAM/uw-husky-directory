@@ -44,4 +44,4 @@ dest_image="${DOCKER_REPOSITORY}.app:${tag_name}"
 docker tag "${source_image}" ${dest_image}
 docker push "${dest_image}"
 set_ci_output image "${dest_image}"
-echo "::notice::Pushed image https://${image}"
+echo "::notice::Pushed image https://${dest_image}"
