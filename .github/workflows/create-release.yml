@@ -15,9 +15,7 @@ jobs:
       version: ${{ steps.get-release.outputs.version }}
       latest-release: ${{ steps.get-release.outputs.latest-release }}
     steps:
-      - uses: actions/checkout@v2
-      - name: Install poetry
-        uses: abatilo/actions-poetry@v2.1.0
+      - uses: actions/checkout@v3
       - run: ./scripts/install-build-scripts.sh
       - run: ${STEP_SCRIPTS}/is-release-required.sh
         id: get-release
@@ -36,29 +34,15 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v2
-
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/configure-docker
+        with:
+          gcr-token: ${{ secrets.GCR_TOKEN }}
       - name: Install poetry
         uses: abatilo/actions-poetry@v2.1.0
-
-      - uses: google-github-actions/auth@v0
-        with:
-          credentials_json: ${{ secrets.GCR_TOKEN }}
-        name: Authenticate to gcloud
-
-      - uses: google-github-actions/setup-gcloud@v0
-        with:
-          # This version has to stay pinned in order
-          # to work with docker-compose; there is a bug
-          # either in Docker's or Google's software.
-          # Ref: https://stackoverflow.com/questions/65295958/docker-compose-not-working-with-gcloud-cannot-find-openssl
-          version: 297.0.1
-
       - run: |
           poetry run pip install tox uw-it-build-fingerprinter
           ./scripts/install-build-scripts.sh
-          gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
-          gcloud auth configure-docker --quiet gcr.io
         name: Install build dependencies and authenticate docker
       - run: |
           poetry run tox -e build-layers \
@@ -80,6 +64,5 @@ jobs:
         if: github.ref == 'refs/heads/main'
 
       - run: |
-          gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
           ./scripts/deploy.sh -t dev -v ${{ env.version }} \
             ${{ github.ref != 'refs/heads/main' && '-x' || '' }}
