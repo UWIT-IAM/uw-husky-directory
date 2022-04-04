@@ -35,14 +35,15 @@ parse_args() {
       *)
         echo "Invalid Option: $1"
         print_help
-        exit 1
+        return 1
         ;;
     esac
     shift
   done
+  test -z "${DEBUG}" || set -x
 }
 
-test -z "${DEBUG}" || set -x
+parse_args "$@" || exit $?
 export DEBUG="${DEBUG}"
 
 export pytest_args="${pytest_args}"

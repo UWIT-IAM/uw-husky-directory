@@ -14,7 +14,6 @@ RUNENV="${RUNENV}"
 USE_TEST_IDP=1
 
 
-
 function print_help {
    cat <<EOF
    Use: run-development-server.sh [--debug --help]
@@ -77,9 +76,6 @@ do
     --idp)
       USE_TEST_IDP=0
       ;;
-    --compose)
-      USE_COMPOSE=1
-      ;;
     --help|-h)
       print_help
       exit 0
@@ -121,19 +117,15 @@ else
   echo "WARNING: No certificate is being mounted. You can still view the UI, but the search function will fail."
 fi
 
-if test -z "${IMAGE}"
+if [[ -z "${IMAGE}" ]]
 then
-  ./scripts/build-app.sh || exit 1
-  fingerprint=$(./scripts/get-snapshot-fingerprint.sh -p aggregate)
-  IMAGE="${DOCKER_REPOSITORY}.development-server:${fingerprint}"
-fi
-
-if [[ "$USE_COMPOSE" = "1" ]]
-then
-  export APP_IMAGE="${IMAGE}"
-  docker-compose -f docker/docker-compose.app.yaml up
+  ./scripts/build-layers.sh
+  docker-compose -f docker/docker-compose.app.yaml up --build --exit-code-from app
 else
-  set -x
-  docker run ${RUNENV} -p 8000:8000 -p 9090:9090 ${MOUNTLOCAL} -it "${IMAGE}"
-  set +x
+  export development_server_image="${IMAGE}"
+  docker pull ${development_server_image}
+  echo "Running ${development_server_image}"
+  docker-compose -f docker/docker-compose.app.yaml \
+                 -f docker/docker-compose.app.image-override.yml \
+                 up --exit-code-from=app
 fi

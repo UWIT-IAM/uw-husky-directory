@@ -49,23 +49,6 @@ has access to the project IAM configuration._
 
 See [Running the app](running-the-app.md).
 
-## husky-directory-base 
-
-The application image is built on the [base image](../docker/husky-directory-base.dockerfile).
-Once per week, the base image is rebuilt by default, and tagged with `:edge`.
-
-If you ever want to know what base image was used, you can get that information from 
-the application image's 'HUSKY_DIRECTORY_BASE_VERSION' environment variable. 
-
-
-
-## development-server dockerfile
-
-The [development-server]
-creates an application that is intended to be run for testing, validation, and 
-user pre-release evaluation.
-
-
 [development-server]: https://github.com/uwit-iam/uw-husky-directory/tree/main/docker/development-server.dockerfile 
 [poetry-base]: https://gcr.io/uwit-mci-iam/poetry
 [search-image-tags]: https://github.com/uwit-iam/uw-husky-directory/tree/main/scripts/search-image-tags.sh]

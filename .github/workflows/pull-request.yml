@@ -6,7 +6,8 @@ on:
       - opened
       - synchronize
       - labeled
-      - unlabeled
+    paths-ignore:
+      - '**.md'
 
 env:
   GCR_TOKEN: ${{ secrets.GCR_TOKEN }}
@@ -22,38 +23,56 @@ jobs:
       - name: Python Poetry Action
         uses: abatilo/actions-poetry@v2.1.4
 
-      - uses: uwit-iam/actions/require-semver-guidance-label@0.1.6
+      - uses: uwit-iam/actions/require-semver-guidance-label@0.1
         id: guidance
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: uwit-iam/actions/update-pr-branch-version@0.1.6
+      - uses: uwit-iam/actions/update-pr-branch-version@0.1
         with:
           github-token: ${{ env.GITHUB_TOKEN }}
           version-guidance: ${{ steps.guidance.outputs.guidance }}
         id: update-version
 
   validate-image-quality:
+    permissions:
+      contents: write
+      id-token: write
+      pull-requests: write
+
     needs: [update-pr-branch-version]
     runs-on: ubuntu-latest
     env:
       APP_VERSION: ${{ needs.update-pr-branch-version.outputs.new-version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+
       - uses: abatilo/actions-poetry@v2.1.4
 
+      - uses: ./.github/actions/configure-docker
+        with:
+          gcr-token: ${{ secrets.GCR_TOKEN }}
+
       - run: |
-          ./.github/scripts/gcr-login.sh
+          poetry run pip install tox uw-it-build-fingerprinter
           ./scripts/install-build-scripts.sh
         id: configure
+        name: Set up environment
+
+      - run: poetry run tox -e build-layers -- -k
 
       - name: Run validation checks and tests
-        run: ./scripts/pre-push.sh --headless --version $APP_VERSION --skip-auto-format -g
+        run: poetry run tox -e black,flake8,unit-tests
         id: run-validations
 
+      - name: Cache fingerprinted layers
+        run: ./scripts/build-layers.sh --cache
+
       - name: Push tag for pull request
-        run: ${STEP_SCRIPTS}/create-pr-tag.sh -s ${{ steps.run-validations.outputs.image }}
+        run: ${STEP_SCRIPTS}/create-pr-tag.sh -s ${{ env.source_image }}
         id: create-pr-tag
+        env:
+          source_image: gcr.io/uwit-mci-iam/husky-directory.app:tox
 
       - uses: mshick/add-pr-comment@v1
         env:

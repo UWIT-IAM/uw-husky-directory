@@ -3,14 +3,20 @@
 #     ./scripts/run-development-server.sh --with-redis
 #
 
+version: '3'
 services:
   app:
     env_file:
       - ${PWD}/husky_directory/settings/compose-with-redis.dotenv
-    environment:
-      UWCA_MOUNT_PATH: "${UWCA_CERT_PATH}"
-    image: ${APP_IMAGE}
+    build:
+      dockerfile: Dockerfile
+      context: ..
+      target: development-server
     ports: ["8000:8000"]
+    command: >
+      poetry run gunicorn -b 0.0.0.0:8000
+      -c "/app/husky_directory/gunicorn.conf.py"
+      "husky_directory.app:create_app()"
     volumes:
       - ${UWCA_CERT_PATH}:/app/certificates:ro
       - ${PWD}/husky_directory:/app/husky_directory

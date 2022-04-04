@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -ex
+source ./scripts/globals.sh
 source ./.build-scripts/sources/github-actions.sh
 
-current_version=$(poetry version -s)
+current_version=$(get_poetry_version)
 latest_release=$(curl -s https://api.github.com/repos/UWIT-IAM/uw-husky-directory/releases | jq '.[0].tag_name')
 latest_release=$(echo "${latest_release}" | sed 's|"||g')
 

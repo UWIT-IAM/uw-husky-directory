@@ -3,11 +3,9 @@ FROM ghcr.io/uwit-iam/uw-saml-poetry:${uw_saml_poetry_version} as base
 WORKDIR /app
 
 # gcc is required to install the Levenshtein library.
-RUN apt-get update && apt-get -y install gcc curl jq
+RUN apt-get update && apt-get -y install gcc curl jq git
 
 COPY poetry.lock pyproject.toml ./
-
-ENV PATH="$POETRY_HOME/bin:$PATH"
 
 RUN poetry install --no-dev --no-interaction \
     && apt-get -y remove gcc \
@@ -27,7 +25,6 @@ RUN mkdir -pv $PROMETHEUS_MULTIPROC_DIR && mkdir "/tmp/flask_session"
 
 FROM app AS test-runner
 WORKDIR /scripts
-COPY ./scripts/validate-development-image.sh ./scripts/run-image-tests.sh ./
 COPY ./tests /tests
 COPY ./selenium-tests /selenium-tests
 # Re-running install without the `--no-dev` arg to get the extra dependencies;
@@ -36,6 +33,12 @@ WORKDIR /app
 RUN poetry install --no-interaction
 # Make sure that unit tests are available at the root directory of the test-runner
 WORKDIR /tests
+CMD pytest \
+        --cov husky_directory \
+        --cov-fail-under 99 \
+        --cov-report html \
+        --cov-report term-missing \
+        ${pytest_args}
 
 # Make sure that selenium tests are
 # available at the root directory of the selenium-runner
@@ -46,6 +49,6 @@ FROM app AS development-server
 ENV FLASK_ENV=development
 EXPOSE 8000
 # 0.0.0.0 binding is necessary for the endpoint to be available externally.
-CMD poetry run gunicorn -b 0.0.0.0:${FLASK_PORT} \
+CMD gunicorn -b 0.0.0.0:${FLASK_PORT} \
     -c "/app/husky_directory/gunicorn.conf.py" \
     "husky_directory.app:create_app()"

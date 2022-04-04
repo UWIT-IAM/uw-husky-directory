@@ -15,7 +15,7 @@ def pytest_addoption(parser):
 
 @pytest.fixture(scope='session')
 def directory_instance_version(directory_url):
-    status_url = f'{directory_url}/health'
+    status_url = f'{directory_url}/status'
     status = requests.get(status_url).json()
     return status['version']
 

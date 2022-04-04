@@ -71,9 +71,6 @@ do
       shift
       deploy_version="$1"
       ;;
-    --configure-only)
-      CONFIGURE_ONLY=1
-      ;;
     --target-cluster|-t)
       shift
       target_cluster="$1"
@@ -115,15 +112,16 @@ done
 
 function version_image_tag {
   local version="$1"
-  echo "${DOCKER_REPOSITORY}.app:${version}"
+  echo "${DOCKER_REPOSITORY}:${version}"
 }
 
 function deploy_image_tag {
   local stage="$1"
-  qualifier=$(tag_timestamp)
+  local app_version="$2"
+  qualifier=$(tag_timestamp).v${app_version}
   if [[ -n "${RELEASE_CANDIDATE}" ]]
   then
-    qualifier="$${deploy_version}.${qualifier}.$(whoami)"
+    qualifier="${qualifier}.${USER}"
   fi
   echo "${DOCKER_REPOSITORY}:deploy-${stage}.${qualifier}"
 }
@@ -152,35 +150,23 @@ function configure_deployment {
   then
     target_cluster=dev
   fi
-  test -z "${target_cluster}" && echo "--target-cluster/-t must be supplied" && return 1
-  test -n "${deploy_version}" && return 0
+  if [[ -z "${target_cluster}" ]]
+  then
+    >&2 echo "--target-cluster/-t must be supplied"
+    return 1
+  fi
+  if [[ "${target_cluster}" == 'prod' ]] && [[ -z "${rfc_number}" ]]
+  then
+    >&2 echo "--rfc-number/-r required when target is prod!"
+    return 1
+  fi
+
   # If no version was explicitly provided, we have to
   # determine the promotion version.
-  case "${target_cluster}" in
-    dev)
-      echo "Determining deployment version for dev from latest github tag."
-      deploy_version=$(get_latest_github_tag)
-      echo "No version supplied, deploying latest tag ($deploy_version) to dev."
-      ;;
-    eval)
-      deploy_version=$(get_instance_version dev)
-      echo "No version supplied, promoting $deploy_version from dev to eval."
-      ;;
-    prod)
-      if [[ -z "${rfc_number}" ]]
-      then
-        >&2 echo "--rfc-number/-r required when target is prod!"
-        return 1
-      fi
-      deploy_version=$(get_instance_version eval)
-      echo "No version supplied, promoting $deploy_version from eval to prod."
-      ;;
-    *)
-      echo "No promotion configured for cluster: ${target_cluster}; you must supply
-            a version number instead."
-      return 1
-      ;;
-  esac
+  if [[ -z "${deploy_version}" ]]
+  then
+    deploy_version=$(get_promotion_version ${target_cluster})
+  fi
   if [[ -n "${GITHUB_REF}" ]]
   then
     echo "::set-output name=target-cluster::$target_cluster"
@@ -188,10 +174,11 @@ function configure_deployment {
   fi
 }
 
-function wait_for_version_update {
+function wait_for_deployment {
   local attempts=0
   local pause_secs=10
   local max_attempts=$(( $WAIT_TIME_SECS / $pause_secs ))
+  local deployment_id="${1}"
   while [[ -n "1" ]]
   do
     attempts=$(( $attempts+1 ))
@@ -200,35 +187,39 @@ function wait_for_version_update {
       echo "Deployment did not complete within $WAIT_TIME_SECS seconds; aborting."
       return 1
     fi
-    local cur_version=$(get_instance_version $target_cluster)
-    if [[ "$cur_version" == "$deploy_version" ]]
+    local cur_id=$(get_instance_deployment_id $target_cluster)
+    if [[ "$cur_id" == "$deployment_id" ]]
     then
-      echo "Deployed version matches target of $deploy_version"
+      echo "Deployment ID matches target: ${deployment_id}"
       return 0
     fi
-    echo "Attempt #${attempts}: Deployed $target_cluster version is $cur_version, waiting for $deploy_version" [$(date)]""
+    echo "Attempt #${attempts}: Deployed $target_cluster deployment ID is $cur_id, waiting for $deployment_id" [$(date)]""
     sleep 10
   done
 }
 
+function get_image_app_version {
+  local image_tag="${1}"
+  docker run ${image_tag} env | grep 'HUSKY_DIRECTORY_VERSION' | cut -f2 -d= | sed 's| ||g'
+}
+
 function deploy {
-  gcloud auth configure-docker gcr.io
   local version_tag=$(version_image_tag $deploy_version)
-  local deploy_tag=$(deploy_image_tag $target_cluster)
   if [[ -z "$(docker images -q ${version_tag})" ]] && ! docker pull "${version_tag}"
   then
     echo "Source image ${version_tag} does not exist locally or remotely."
-    echo "You may be able to build from a git tag, if this version was already released."
-    echo "Try: "
-    echo "    git fetch && git checkout ${deploy_version} && ./scripts/pre-push.sh -v ${deploy_version}"
     return 1
   fi
+
+  local app_version=$(get_image_app_version ${version_tag})
+  local deploy_tag=$(deploy_image_tag $target_cluster ${app_version})
 
   docker build \
     -f docker/deployment.dockerfile \
     --build-arg IMAGE=$version_tag \
     --build-arg DEPLOYMENT_ID=$deploy_tag \
     -t $deploy_tag .
+
   echo "Tagged $deploy_version for deployment: $deploy_tag"
   if [[ -z "${DRY_RUN}" ]]
   then
@@ -241,8 +232,8 @@ function deploy {
     if [[ -z "${UNSAFE}" ]]
     then
       echo "Waiting for deployment to complete."
-      wait_for_version_update
-      server_update_settle_time=30
+      wait_for_deployment ${deploy_tag}
+      local server_update_settle_time=30
       echo
       echo "Deployment succeeded for one pod;
             waiting ${server_update_settle_time}s for others to complete."
@@ -257,7 +248,4 @@ function deploy {
 
 set -e
 configure_deployment
-if [[ -z "${CONFIGURE_ONLY}" ]]
-then
-  deploy
-fi
+deploy

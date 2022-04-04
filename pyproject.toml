@@ -1,39 +1,41 @@
 [tool.poetry]
 name = "uw-husky-directory"
-version = "2.1.8"
+version = "2.1.9"
 description = "An updated version of the UW Directory"
 authors = ["Thomas Thorogood <goodtom@uw.edu>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.9"
-Flask = "^1.1.2"
+Flask = "^2.1"
 injector = "^0.19.0"
 Flask-Injector = "^0.13.0"
 pydantic = {extras = ["email", "dotenv"], version = "^1.8.1"}
 inflection = "^0.5.1"
 gunicorn = {extras = ["gevent"], version = "^20.0.4"}
-PyYAML = "^5.3.1"
+PyYAML = "^6"
 requests = "^2.25.1"
 devtools = "^0.8.0"
 python-dotenv = "^0.19.0"
 uw-saml = {version = "^1.1.0"}
 Flask-Session = "^0.3.2"
 redis = "^4.1.0"
-pytz = "^2021.1"
-prometheus-flask-exporter = "^0.18.2"
+pytz = "^2022.1"
+prometheus-flask-exporter = "^0.19"
 Flask-HTTPAuth = "^4.4.0"
 python-Levenshtein = "^0.12.2"
 
 [tool.poetry.dev-dependencies]
-black = "^21.12b0"
-pytest = "^6.1.2"
+black = "^22.0"
+pytest = "^7.1.1"
 pytest-flask = "^1.1.0"
 pytest-cov = "^3.0.0"
 flake8 = "^4.0.1"
 coverage = "^6.2"
 beautifulsoup4 = "^4.9.3"
 uw-webdriver-recorder = "^5.0"
+fingerprinter = { git = "https://github.com/UWIT-IAM/fingerprinter.git", tag="0.1.2" }
+tox = "^3.24.5"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

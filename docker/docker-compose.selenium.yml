@@ -32,7 +32,7 @@ services:
       pytest_args: ${pytest_args}
       pytest_log_level: ${pytest_log_level}
       uw_directory_url: ${uw_directory_url}
-      USE_TEST_IDP: True
+      USE_TEST_IDP: 'True'
     volumes:
       - ../webdriver-report:/webdriver-report
       - ../selenium-tests:/selenium-tests

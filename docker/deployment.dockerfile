@@ -6,7 +6,8 @@ FROM ${IMAGE} AS deployment
 ARG DEPLOYMENT_ID
 ENV DEPLOYMENT_ID=${DEPLOYMENT_ID} \
     FLASK_ENV=production
-RUN echo $DEPLOYMENT_ID >> .deployment
+RUN echo $DEPLOYMENT_ID >> .deployment && \
+    echo $HUSKY_DIRECTORY_VERSION >> .version
 CMD gunicorn -b 0.0.0.0:${FLASK_PORT} \
     --log-level ${GUNICORN_LOG_LEVEL} \
     -c "/app/husky_directory/gunicorn.conf.py" \

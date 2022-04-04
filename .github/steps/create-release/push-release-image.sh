@@ -11,6 +11,8 @@ function print_help {
 EOF
 }
 
+source ./scripts/globals.sh
+
 while (( $# ))
 do
   case $1 in
@@ -40,19 +42,17 @@ done
 
 test -n "${release_version}" || exit 1
 test "${GITHUB_REF}" == "refs/heads/main" || DRY_RUN=1
+./scripts/build-layers.sh -t ${version} --cache
 
-./scripts/update-dependency-image.sh --strict --head \
-  $(test -n "${DRY_RUN}" || echo '--push') \
-  $(test -z "${DEBUG}" || echo "--debug" )
+source_image=${DOCKER_REPOSITORY}.development-server:${release_version}
+dest_image=${DOCKER_REPOSITORY}:${release_version}
 
-./scripts/pre-push.sh \
-  --version $release_version \
-  --headless --skip-auto-format \
-  $(test -z "${DEBUG}" || echo "--debug")
+docker tag ${source_image} ${dest_image}
+
 
 if [[ -z "${DRY_RUN}" ]]
 then
-  docker push gcr.io/uwit-mci-iam/husky-directory:$version
+  docker push ${dest_image}
 else
-  echo "Not pushing $release_image in dry-run mode."
+  echo "Not pushing ${dest_image} in dry-run mode."
 fi

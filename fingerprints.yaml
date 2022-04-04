@@ -1,0 +1,22 @@
+ignore-paths:
+  # Some environments may put the webdriver-report in
+  # inside the tests directory; this ensures we don't
+  # consider any report artifacts in our fingerprints.
+  - '**/webdriver-report/**'
+
+targets:
+  dependencies:
+    include-paths:
+      - poetry.lock
+      - fingerprints.yaml
+      - Dockerfile
+
+  source:
+    depends-on: [dependencies]
+    include-paths:
+      - husky_directory
+
+  tests:
+    depends-on: [source]
+    include-paths:
+      - tests
