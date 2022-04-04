@@ -35,9 +35,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: abatilo/actions-poetry@v2.1.4
-      - uses: ./.github/actions/configure-docker
+      - uses: UWIT-IAM/actions/configure-gcloud-docker@0.1
         with:
-          gcr-token: ${{ secrets.GCR_TOKEN }}
+          gcloud-token: ${{ secrets.GCR_TOKEN }}
       - run: ./scripts/install-build-scripts.sh
         name: Install common-build-scripts
 
