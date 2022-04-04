@@ -24,7 +24,7 @@ services:
 
   test-runner:
     build:
-      dockerfile: ./docker/husky-directory.dockerfile
+      dockerfile: Dockerfile
       target: selenium-runner
       context: ../
     environment:
