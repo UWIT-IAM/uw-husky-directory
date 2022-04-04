@@ -32,7 +32,9 @@ jobs:
       cancel-in-progress: false
     permissions:
       id-token: write
-      contents: read
+      # https://docs.github.com/en/rest/reference/releases#create-a-release
+      # Creating "Release" artifacts falls under "contents: write"
+      contents: write
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/configure-docker
