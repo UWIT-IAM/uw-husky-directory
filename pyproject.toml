@@ -24,6 +24,7 @@ pytz = "^2022.1"
 prometheus-flask-exporter = "^0.19"
 Flask-HTTPAuth = "^4.4.0"
 python-Levenshtein = "^0.12.2"
+uw-it-flask-gunicorn-json-logger = "^0.1.6"
 
 [tool.poetry.dev-dependencies]
 black = "^22.0"

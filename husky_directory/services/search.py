@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from logging import Logger
 from typing import Dict, List
 
 from flask_injector import request
@@ -26,23 +25,21 @@ from husky_directory.services.reducer import NameSearchResultReducer
 from husky_directory.services.translator import (
     ListPersonsOutputTranslator,
 )
-from husky_directory.util import Timer
+from husky_directory.util import AppLoggerMixIn, Timer
 
 
 @request
-class DirectorySearchService:
+class DirectorySearchService(AppLoggerMixIn):
     @inject
     def __init__(
         self,
         pws: PersonWebServiceClient,
-        logger: Logger,
         query_generator: SearchQueryGenerator,
         pws_translator: ListPersonsOutputTranslator,
         auth_service: AuthService,
         reducer: NameSearchResultReducer,
     ):
         self._pws = pws
-        self.logger = logger
         self.query_generator = query_generator
         self.pws_translator = pws_translator
         self.auth_service = auth_service

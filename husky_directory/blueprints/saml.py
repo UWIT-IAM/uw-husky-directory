@@ -1,6 +1,5 @@
 import getpass
 import urllib.parse
-from logging import Logger
 from typing import Dict
 
 import uw_saml2
@@ -11,19 +10,21 @@ from uw_saml2.idp.uw import UwIdp
 from werkzeug.local import LocalProxy
 
 from husky_directory.app_config import ApplicationConfig
+from husky_directory.util import AppLoggerMixIn
 
 
-class SAMLBlueprint(Blueprint):
+class SAMLBlueprint(Blueprint, AppLoggerMixIn):
     @inject
     def __init__(
-        self, idp_config: IdpConfig, settings: ApplicationConfig, logger: Logger
+        self,
+        idp_config: IdpConfig,
+        settings: ApplicationConfig,
     ):
         super().__init__("saml", __name__, url_prefix="/saml")
         self.idp_config = idp_config
         self.add_url_rule("/login", view_func=self.login, methods=["GET", "POST"])
         self.add_url_rule("/logout", view_func=self.log_out)
         self.auth_settings = settings.auth_settings
-        self.logger = logger
 
     def process_saml_request(self, request: Request, session: LocalProxy, **kwargs):
         dest_url = request.form.get("RelayState") or request.host_url

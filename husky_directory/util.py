@@ -1,19 +1,18 @@
 from __future__ import annotations
 
 import functools
-import logging
 import math
 import os
 import time
 from contextlib import contextmanager
+from logging import Logger
 from typing import Any, Callable, Dict, List, Optional, TypeVar
 
 import Levenshtein
 import inflection
+from flask import current_app
 from prometheus_flask_exporter import PrometheusMetrics
 from prometheus_flask_exporter.multiprocess import GunicornInternalPrometheusMetrics
-
-from husky_directory.logging import ROOT_LOGGER, build_extras
 
 if os.environ.get("GUNICORN_LOG_LEVEL", None):
     MetricsClientCls = GunicornInternalPrometheusMetrics
@@ -84,7 +83,18 @@ class ConstraintPredicates:
         return not value or target in value
 
 
-class Timer:
+class AppLoggerMixIn:
+    @property
+    def logger(self) -> Logger:
+        """
+        Lazily gets the logger from the current app, so that the app has been
+        created by the time the logger is accessed (rather than doing this when the
+        object is created).
+        """
+        return current_app.logger
+
+
+class Timer(AppLoggerMixIn):
     """
     This timer integrates with logging and also offers a timed context
     to make it easy to time functions or even just blocks of code with
@@ -131,7 +141,6 @@ class Timer:
         self, name: str, emit_log: bool = True, context: Optional[Dict[str, Any]] = None
     ):
         self.name = name
-        self.logger = logging.getLogger(ROOT_LOGGER).getChild(self.logger_name)
         self.start_time = None
         self.end_time = None
         self.result = None
@@ -172,8 +181,9 @@ class Timer:
             "endTime": self.end_time,
         }
         self.context["timer"] = summary
-        extras = build_extras(self.context)
-        self.logger.info(f"{self.name} [{self.result}] {self.context}", extra=extras)
+        self.logger.info(
+            f"{self.name} [{self.result}] {self.context}", extra=self.context
+        )
 
 
 def timed(function: Callable):

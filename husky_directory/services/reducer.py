@@ -1,14 +1,11 @@
 from collections import OrderedDict
 from functools import cached_property
-from logging import Logger
 from typing import Dict, Optional, Tuple
-
-from injector import inject
 
 from husky_directory.models.pws import ListPersonsOutput, NamedIdentity
 from husky_directory.models.transforms import ResultBucket
 from husky_directory.services.name_analyzer import NameAnalyzer
-from husky_directory.util import is_similar, readable_list
+from husky_directory.util import AppLoggerMixIn, is_similar, readable_list
 
 
 class NameQueryResultAnalyzer:
@@ -84,12 +81,10 @@ class NameQueryResultAnalyzer:
             return f"Name contains {readable}", 7
 
 
-class NameSearchResultReducer:
-    @inject
-    def __init__(self, logger: Logger):
+class NameSearchResultReducer(AppLoggerMixIn):
+    def __init__(self):
         self.duplicate_netids = set()
         self.duplicate_hit_count = 0
-        self.logger = logger
 
     def reduce_output(
         self,

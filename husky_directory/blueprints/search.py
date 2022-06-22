@@ -1,5 +1,4 @@
 from base64 import b64decode
-from logging import Logger
 from typing import Optional, Union
 
 from flask import (
@@ -27,6 +26,7 @@ from husky_directory.models.search import (
 )
 from husky_directory.services.search import DirectorySearchService
 from husky_directory.services.vcard import VCardService
+from husky_directory.util import AppLoggerMixIn
 
 
 class ErrorModel(DirectoryBaseModel):
@@ -46,12 +46,11 @@ class RenderingContext(DirectoryBaseModel):
 
 
 @singleton
-class SearchBlueprint(Blueprint):
+class SearchBlueprint(Blueprint, AppLoggerMixIn):
     @inject
-    def __init__(self, logger: Logger, injector: Injector):
+    def __init__(self, injector: Injector):
         super().__init__("search", __name__)
         self.injector = injector
-        self.logger = logger
         self.add_url_rule("/", view_func=self.index, methods=("GET",))
         self.add_url_rule("/", view_func=self.search_listing, methods=("POST",))
         self.add_url_rule(
@@ -84,10 +83,9 @@ class SearchBlueprint(Blueprint):
             200,
         )
 
-    @staticmethod
     def get_person_listing(
+        self,
         request: Request,
-        logger: Logger,
         session: LocalProxy,
         service: DirectorySearchService,
     ):
@@ -103,7 +101,7 @@ class SearchBlueprint(Blueprint):
             )
         except Exception as e:
             template = "views/index.html"
-            logger.exception(str(e))
+            self.logger.exception(str(e))
             SearchBlueprint.handle_search_exception(e, context)
         finally:
             return (
@@ -141,11 +139,10 @@ class SearchBlueprint(Blueprint):
                 "email help@uw.edu describing your problem."
             )
 
-    @staticmethod
     def search_listing(
+        self,
         request: Request,
         service: DirectorySearchService,
-        logger: Logger,
         session: LocalProxy,
         settings: ApplicationConfig,
     ):
@@ -160,7 +157,7 @@ class SearchBlueprint(Blueprint):
             request_input = SearchDirectoryInput.from_form_input(form_input)
             context.search_result = service.search_directory(request_input)
         except Exception as e:
-            logger.exception(str(e))
+            self.logger.exception(str(e))
             SearchBlueprint.handle_search_exception(e, context)
         finally:
             response: Response = make_response(
