@@ -1,4 +1,3 @@
-from logging import Logger
 from typing import Optional
 
 from flask import Blueprint, Request, jsonify
@@ -8,7 +7,7 @@ from werkzeug.exceptions import InternalServerError
 
 from husky_directory.app_config import ApplicationConfig
 from husky_directory.services.pws import PersonWebServiceClient
-from husky_directory.util import camelize
+from husky_directory.util import AppLoggerMixIn, camelize
 
 
 class HealthReport(BaseModel):
@@ -24,20 +23,17 @@ class HealthReport(BaseModel):
     deployment_id: Optional[str]
 
 
-class AppBlueprint(Blueprint):
+class AppBlueprint(Blueprint, AppLoggerMixIn):
     """Blueprint for root urls within the application."""
 
     @inject
-    def __init__(
-        self, app_config: ApplicationConfig, logger: Logger, injector: Injector
-    ):
+    def __init__(self, app_config: ApplicationConfig, injector: Injector):
         super().__init__("uw-directory", __name__)
         self.add_url_rule("/status", view_func=self.health)
         self.config = app_config
         self.start_time = app_config.start_time
         self._app_config = app_config
         self._injector = injector
-        self.logger = logger
         self.__pws_result = None
 
     @property

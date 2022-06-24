@@ -965,6 +965,18 @@ secure = ["pyOpenSSL (>=0.14)", "cryptography (>=1.3.4)", "idna (>=2.0.0)", "cer
 socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 
 [[package]]
+name = "uw-it-flask-gunicorn-json-logger"
+version = "0.1.6"
+description = ""
+category = "main"
+optional = false
+python-versions = ">=3.7,<4"
+
+[package.dependencies]
+Flask = ">=2,<3"
+PyYAML = ">=6.0,<7.0"
+
+[[package]]
 name = "uw-saml"
 version = "1.1.1"
 description = "A UW-specific adapter to the python3-saml package."
@@ -1082,7 +1094,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.9"
-content-hash = "71966ccbef1af8c4259ae1a05a454434de7bba5af76348c28fb9b6cf41f5bb92"
+content-hash = "b286b275d5bc82656f25f9fdf0f6737164b1322b0547a02ee74997242f028221"
 
 [metadata.files]
 asttokens = [
@@ -1717,6 +1729,10 @@ typing-extensions = [
 urllib3 = [
     {file = "urllib3-1.26.9-py2.py3-none-any.whl", hash = "sha256:44ece4d53fb1706f667c9bd1c648f5469a2ec925fcf3a776667042d645472c14"},
     {file = "urllib3-1.26.9.tar.gz", hash = "sha256:aabaf16477806a5e1dd19aa41f8c2b7950dd3c746362d7e3223dbe6de6ac448e"},
+]
+uw-it-flask-gunicorn-json-logger = [
+    {file = "uw-it-flask-gunicorn-json-logger-0.1.6.tar.gz", hash = "sha256:1a72156cf53aa2613ab785993d2e434533329c3ae700a08f0102b535d6707904"},
+    {file = "uw_it_flask_gunicorn_json_logger-0.1.6-py3-none-any.whl", hash = "sha256:284ff62ff9f697d7788fdf6b2a6c963e5f38edfddade8c3e9aae0926f4ad2936"},
 ]
 uw-saml = [
     {file = "uw-saml-1.1.1.tar.gz", hash = "sha256:842fac070728635620018c41a9510ca199a3c4c905a17c7082043da17944dc33"},

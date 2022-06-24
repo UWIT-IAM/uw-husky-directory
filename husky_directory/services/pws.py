@@ -1,7 +1,6 @@
 import os
 from collections import namedtuple
 from functools import partial
-from logging import Logger
 from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 
 import requests
@@ -19,7 +18,7 @@ from husky_directory.models.pws import (
     PersonOutput,
 )
 from husky_directory.services.auth import AuthService
-from husky_directory.util import timed
+from husky_directory.util import AppLoggerMixIn, timed
 
 RequestsCertificate = namedtuple("RequestsCertificate", ["cert_path", "key_path"])
 
@@ -48,7 +47,7 @@ def clear_namespace(namespace, record: Any) -> bool:
 
 
 @request
-class PersonWebServiceClient:
+class PersonWebServiceClient(AppLoggerMixIn):
     _GLOBAL_CONSTRAINTS = [
         RecordConstraint(
             # If the identity has no netid, we are not interested
@@ -103,7 +102,6 @@ class PersonWebServiceClient:
     def __init__(
         self,
         application_config: ApplicationConfig,
-        logger: Logger,
         auth: AuthService,
     ):
         uwca_cert_path = application_config.auth_settings.uwca_cert_path
@@ -114,7 +112,6 @@ class PersonWebServiceClient:
         )
         self.host = application_config.pws_settings.pws_host
         self.default_path = application_config.pws_settings.pws_default_path
-        self.logger = logger
         self.auth = auth
 
     @property

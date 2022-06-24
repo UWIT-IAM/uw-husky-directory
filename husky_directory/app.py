@@ -1,7 +1,5 @@
-import logging
 import os
 from datetime import datetime
-from logging.config import dictConfig
 from typing import List, NoReturn, Optional, Type, cast
 
 import inflection
@@ -13,6 +11,7 @@ from flask_session import RedisSessionInterface, Session
 from injector import Injector, Module, provider, singleton
 from jinja2.tests import test_undefined
 from redis import Redis
+from uw_it.flask_util.logger import FlaskJSONLogger
 from uw_saml2 import mock, python3_saml
 from werkzeug.exceptions import HTTPException, InternalServerError
 from werkzeug.local import LocalProxy
@@ -29,7 +28,6 @@ from husky_directory.util import MetricsClient
 from .app_config import (
     ApplicationConfig,
     ApplicationConfigInjectorModule,
-    YAMLSettingsLoader,
 )
 
 
@@ -63,18 +61,6 @@ class AppInjectorModule(Module):
         return cast(
             LocalProxy, flask_session
         )  # Cast this so that IDEs knows what's up; does not affect runtime
-
-    @provider
-    @singleton
-    def provide_logger(
-        self, yaml_loader: YAMLSettingsLoader, injector: Injector
-    ) -> logging.Logger:
-        logger_settings = yaml_loader.load_settings("logging")
-        dictConfig(logger_settings)
-        app_logger = logging.getLogger("gunicorn.error").getChild("app")
-        formatter = app_logger.handlers[0].formatter
-        formatter.injector = injector
-        return app_logger
 
     def register_jinja_extensions(self, app: Flask):
         """You can define jinja filters here in order to make them available in our jinja templates."""
@@ -141,7 +127,6 @@ class AppInjectorModule(Module):
         self,
         injector: Injector,
         app_settings: ApplicationConfig,
-        logger: logging.Logger,
         # Any blueprints that are depended on here must
         # get registered below, under "App blueprints get registered here."
         search_blueprint: SearchBlueprint,
@@ -171,12 +156,10 @@ class AppInjectorModule(Module):
         app.register_blueprint(search_blueprint)
         app.register_blueprint(saml_blueprint)
 
-        # Ensure the application is using the same logger as everything else.
-        app.logger = logger
-
         # Bind an injector to the app itself to manage the scopes of
         # our dependencies appropriate for each request.
         FlaskInjector(app=app, injector=injector)
+        FlaskJSONLogger(app)
         self._configure_app_session(app, app_settings)
         self._configure_prometheus(app, app_settings, injector)
         attach_app_error_handlers(app)
