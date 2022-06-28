@@ -2,10 +2,11 @@ import base64
 from unittest import mock
 
 import pytest
+from flask_session import RedisSessionInterface
 from pydantic import SecretStr
 
-from husky_directory.app import create_app_injector
-from husky_directory.app_config import ApplicationConfig
+from husky_directory.app import create_app, create_app_injector
+from husky_directory.app_config import ApplicationConfig, SessionType
 from husky_directory.services.pws import PersonWebServiceClient
 from husky_directory.services.search import DirectorySearchService
 
@@ -81,6 +82,17 @@ def test_internal_server_error(client, injector, mock_injected):
         mock_search.side_effect = RuntimeError
         response = client.post("/", data={"method": "boxNumber", "query": "123456"})
         assert response.status_code == 500
+
+
+def test_session_interface_configuration():
+    injector = create_app_injector()
+    app_config = injector.get(ApplicationConfig)
+    app_config.session_settings.session_type = SessionType.redis
+    app_config.redis_settings.host = "localhost"
+    app_config.redis_settings.password = SecretStr("s3kr1t")
+    assert isinstance(
+        getattr(create_app(injector), "session_interface", None), RedisSessionInterface
+    )
 
 
 @pytest.mark.parametrize("auth_required", (True, False))
