@@ -4,11 +4,10 @@ from datetime import datetime
 from typing import cast
 from unittest import mock
 
-from flask import Response
-from flask.testing import FlaskClient
-
 import pytest
 from bs4 import BeautifulSoup
+from flask import Response
+from flask.testing import FlaskClient
 from inflection import titleize
 from werkzeug import exceptions
 from werkzeug.local import LocalProxy
