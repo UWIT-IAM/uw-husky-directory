@@ -24,6 +24,7 @@ from husky_directory.blueprints.saml import (
 )
 from husky_directory.blueprints.search import SearchBlueprint
 from husky_directory.models.search import SearchDirectoryInput
+from husky_directory.services.object_store import ObjectStoreInjectorModule
 from husky_directory.util import MetricsClient
 from .app_config import (
     ApplicationConfig,
@@ -45,6 +46,7 @@ def get_app_injector_modules() -> List[Type[Module]]:
     return [
         ApplicationConfigInjectorModule,
         IdentityProviderModule,
+        ObjectStoreInjectorModule,
     ]
 
 
@@ -133,6 +135,7 @@ class AppInjectorModule(Module):
         app_blueprint: AppBlueprint,
         saml_blueprint: SAMLBlueprint,
         mock_saml_blueprint: MockSAMLBlueprint,
+        redis: Redis,
     ) -> Flask:
         # First we have to do some logging configuration, before the
         # app instance is created.
@@ -160,7 +163,7 @@ class AppInjectorModule(Module):
         # our dependencies appropriate for each request.
         FlaskInjector(app=app, injector=injector)
         FlaskJSONLogger(app)
-        self._configure_app_session(app, app_settings)
+        self._configure_app_session(app, app_settings, redis)
         self._configure_prometheus(app, app_settings, injector)
         attach_app_error_handlers(app)
         self.register_jinja_extensions(app)
@@ -208,7 +211,9 @@ class AppInjectorModule(Module):
         injector.binder.bind(MetricsClient, metrics, scope=singleton)
 
     @staticmethod
-    def _configure_app_session(app: Flask, app_settings: ApplicationConfig) -> NoReturn:
+    def _configure_app_session(
+        app: Flask, app_settings: ApplicationConfig, redis: Redis
+    ) -> NoReturn:
         # There is something wrong with the flask_session implementation that
         # is supposed to translate flask config values into redis settings;
         # also, it doesn't support authorization (what?!) so we have to
@@ -220,19 +225,26 @@ class AppInjectorModule(Module):
         if app.config["SESSION_TYPE"] == "redis":
             redis_settings = app_settings.redis_settings
             app.logger.info(
-                f"Setting up redis cache with settings: {redis_settings.flask_config_values}"
+                f"Setting up redis session cache with settings: {redis_settings.flask_config_values}"
             )
             app.session_interface = RedisSessionInterface(
-                redis=Redis(
-                    host=redis_settings.host,
-                    port=redis_settings.port,
-                    username=redis_settings.namespace,
-                    password=redis_settings.password.get_secret_value(),
-                ),
+                redis,
                 key_prefix=redis_settings.flask_config_values["SESSION_KEY_PREFIX"],
             )
         else:
             Session(app)
+
+    @provider
+    def provide_redis(self, app_settings: ApplicationConfig) -> Redis:
+        redis_settings = app_settings.redis_settings
+        if not redis_settings.password:
+            return None
+        return Redis(
+            host=redis_settings.host,
+            port=redis_settings.port,
+            username=redis_settings.namespace,
+            password=redis_settings.password.get_secret_value(),
+        )
 
 
 def create_app(injector: Optional[Injector] = None) -> Flask:

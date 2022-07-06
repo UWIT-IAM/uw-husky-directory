@@ -2,8 +2,8 @@ import pytest
 
 from husky_directory.models.pws import ListPersonsOutput, NamedIdentity
 from husky_directory.services.reducer import (
-    NameSearchResultReducer,
     NameQueryResultAnalyzer,
+    NameSearchResultReducer,
 )
 
 

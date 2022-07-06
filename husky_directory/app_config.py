@@ -4,10 +4,9 @@ import secrets
 import string
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Optional, Type, TypeVar, Union, cast
+from typing import Any, Dict, Optional, TypeVar, cast
 
-import yaml
-from injector import Module, inject, provider, singleton
+from injector import Module, provider, singleton
 from pydantic import BaseSettings, Field, SecretStr, validator
 
 logger = logging.getLogger("app_config")
@@ -102,6 +101,9 @@ class RedisSettings(FlaskConfigurationSettings):
     port: str = Field("6379", env="REDIS_PORT")
     namespace: str = Field(None, env="REDIS_NAMESPACE")
     password: SecretStr = Field(None, env="REDIS_PASSWORD")
+    default_cache_expire_seconds: Optional[int] = Field(
+        None, env="REDIS_CACHE_DEFAULT_EXPIRE_SECONDS"
+    )
 
     @property
     def flask_config_values(self) -> Dict[str, Any]:
@@ -177,6 +179,59 @@ class ApplicationSecrets(BaseSettings):
     prometheus_password: Optional[SecretStr] = Field(None, env="PROMETHEUS_PASSWORD")
 
 
+class CacheExpirationSettings(BaseSettings):
+    class Config:
+        """
+        Any of these settings can be tweaked by updating
+        the environment variables in the gcp-k8 helm release
+        for this app using this prefix (or in any environment
+        running this app).
+
+        e.g.: QUERY_CACHE_IN_PROGRESS_STATUS_EXPIRATION=60
+        """
+
+        env_prefix = "QUERY_CACHE_"
+
+    # We should never expect a query to take more than
+    # 5 minutes to complete. If a query has taken /that/ long,
+    # we simply delete the lock. This can mean that if a
+    # query does take longer than 5 minutes,
+    # the next request for it will be allowed
+    # to proceed in its own process.
+    in_progress_status_expiration: int = 300  # Five minutes
+
+    # We do not want to cache completed queries for very long, because
+    # we want updates to user profiles to be reflected in
+    # near real-time. But, we want the value to persist
+    # long enough that if the user mashes the 'search' button
+    # while their browser is rendering thousands of
+    # entries as HTML, it'll still be there, and the results will
+    # seem to come faster to the user the second time around.
+    # Therefore, the value is 7.
+    completed_status_expiration: int = 7
+
+    # The error status expiration lets us check for and/or
+    # alarm on issues directly, without relying on logs, if the
+    # issue happens during the query process (which is the
+    # most likely place for an issue to occur). Remembering that
+    # if the query is re-attempted, its status will revert back to
+    # 'in progress', there is not really a point to keeping these for
+    # super long.
+    error_status_expiration: int = 3600  # 1 hour
+
+    # The error message expiration lasts longer so that event
+    # responders can access the error messages that were logged
+    # via the cache, instead of poring through logs, if necessary,
+    # for easier investigation. However, this is only a minor
+    # convenience, as the JSON logging will already contain a
+    # lot of information.
+
+    # To find errors in a redis cache, you can use the command:
+    #   'keys *:status:message'
+    #   to get a list of all relevant keys in the shared cache.
+    error_message_expiration: int = 3600 * 24  # 24 hours
+
+
 @singleton
 class ApplicationConfig(FlaskConfigurationSettings):
     """
@@ -208,8 +263,9 @@ class ApplicationConfig(FlaskConfigurationSettings):
     pws_settings: PWSSettings = PWSSettings()
     auth_settings: AuthSettings = AuthSettings()
     session_settings: SessionSettings = SessionSettings()
-    redis_settings: Optional[RedisSettings]
+    redis_settings: RedisSettings = RedisSettings()
     metrics_settings: MetricsSettings = MetricsSettings()
+    cache_expiration_settings: CacheExpirationSettings = CacheExpirationSettings()
     secrets: ApplicationSecrets = ApplicationSecrets()
 
     @validator("redis_settings")
@@ -256,78 +312,3 @@ class ApplicationConfigInjectorModule(Module):
 SettingsType = TypeVar(
     "SettingsType", bound=BaseSettings
 )  # Used to type hint the return value of load_settings below
-
-
-@singleton
-class YAMLSettingsLoader:
-    """
-    Complex configuration is hard to express as environment variables; so, for everything else, there's YAML.
-    YAML files loaded this way expect stage-based configuration.
-
-    Here is an example of a simple YAML file:
-        # foo.yml
-
-        base: &base
-            foo: bar
-            baz: boop
-
-        development: &development
-            <<: *base  # Development uses all values from base
-
-        eval: &eval  # Eval uses all settings from development, but overrides the 'baz' setting.
-            <<: *development
-            baz: snap
-
-        special:  # Here is a special one-off stage that doesn't use anyone else's values
-            foo: blah
-            baz: also blah
-
-        prod:
-            <<: *eval
-            foo: AH!
-
-    The above configuration could be modeled and loaded:
-
-        class FooSettings:
-            foo: str
-            baz: str
-
-        settings = loader.load_settings('foo', output_type=FooSettings)
-        settings.foo  # 'bar'
-
-        settings = loader.load_settings('foo')
-        settings['foo']  # 'bar'
-    """
-
-    @inject
-    def __init__(self, app_config: ApplicationConfig):
-        self.app_config = app_config
-
-    @property
-    def settings_dir(self) -> str:
-        return self.app_config.settings_dir
-
-    def load_settings(
-        self,
-        settings_name: str,
-        output_type: Union[Type[SettingsType], Type[Dict]] = Dict,
-    ) -> Union[Dict, SettingsType]:
-        """
-        Given a configuration name, looks up the setting file from ApplicationConfig.settings_dir,
-        and loads the stage declared by ApplicationConfig.stage
-
-        If no output type is provided, the results will be in dict form.
-        """
-        filename = os.path.join(self.settings_dir, f"{settings_name}.yml")
-        stage = self.app_config.stage
-        with open(filename) as f:
-            try:
-                settings = yaml.load(f, yaml.SafeLoader)[stage]
-            except KeyError as e:
-                raise KeyError(
-                    f"{filename} has no configuration for stage '{stage}': {str(e)}"
-                )
-
-        if output_type is Dict:
-            return settings
-        return output_type.parse_obj(settings)

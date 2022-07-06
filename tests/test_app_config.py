@@ -8,7 +8,6 @@ from husky_directory.app_config import (
     ApplicationConfig,
     ApplicationSecrets,
     RedisSettings,
-    YAMLSettingsLoader,
 )
 
 
@@ -35,6 +34,7 @@ class TestApplicationConfig:
             "secrets",
             "metrics_settings",
             "show_experimental",
+            "cache_expiration_settings",
         }
         assert set(self.app_config.dict().keys()) == expected_field_names
 
@@ -53,22 +53,6 @@ class TestApplicationSecrets:
     def test_app_secrets_has_fields(self):
         expected_field_names = {"prometheus_username", "prometheus_password"}
         assert set(self.app_secrets.dict().keys()) == expected_field_names
-
-
-class TestYAMLSettingsLoader:
-    @pytest.fixture(autouse=True)
-    def configure_base(self, injector: Injector, test_root_path: str):
-        self.loader = injector.get(YAMLSettingsLoader)
-        self.loader.app_config.settings_dir = os.path.join(test_root_path, "data")
-        self.loader.app_config.stage = "development"
-
-    def test_yaml_settings_loader(self):
-        assert self.loader.load_settings("testconfig")["foo"] == "bar"
-
-    def test_yaml_settings_loader_fails_wrong_stage(self):
-        self.loader.app_config.stage = "error"
-        with pytest.raises(KeyError):
-            self.test_yaml_settings_loader()
 
 
 class TestRedisSettings:
