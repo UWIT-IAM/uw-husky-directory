@@ -35,7 +35,7 @@ flake8 = "^4.0.1"
 coverage = "^6.2"
 beautifulsoup4 = "^4.9.3"
 uw-webdriver-recorder = "^5.0"
-fingerprinter = { git = "https://github.com/UWIT-IAM/fingerprinter.git", tag="0.1.2" }
+uw-it-build-fingerprinter = "^0.1.3"
 tox = "^3.24.5"
 
 [build-system]
