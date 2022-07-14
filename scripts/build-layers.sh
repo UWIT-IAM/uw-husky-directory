@@ -79,6 +79,8 @@ function get_layer_fingerprint {
   # as a fingerprint. (This means those layers get re-built any time
   # the source code or dependencies change.)
   local layer_name="${1}"
+  shift
+  local build_args="${@}"
   local fp_target=
   case "${layer_name}" in
     base)
@@ -91,7 +93,7 @@ function get_layer_fingerprint {
       fp_target=source
       ;;
   esac
-  poetry run fingerprinter -t "${fp_target}" -f fingerprints.yaml
+  poetry run fingerprinter -t "${fp_target}" -f fingerprints.yaml --salt "${build_args}"
 }
 
 function build_layer {
@@ -103,7 +105,7 @@ function build_layer {
       ;;
   esac
 
-  local fingerprint=$(get_layer_fingerprint ${layer_name})
+  local fingerprint=$(get_layer_fingerprint ${layer_name} "${build_args}")
   echo "Reconciling layer: ${layer}:${fingerprint}"
   get_or_create_layer "${layer_name}" "${fingerprint}" \
     $(test -z "${FORCE_REBUILD}" || echo "--force") ${build_args} || return 1
