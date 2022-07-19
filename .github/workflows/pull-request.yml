@@ -46,6 +46,8 @@ jobs:
       APP_VERSION: ${{ needs.update-pr-branch-version.outputs.new-version }}
     steps:
       - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - uses: abatilo/actions-poetry@v2.1.4
 
