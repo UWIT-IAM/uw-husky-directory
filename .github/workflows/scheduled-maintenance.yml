@@ -21,6 +21,7 @@ jobs:
       - uses: UWIT-IAM/actions/configure-gcloud-docker@0.1
         with:
           gcloud-token: ${{ secrets.GCR_TOKEN }}
+      - run: sudo apt-get -y install jq
       - run: poetry update --lock
         id: poetry-update
       - run: poetry run tox

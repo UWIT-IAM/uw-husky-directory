@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 source ./scripts/globals.sh
-source ./.build-scripts/sources/bash-helpers.sh
+build_script=$(poetry run fingerprinter -o build-script)
 
 REPO_API_URL=https://api.github.com/repos/uwit-iam/uw-husky-directory
 
@@ -13,6 +13,7 @@ REPO_RELEASE_URL="${REPO_API_URL}/release/latest"
 # and then within this script only tested for value presence.
 DRY_RUN=
 
+
 function print_help {
    cat <<EOF
    Use: deploy.sh [--debug --help]
@@ -22,11 +23,8 @@ function print_help {
                          place, instead (eval promotes from dev, prod promotes from
                          eval).
 
-   --candidate           This allows you to deploy to dev and dev only, any tag
-                         that is on your system.
-
-   --no-pull             In combination with '--candidate', allows you to deploy an
-                         image that has never been pushed.
+   --live                Build and deploy the current code base to dev and dev only.
+                         Deployment id will contain your username.
 
    -t, --target-cluster  The cluster to deploy to. Choose from: dev, eval, prod.
 
@@ -40,15 +38,6 @@ function print_help {
                          pushing the docker image, without waiting for an update to
                          occur or running any tests.
 
-   --dev-promotion-strategy   By default, we deploy the latest github tag to dev;
-                              however you can choose to deploy any of the following
-                              when running manually:
-                                  tag       [Default] The latest tag known to github,
-                                            from: $REPO_TAGS_URL
-
-                                  release   The latest release known to github,
-                                            from: $REPO_RELEASES_URL
-
    -h, --help            Show this message and exit
 
    -g, --debug           Show commands as they are executing
@@ -56,16 +45,12 @@ EOF
 }
 
 WAIT_TIME_SECS=600
-DEV_STRATEGY=tag
 
 while (( $# ))
 do
   case $1 in
-    --candidate)
-      RELEASE_CANDIDATE=1
-      ;;
-    --no-pull)
-      NO_PULL=1
+    --live)
+      deploy_live=1
       ;;
     --version|-v)
       shift
@@ -87,10 +72,6 @@ do
       shift
       UNSAFE=1
       ;;
-    --dev-promotion-strategy)
-      shift
-      DEV_STRATEGY="$1"
-      ;;
     --dry-run|-x)
       DRY_RUN=1
       ;;
@@ -110,45 +91,14 @@ do
   shift
 done
 
-function version_image_tag {
-  local version="$1"
-  echo "${DOCKER_REPOSITORY}:${version}"
-}
-
-function deploy_image_tag {
-  local stage="$1"
-  local app_version="$2"
-  qualifier=$(tag_timestamp).v${app_version}
-  if [[ -n "${RELEASE_CANDIDATE}" ]]
-  then
-    qualifier="${qualifier}.${USER}"
-  fi
-  echo "${DOCKER_REPOSITORY}:deploy-${stage}.${qualifier}"
-}
-
-function get_latest_github_tag {
-  case "${DEV_STRATEGY}" in
-    tag)
-      tags=$(curl -sk ${REPO_TAGS_URL})
-      echo "$tags" | jq '.[0].name' | sed 's|"||g'
-      ;;
-    release)
-      release=$(curl -sk ${REPO_RELEASES_URL})
-      echo "$release" | jq .name | sed 'S|"||g'
-      ;;
-    *)
-      >&2 echo "Invalid dev promotion strategy: ${DEV_STRATEGY}."
-      >&2 echo "Choose from: tag, release"
-      return 1
-      ;;
-  esac
-}
-
 function configure_deployment {
   # Cluster is always a required argument.
-  if [[ -n "${RELEASE_CANDIDATE}" ]]
+  if [[ -n "${deploy_live}" ]]
   then
     target_cluster=dev
+    deploy_version="$(poetry version -s).local.$(whoami)"
+    echo "Building version ${deploy_version} for release"
+    $build_script -p --release $deploy_version
   fi
   if [[ -z "${target_cluster}" ]]
   then
@@ -178,7 +128,8 @@ function wait_for_deployment {
   local attempts=0
   local pause_secs=10
   local max_attempts=$(( $WAIT_TIME_SECS / $pause_secs ))
-  local deployment_id="${1}"
+  local origin_id=$(get_instance_deployment_id $target_cluster)
+
   while [[ -n "1" ]]
   do
     attempts=$(( $attempts+1 ))
@@ -188,64 +139,30 @@ function wait_for_deployment {
       return 1
     fi
     local cur_id=$(get_instance_deployment_id $target_cluster)
-    if [[ "$cur_id" == "$deployment_id" ]]
+    if [[ "$origin_id" != "${cur_id}" ]]
     then
-      echo "Deployment ID matches target: ${deployment_id}"
+      echo "Deployment ID has been updated to: ${cur_id}"
       return 0
     fi
-    echo "Attempt #${attempts}: Deployed $target_cluster deployment ID is $cur_id, waiting for $deployment_id" [$(date)]""
+    echo "Attempt #${attempts}: Deployed $target_cluster deployment ID has not changed from ${origin_id}"
     sleep 10
   done
-}
-
-function get_image_app_version {
-  local image_tag="${1}"
-  docker run ${image_tag} env | grep 'HUSKY_DIRECTORY_VERSION' | cut -f2 -d= | sed 's| ||g'
-}
-
-function deploy {
-  local version_tag=$(version_image_tag $deploy_version)
-  if [[ -z "$(docker images -q ${version_tag})" ]] && ! docker pull "${version_tag}"
+  if ! $(echo "${cur_id}" | grep "${deploy_version}")
   then
-    echo "Source image ${version_tag} does not exist locally or remotely."
+    echo "Version mismatch! Expected to find version ${deploy_version} in deployment id ${cur_id}"
     return 1
-  fi
-
-  local app_version=$(get_image_app_version ${version_tag})
-  local deploy_tag=$(deploy_image_tag $target_cluster ${app_version})
-
-  docker build \
-    -f docker/deployment.dockerfile \
-    --build-arg IMAGE=$version_tag \
-    --build-arg DEPLOYMENT_ID=$deploy_tag \
-    -t $deploy_tag .
-
-  echo "Tagged $deploy_version for deployment: $deploy_tag"
-  if [[ -z "${DRY_RUN}" ]]
-  then
-    echo "Pushing tag $deploy_tag"
-    docker push $deploy_tag
-    if [[ -n "$GITHUB_REF" ]]
-    then
-      echo "::set-output name=deployed-tag::$deploy_tag"
-    fi
-    if [[ -z "${UNSAFE}" ]]
-    then
-      echo "Waiting for deployment to complete."
-      wait_for_deployment ${deploy_tag}
-      local server_update_settle_time=30
-      echo
-      echo "Deployment succeeded for one pod;
-            waiting ${server_update_settle_time}s for others to complete."
-      sleep ${server_update_settle_time}
-      echo "Settling period has ended. Running selenium tests."
-      ./scripts/run-selenium-tests.sh -u "${target_cluster}"
-    fi
-  else
-    echo "Not pushing; dry-run only."
   fi
 }
 
 set -e
 configure_deployment
-deploy
+
+$build_script \
+  --deploy ${target_cluster} \
+  -dversion ${deploy_version} \
+  $(test -z "${DRY_RUN}" || echo "-ddry")
+
+if [[ -z "${UNSAFE}" ]] && [[ -z "${DRY_RUN}" ]]
+then
+  wait_for_deployment
+fi
