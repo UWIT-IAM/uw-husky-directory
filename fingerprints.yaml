@@ -1,3 +1,7 @@
+# This is the build configuration for the uw-it-build-fingerprinter.
+# For more information, refer to the docs at:
+#   https://github.com/uwit-iam/fingerprinter
+
 ignore-paths:
   # Some environments may put the webdriver-report in
   # inside the tests directory; this ensures we don't

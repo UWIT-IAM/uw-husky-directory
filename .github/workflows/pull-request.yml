@@ -50,15 +50,15 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
 
       - uses: abatilo/actions-poetry@v2.1.4
-      - run: sudo apt-get -y install jq
+      - run: |
+          sudo apt-get -y install jq
+          poetry run pip install tox uw-it-build-fingerprinter
+        id: configure
+        name: Set up environment
 
       - uses: UWIT-IAM/actions/configure-gcloud-docker@0.1
         with:
           gcloud-token: ${{ secrets.GCR_TOKEN }}
-
-      - run: poetry run pip install tox uw-it-build-fingerprinter
-        id: configure
-        name: Set up environment
 
       - run: poetry run tox -e build-layers
 
