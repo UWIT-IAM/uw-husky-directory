@@ -87,16 +87,13 @@ the `main` branch. If there are any problems, you may deploy to dev manually.
 
 ### Releasing to eval
 
-Releases to eval should occur at least a week prior to any desired release to prod. 
-However, in an ideal world, eval would be kept up to date with dev in real time. 
-Currently there is no automation, so this must be done manually.
+You should release to eval in order to prepare for an RFC. 
 
 ### Releasing to prod
 
 Releases to prod must have an RFC that includes a communications plan. Because this is 
 a publicly available product, we should take care to avoid any downtime, and provide 
 adequate communications if any downtime is required. 
-
 
 
 [semver]: https://www.semver.org

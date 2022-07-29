@@ -1,6 +1,4 @@
 
-./scripts/install-build-scripts.sh
-
 export DOCKER_REPOSITORY="gcr.io/uwit-mci-iam/husky-directory"
 
 function get_instance_version {

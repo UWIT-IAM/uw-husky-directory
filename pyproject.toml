@@ -35,9 +35,10 @@ flake8 = "^4.0.1"
 coverage = "^6.2"
 beautifulsoup4 = "^4.9.3"
 uw-webdriver-recorder = "^5.0"
-uw-it-build-fingerprinter = "^0.1.4"
+uw-it-build-fingerprinter = "^0.2.5"
 tox = "^3.24.5"
 
+#
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"

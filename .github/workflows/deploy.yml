@@ -35,33 +35,30 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: abatilo/actions-poetry@v2.1.4
+      - run: sudo apt-get -y install jq
       - uses: UWIT-IAM/actions/configure-gcloud-docker@0.1
         with:
           gcloud-token: ${{ secrets.GCR_TOKEN }}
-      - run: ./scripts/install-build-scripts.sh
-        name: Install common-build-scripts
-
       # When performing an automated dry run from a push, we will be running using
       # the basic default command of: ./deploy-sh --dry-run --target-cluster dev
       - if: github.event_name == 'push' && github.ref == 'refs/heads/dry-run-deploy'
         run: |
-          source ./.build-scripts/sources/github-actions.sh
-          set_env DRY_RUN true
-          set_env deployment_qualifier "[DRY-RUN]"
+          echo "DRY_RUN=true" >> $GITHUB_ENV
+          echo "deployment_qualifier='[DRY_RUN]'" >> $GITHUB_ENV
         name: Configure dry run deployment
 
       # When pushing from the Github UI, we will fill in the values
       # provided by the user.
       - if: github.event_name == 'workflow_dispatch'
         run: |
-          source ./.build-scripts/sources/github-actions.sh
-          set_env DRY_RUN "${{ github.event.inputs.dry-run }}"
-          set_env target_cluster "${{ github.event.inputs.cluster }}"
-          set_env target_version "${{ github.event.inputs.version }}"
-          set_env rfc_number "${{ github.event.inputs.rfc }}"
+          echo "DRY_RUN=${{ github.event.inputs.dry-run }}" >> $GITHUB_ENV
+          echo "target_cluster=${{ github.event.inputs.cluster }}" >> $GITHUB_ENV
+          echo "target_version=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+          echo "rfc_number=${{ github.event.inputs.rfc }}" >> $GITHUB_ENV
           if [[ -n "${{ github.event.inputs.rfc }}" ]]
           then
-            set_env deployment_qualifier "[RFC-${{ github.event.inputs.rfc }}]"
+            qualifier="[RFC-${{ github.event.inputs.rfc }}]"
+            echo "deployment_qualifier=${qualifier}" >> $GITHUB_ENV
           fi
         id: configure-env
         name: Configure manual deployment
@@ -71,9 +68,8 @@ jobs:
         # doesn't matter.
         run: |
           source ./scripts/globals.sh
-          source ./.build-scripts/sources/github-actions.sh
           target_version=$(get_promotion_version ${{ inputs.cluster }})
-          set_env target_version "${target_version}"
+          echo "target_version=${target_version}" >> $GITHUB_ENV
         if: '! env.target_version'
 
       - name: Configure slack notification canvas
@@ -87,8 +83,7 @@ jobs:
         name: Create slack notification canvas
 
       - run: |
-          source ./.build-scripts/sources/github-actions.sh
-          set_env CURRENT_STEP deploy
+          echo "CURRENT_STEP=deploy" >> $GITHUB_ENV
         name: Set up slack notification env
 
       - uses: uwit-iam/actions/update-slack-workflow-canvas@0.1

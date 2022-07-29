@@ -4,19 +4,54 @@ ignore-paths:
   # consider any report artifacts in our fingerprints.
   - '**/webdriver-report/**'
 
+release-target: development-server
+
+docker:
+  repository: gcr.io/uwit-mci-iam
+  app-name: husky-directory
+
 targets:
-  dependencies:
+  build-config:
     include-paths:
       - poetry.lock
       - fingerprints.yaml
+      - pyproject.toml
       - Dockerfile
+    build-target: false  # This is just a fingerprint base, not a build target
 
-  source:
-    depends-on: [dependencies]
+  base:
+    depends-on: [build-config]
+
+  app:
+    depends-on: [base]
     include-paths:
       - husky_directory
+    docker:
+      build-args:
+        - arg: HUSKY_DIRECTORY_VERSION
+          sources: [cli]
 
-  tests:
-    depends-on: [source]
+  test-runner:
+    depends-on: [app]
     include-paths:
       - tests
+    docker:
+      build-args:
+        - arg: HUSKY_DIRECTORY_VERSION
+          sources: [cli]
+
+  selenium-runner:
+    depends-on: [test-runner]
+    include-paths:
+      - selenium-tests
+    docker:
+      build-args:
+        - arg: HUSKY_DIRECTORY_VERSION
+          sources: [cli]
+
+  development-server:
+    depends-on: [app]
+    docker:
+      build-args:
+        - arg: HUSKY_DIRECTORY_VERSION
+          sources: [cli]

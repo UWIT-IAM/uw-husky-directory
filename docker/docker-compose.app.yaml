@@ -12,6 +12,8 @@ services:
       dockerfile: Dockerfile
       context: ..
       target: development-server
+      args:
+        HUSKY_DIRECTORY_VERSION: ${HUSKY_DIRECTORY_VERSION}
     ports: ["8000:8000"]
     command: >
       poetry run gunicorn -b 0.0.0.0:8000
