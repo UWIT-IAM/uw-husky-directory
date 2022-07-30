@@ -36,14 +36,14 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v3
-      - run: |
-          sudo apt-get -y install jq
-          poetry run pip install uw-it-build-fingerprinter
       - uses: UWIT-IAM/actions/configure-gcloud-docker@0.1
         with:
           gcloud-token: ${{ secrets.GCR_TOKEN }}
       - name: Install poetry
         uses: abatilo/actions-poetry@v2.1.0
+      - run: |
+          sudo apt-get -y install jq
+          poetry run pip install uw-it-build-fingerprinter
       - run: |
           poetry run tox -e build-layers \
             -- -t ${{ env.version }} --release ${{ env.version }}
