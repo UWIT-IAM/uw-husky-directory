@@ -43,7 +43,7 @@ jobs:
         uses: abatilo/actions-poetry@v2.1.0
       - run: |
           sudo apt-get -y install jq
-          poetry run pip install uw-it-build-fingerprinter
+          poetry run pip install uw-it-build-fingerprinter tox
       - run: |
           poetry run tox -e build-layers \
             -- -t ${{ env.version }} --release ${{ env.version }}
