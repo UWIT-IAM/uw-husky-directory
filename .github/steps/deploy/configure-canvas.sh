@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-source ./.build-scripts/sources/github-actions.sh
-
 canvas=$(${STEP_SCRIPTS}/get_slack_notification.sh \
   -b canvas \
   -v "$target_version" \
@@ -9,7 +7,7 @@ canvas=$(${STEP_SCRIPTS}/get_slack_notification.sh \
   -q "${deployment_qualifier}" \
   -c "#iam-bot-sandbox")  # TODO
 
-set_ci_output slack-canvas "$(echo $canvas)"
+echo "::set-output name=slack-canvas::$(echo $canvas)"
 echo "Slack canvas json: $canvas"
 
 context_artifact=$(${STEP_SCRIPTS}/get_slack_notification.sh \
@@ -18,7 +16,7 @@ context_artifact=$(${STEP_SCRIPTS}/get_slack_notification.sh \
   -s "$target_cluster" \
   -q "${deployment_qualifier}")
 
-set_ci_output context-artifact "$(echo $context_artifact)"
+echo "::set-output name=context-artifact::$(echo $context_artifact)"
 echo "Context artifact: $context_artifact"
 
 set -e
