@@ -577,7 +577,7 @@ twisted = ["twisted"]
 
 [[package]]
 name = "prometheus-flask-exporter"
-version = "0.19.0"
+version = "0.20.3"
 description = "Prometheus metrics exporter for Flask"
 category = "main"
 optional = false
@@ -946,7 +946,7 @@ socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 
 [[package]]
 name = "uw-it-build-fingerprinter"
-version = "0.2.5"
+version = "0.2.6"
 description = ""
 category = "dev"
 optional = false
@@ -1088,7 +1088,7 @@ testing = ["coverage (>=5.0.3)", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.9"
-content-hash = "7ec6c4db8bb0c4e4e48b7b7ccc9331043b1d977cb2dfdb07ee4ad67fbcaa1d80"
+content-hash = "d5cc2406098ec776bb71d33615c70196664dd805d11cbb4ec15bcc873bae3b33"
 
 [metadata.files]
 asttokens = []
