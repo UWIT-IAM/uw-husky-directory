@@ -1,3 +1,4 @@
+name: Create release tag, and deploy to dev
 on:
   push:
     branches:

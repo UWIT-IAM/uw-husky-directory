@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 source ./scripts/globals.sh
-build_script=$(poetry run fingerprinter -o build-script)
+build_script="$(poetry run fingerprinter -o build-script) -p"
 
 REPO_API_URL=https://api.github.com/repos/uwit-iam/uw-husky-directory
 
@@ -81,6 +81,7 @@ do
       ;;
     --debug|-g)
       set -x
+      DEBUG=1
       ;;
     *)
       echo "Invalid Option: $1"
@@ -157,10 +158,14 @@ function wait_for_deployment {
 set -e
 configure_deployment
 
+set -x
 $build_script \
   --deploy ${target_cluster} \
   -dversion ${deploy_version} \
-  $(test -z "${DRY_RUN}" || echo "-ddry")
+  --build-arg HUSKY_DIRECTORY_VERSION=${deploy_version} \
+  $(test -z "${DRY_RUN}" || echo "-ddry") \
+  $(test -z "${DEBUG}" || echo "-g")
+set +x
 
 if [[ -z "${UNSAFE}" ]] && [[ -z "${DRY_RUN}" ]]
 then
