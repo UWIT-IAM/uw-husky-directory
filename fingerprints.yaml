@@ -13,6 +13,14 @@ release-target: development-server
 docker:
   repository: gcr.io/uwit-mci-iam
   app-name: husky-directory
+  build-args:
+    - arg: HUSKY_DIRECTORY_VERSION
+      # Whenever build.sh is run for this application,
+      # to extract fingerprints or build information,
+      # `--build-arg HUSKY_DIRECTORY_VERSION=x.y.z`
+      # must be supplied.
+      sources:
+        - cli
 
 targets:
   build-config:
@@ -30,32 +38,16 @@ targets:
     depends-on: [base]
     include-paths:
       - husky_directory
-    docker:
-      build-args:
-        - arg: HUSKY_DIRECTORY_VERSION
-          sources: [cli]
 
   test-runner:
     depends-on: [app]
     include-paths:
       - tests
-    docker:
-      build-args:
-        - arg: HUSKY_DIRECTORY_VERSION
-          sources: [cli]
 
   selenium-runner:
     depends-on: [test-runner]
     include-paths:
       - selenium-tests
-    docker:
-      build-args:
-        - arg: HUSKY_DIRECTORY_VERSION
-          sources: [cli]
 
   development-server:
     depends-on: [app]
-    docker:
-      build-args:
-        - arg: HUSKY_DIRECTORY_VERSION
-          sources: [cli]

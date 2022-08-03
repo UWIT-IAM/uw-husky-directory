@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-source ./.build-scripts/sources/slack.sh
 ACTOR=${GITHUB_ACTOR}
 SLACK_CHANNEL='#cloud-native-directory'
 
@@ -82,6 +81,15 @@ function build_canvas {
   template=$(replace_template "$template" qualifier $QUALIFIER)
   template=$(replace_template "$template" slack_channel $SLACK_CHANNEL)
   echo "$template"
+}
+
+function slack_link {
+  # Generates a 'mrkdwn' link.
+  # Use:
+  #   slack_link https://www.uw.edu "University of Washington"
+  local url="$1"
+  local link_text="$2"
+  echo "<$url | $link_text>"
 }
 
 function build_context_artifact {
