@@ -21,7 +21,7 @@ jobs:
       new-version: ${{ steps.update-version.outputs.new-version }}
     steps:
       - name: Python Poetry Action
-        uses: abatilo/actions-poetry@v2.1.4
+        uses: abatilo/actions-poetry@v2.1.6
 
       - uses: uwit-iam/actions/require-semver-guidance-label@0.1
         id: guidance
@@ -49,7 +49,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
-      - uses: abatilo/actions-poetry@v2.1.4
+      - uses: abatilo/actions-poetry@v2.1.6
       - run: |
           sudo apt-get -y install jq
           poetry run pip install tox uw-it-build-fingerprinter

@@ -37,7 +37,7 @@ jobs:
       input_cluster: ${{ github.event.inputs.cluster }}
     steps:
       - uses: actions/checkout@v3
-      - uses: abatilo/actions-poetry@v2.1.4
+      - uses: abatilo/actions-poetry@v2.1.6
       - run: |
           sudo apt-get -y install jq
           poetry install
