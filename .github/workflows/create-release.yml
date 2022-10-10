@@ -41,7 +41,7 @@ jobs:
         with:
           gcloud-token: ${{ secrets.GCR_TOKEN }}
       - name: Install poetry
-        uses: abatilo/actions-poetry@v2.1.0
+        uses: abatilo/actions-poetry@v2.1.6
       - run: |
           sudo apt-get -y install jq
           poetry run pip install uw-it-build-fingerprinter tox

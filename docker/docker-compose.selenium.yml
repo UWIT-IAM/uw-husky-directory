@@ -20,7 +20,7 @@ services:
       # We want for test files to available on the selenium
       # container because tests may have files the test browser
       # needs to serve.
-      - ../selenium-tests:/selenium-tests
+      - ../selenium-tests/:/selenium-tests
 
   test-runner:
     build:
@@ -34,8 +34,8 @@ services:
       uw_directory_url: ${uw_directory_url}
       USE_TEST_IDP: 'True'
     volumes:
-      - ../webdriver-report:/webdriver-report
-      - ../selenium-tests:/selenium-tests
+      - ../webdriver-report/:/webdriver-report
+      - ../selenium-tests/:/selenium-tests
     depends_on:
       - selenium
     entrypoint: /selenium-tests/entrypoint.sh
