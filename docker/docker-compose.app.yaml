@@ -20,8 +20,8 @@ services:
       -c "/app/husky_directory/gunicorn.conf.py"
       "husky_directory.app:create_app()"
     volumes:
-      - ${UWCA_CERT_PATH}:/app/certificates:ro
-      - ${PWD}/husky_directory:/app/husky_directory
+      - ${UWCA_CERT_PATH}/:/app/certificates:ro
+      - ${PWD}/husky_directory/:/app/husky_directory
   redis:
     image: redis:latest
     command: redis-server --user uw-directory on +@all -@dangerous ~uw-directory:* >supersecret
@@ -35,4 +35,4 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
     volumes:
-      - ${PWD}/docker/prometheus:/etc/prometheus/
+      - ${PWD}/docker/prometheus/:/etc/prometheus/
