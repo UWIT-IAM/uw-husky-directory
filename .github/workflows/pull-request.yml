@@ -28,7 +28,7 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: uwit-iam/actions/update-pr-branch-version@0.1
+      - uses: uwit-iam/actions/update-pr-branch-version@0.1.16
         with:
           github-token: ${{ env.GITHUB_TOKEN }}
           version-guidance: ${{ steps.guidance.outputs.guidance }}
