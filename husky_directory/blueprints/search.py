@@ -139,6 +139,21 @@ class SearchBlueprint(Blueprint, AppLoggerMixIn):
                 "email help@uw.edu describing your problem."
             )
 
+    @staticmethod
+    def set_preferences_for_cookie(context: RenderingContext):
+        """
+        When the search query is too short, the request_input data is dropped, but we still need a value for
+        'result_detail'
+        """
+        result_detail = 'summary'
+        if context.request_input and context.request_input.length:
+            result_detail = context.request_input.length
+
+        preferences = PreferencesCookie(
+            result_detail=result_detail
+        ).json(exclude_unset=True, exclude_none=True)
+        return preferences
+
     def search_listing(
         self,
         request: Request,
@@ -166,9 +181,8 @@ class SearchBlueprint(Blueprint, AppLoggerMixIn):
                 ),
                 context.status_code,
             )
-            preferences = PreferencesCookie(
-                result_detail=context.request_input.length
-            ).json(exclude_unset=True, exclude_none=True)
+            self.logger.info(f"context = {context}")
+            preferences = self.set_preferences_for_cookie(context)
             response.set_cookie(
                 settings.session_settings.preferences_cookie_name, value=preferences
             )
