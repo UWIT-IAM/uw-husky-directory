@@ -165,16 +165,32 @@ class SearchBlueprint(Blueprint, AppLoggerMixIn):
             uwnetid=session.get("uwnetid"),
             show_experimental=settings.show_experimental,
         )
+        self.logger.info(f'before context = {context}')
+        self.logger.info(f'request.form = {request.form}')
         try:
             form_input = SearchDirectoryFormInput.parse_obj(request.form)
+            self.logger.info('glen')
             context.request_input = form_input
 
             request_input = SearchDirectoryInput.from_form_input(form_input)
+            self.logger.info(f'request_input = {request_input}')
             context.search_result = service.search_directory(request_input)
+            self.logger.info(f'context.search_result = {context.search_result}')
         except Exception as e:
             self.logger.exception(str(e))
             SearchBlueprint.handle_search_exception(e, context)
         finally:
+            if not context.request_input:
+                self.logger.info('got the error')
+                context.request_input = \
+                    SearchDirectoryFormInput(method=request.form['method'],
+                                             population=request.form['population'],
+                                             length=request.form['length'],
+                                             render_method=request.form['method'],
+                                             render_population=request.form['population'],
+                                             render_length=request.form['length'],
+                                             include_test_identities=False)
+
             response: Response = make_response(
                 render_template(
                     "views/search_results.html", **context.dict(exclude_none=True)
@@ -182,6 +198,8 @@ class SearchBlueprint(Blueprint, AppLoggerMixIn):
                 context.status_code,
             )
             self.logger.info(f"context = {context}")
+            self.logger.info(f"request.form = {request.form}")
+
             preferences = self.set_preferences_for_cookie(context)
             response.set_cookie(
                 settings.session_settings.preferences_cookie_name, value=preferences
