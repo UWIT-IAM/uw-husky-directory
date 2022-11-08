@@ -145,13 +145,13 @@ class SearchBlueprint(Blueprint, AppLoggerMixIn):
         When the search query is too short, the request_input data is dropped, but we still need a value for
         'result_detail'
         """
-        result_detail = 'summary'
+        result_detail = "summary"
         if context.request_input and context.request_input.length:
             result_detail = context.request_input.length
 
-        preferences = PreferencesCookie(
-            result_detail=result_detail
-        ).json(exclude_unset=True, exclude_none=True)
+        preferences = PreferencesCookie(result_detail=result_detail).json(
+            exclude_unset=True, exclude_none=True
+        )
         return preferences
 
     def search_listing(
@@ -165,31 +165,32 @@ class SearchBlueprint(Blueprint, AppLoggerMixIn):
             uwnetid=session.get("uwnetid"),
             show_experimental=settings.show_experimental,
         )
-        self.logger.info(f'before context = {context}')
-        self.logger.info(f'request.form = {request.form}')
+        self.logger.info(f"before context = {context}")
+        self.logger.info(f"request.form = {request.form}")
         try:
             form_input = SearchDirectoryFormInput.parse_obj(request.form)
-            self.logger.info('glen')
+            self.logger.info("glen")
             context.request_input = form_input
 
             request_input = SearchDirectoryInput.from_form_input(form_input)
-            self.logger.info(f'request_input = {request_input}')
+            self.logger.info(f"request_input = {request_input}")
             context.search_result = service.search_directory(request_input)
-            self.logger.info(f'context.search_result = {context.search_result}')
+            self.logger.info(f"context.search_result = {context.search_result}")
         except Exception as e:
             self.logger.exception(str(e))
             SearchBlueprint.handle_search_exception(e, context)
         finally:
             if not context.request_input:
-                self.logger.info('got the error')
-                context.request_input = \
-                    SearchDirectoryFormInput(method=request.form['method'],
-                                             population=request.form['population'],
-                                             length=request.form['length'],
-                                             render_method=request.form['method'],
-                                             render_population=request.form['population'],
-                                             render_length=request.form['length'],
-                                             include_test_identities=False)
+                self.logger.info("got the error")
+                context.request_input = SearchDirectoryFormInput(
+                    method=request.form["method"],
+                    population=request.form["population"],
+                    length=request.form["length"],
+                    render_method=request.form["method"],
+                    render_population=request.form["population"],
+                    render_length=request.form["length"],
+                    include_test_identities=False,
+                )
 
             response: Response = make_response(
                 render_template(
