@@ -41,6 +41,38 @@ class BlueprintSearchTestBase:
 
 
 class TestSearchBlueprint(BlueprintSearchTestBase):
+    def test_set_preferences_for_cookie(self):
+        response = self.flask_client.post(
+            "/",
+            data={
+                "query": "",
+                "method": "name",
+                "population": "employees",
+                "length": "summary",
+            },
+        )
+        assert response.status_code == 400
+        with self.html_validator.validate_response(response) as html:
+            assert not html.find("table", summary="results")
+            assert html.find(string=re.compile("Encountered error"))
+            self.html_validator.assert_has_tag_with_text(
+                "b",
+                "Invalid input for query (Name query string must contain at least 2 characters)",
+            )
+
+    def test_empty_form(self):
+        """
+        if somehow a hacker passes an empty form to the back, we still won't return anything.
+        """
+        response = self.flask_client.post(
+            "/",
+            data={},
+        )
+        assert response.status_code == 200
+        with self.html_validator.validate_response(response) as html:
+            assert not html.find("table", summary="results")
+            self.html_validator.assert_has_tag_with_text("p", "No matches for")
+
     def test_render_summary_success(
         self, search_method: str = "name", search_query: str = "lovelace"
     ):
