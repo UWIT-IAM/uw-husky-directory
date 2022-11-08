@@ -154,6 +154,22 @@ class SearchBlueprint(Blueprint, AppLoggerMixIn):
         )
         return preferences
 
+    def check_context(self, context: RenderingContext, request: Request):
+        if context.request_input:
+            return context
+        else:
+            self.logger.info("got the error")
+            context.request_input = SearchDirectoryFormInput(
+                method=request.form["method"],
+                population=request.form["population"],
+                length=request.form["length"],
+                render_method=request.form["method"],
+                render_population=request.form["population"],
+                render_length=request.form["length"],
+                include_test_identities=False,
+            )
+            return context
+
     def search_listing(
         self,
         request: Request,
@@ -180,18 +196,7 @@ class SearchBlueprint(Blueprint, AppLoggerMixIn):
             self.logger.exception(str(e))
             SearchBlueprint.handle_search_exception(e, context)
         finally:
-            if not context.request_input:
-                self.logger.info("got the error")
-                context.request_input = SearchDirectoryFormInput(
-                    method=request.form["method"],
-                    population=request.form["population"],
-                    length=request.form["length"],
-                    render_method=request.form["method"],
-                    render_population=request.form["population"],
-                    render_length=request.form["length"],
-                    include_test_identities=False,
-                )
-
+            context = self.check_context(context, request)
             response: Response = make_response(
                 render_template(
                     "views/search_results.html", **context.dict(exclude_none=True)
