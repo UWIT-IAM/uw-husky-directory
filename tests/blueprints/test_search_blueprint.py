@@ -41,12 +41,44 @@ class BlueprintSearchTestBase:
 
 
 class TestSearchBlueprint(BlueprintSearchTestBase):
-    def test_set_preferences_for_cookie(self):
+    @pytest.mark.parametrize(
+        "search_field, search_value, expected_value",
+        [
+            (
+                "name",
+                "",
+                "Invalid input for query (Name query string must contain at least 2 characters)",
+            ),
+            (
+                "phone",
+                "",
+                "Invalid input for query (Query string must contain at least 3 characters)",
+            ),
+            (
+                "department",
+                "",
+                "Invalid input for query (Query string must contain at least 3 characters)",
+            ),
+            (
+                "box_number",
+                "",
+                "Invalid input for query (Query string must contain at least 3 characters)",
+            ),
+            (
+                "email",
+                "",
+                "Invalid input for query (Query string must contain at least 3 characters)",
+            ),
+        ],
+    )
+    def test_set_preferences_for_cookie(
+        self, search_field, search_value, expected_value
+    ):
         response = self.flask_client.post(
             "/",
             data={
-                "query": "",
-                "method": "name",
+                "query": search_value,
+                "method": search_field,
                 "population": "employees",
                 "length": "summary",
             },
@@ -57,7 +89,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
             assert html.find(string=re.compile("Encountered error"))
             self.html_validator.assert_has_tag_with_text(
                 "b",
-                "Invalid input for query (Name query string must contain at least 2 characters)",
+                expected_value,
             )
 
     def test_empty_form(self):

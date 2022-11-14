@@ -158,7 +158,6 @@ class SearchBlueprint(Blueprint, AppLoggerMixIn):
         if context.request_input:
             return context
         else:
-            self.logger.info("got the error")
             context.request_input = SearchDirectoryFormInput(
                 method=request.form["method"],
                 population=request.form["population"],
