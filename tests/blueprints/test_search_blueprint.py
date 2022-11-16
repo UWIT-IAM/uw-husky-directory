@@ -41,6 +41,70 @@ class BlueprintSearchTestBase:
 
 
 class TestSearchBlueprint(BlueprintSearchTestBase):
+    @pytest.mark.parametrize(
+        "search_field, search_value, expected_value",
+        [
+            (
+                "name",
+                "",
+                "Invalid input for query (Name query string must contain at least 2 characters)",
+            ),
+            (
+                "phone",
+                "",
+                "Invalid input for query (Query string must contain at least 3 characters)",
+            ),
+            (
+                "department",
+                "",
+                "Invalid input for query (Query string must contain at least 3 characters)",
+            ),
+            (
+                "box_number",
+                "",
+                "Invalid input for query (Query string must contain at least 3 characters)",
+            ),
+            (
+                "email",
+                "",
+                "Invalid input for query (Query string must contain at least 3 characters)",
+            ),
+        ],
+    )
+    def test_set_preferences_for_cookie(
+        self, search_field, search_value, expected_value
+    ):
+        response = self.flask_client.post(
+            "/",
+            data={
+                "query": search_value,
+                "method": search_field,
+                "population": "employees",
+                "length": "summary",
+            },
+        )
+        assert response.status_code == 400
+        with self.html_validator.validate_response(response) as html:
+            assert not html.find("table", summary="results")
+            assert html.find(string=re.compile("Encountered error"))
+            self.html_validator.assert_has_tag_with_text(
+                "b",
+                expected_value,
+            )
+
+    def test_empty_form(self):
+        """
+        if somehow a hacker passes an empty form to the back, we still won't return anything.
+        """
+        response = self.flask_client.post(
+            "/",
+            data={},
+        )
+        assert response.status_code == 200
+        with self.html_validator.validate_response(response) as html:
+            assert not html.find("table", summary="results")
+            self.html_validator.assert_has_tag_with_text("p", "No matches for")
+
     def test_render_summary_success(
         self, search_method: str = "name", search_query: str = "lovelace"
     ):

@@ -139,6 +139,38 @@ class SearchBlueprint(Blueprint, AppLoggerMixIn):
                 "email help@uw.edu describing your problem."
             )
 
+    @staticmethod
+    def set_preferences_for_cookie(context: RenderingContext):
+        """
+        When the search query is too short, the request_input data is dropped, but we still need a value for
+        'result_detail'
+        """
+        result_detail = "summary"
+        if context.request_input and context.request_input.length:
+            result_detail = context.request_input.length
+
+        preferences = PreferencesCookie(result_detail=result_detail).json(
+            exclude_unset=True, exclude_none=True
+        )
+        return preferences
+
+    def check_context(self, context: RenderingContext, request: Request):
+        if context.request_input:
+            return context
+        else:
+            context.request_input = SearchDirectoryFormInput(
+                method=request.form["method"],
+                population=request.form["population"],
+                length=request.form["length"],
+                person_href=None,
+                render_method=request.form["method"],
+                render_query="",
+                render_population=request.form["population"],
+                render_length=request.form["length"],
+                include_test_identities=False,
+            )
+            return context
+
     def search_listing(
         self,
         request: Request,
@@ -160,15 +192,15 @@ class SearchBlueprint(Blueprint, AppLoggerMixIn):
             self.logger.exception(str(e))
             SearchBlueprint.handle_search_exception(e, context)
         finally:
+            context = self.check_context(context, request)
             response: Response = make_response(
                 render_template(
                     "views/search_results.html", **context.dict(exclude_none=True)
                 ),
                 context.status_code,
             )
-            preferences = PreferencesCookie(
-                result_detail=context.request_input.length
-            ).json(exclude_unset=True, exclude_none=True)
+
+            preferences = self.set_preferences_for_cookie(context)
             response.set_cookie(
                 settings.session_settings.preferences_cookie_name, value=preferences
             )
