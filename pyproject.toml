@@ -6,7 +6,7 @@ authors = ["Thomas Thorogood <goodtom@uw.edu>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.10.7"
+python = ">=3.8,<3.10"
 # python = ">=3.8,<3.9"
 # the deploy action https://github.com/UWIT-IAM/uw-husky-directory/actions/workflows/deploy.yml was looking for
 # python 3.10.6, so lets see if this works.
