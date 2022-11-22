@@ -21,9 +21,15 @@ env:
   SLACK_BOT_TOKEN: ${{ secrets.ACTIONS_SLACK_BOT_TOKEN }}
   DRY_RUN: false
   STEP_SCRIPTS: ${{ github.workspace }}/.github/steps/deploy
-  target_cluster: dev
+#  target_cluster: dev
 
 jobs:
+  configure:
+    env:
+      target_cluster: ${{ github.event.inputs.target_cluster }}
+    outputs:
+      target-version: ${{ steps.reconcile-version.outputs.target-version }}
+
   deploy:
     runs-on: ubuntu-latest
     strategy:
@@ -40,8 +46,8 @@ jobs:
       - uses: abatilo/actions-poetry@v2.1.6
       - run: |
           sudo apt-get -y install jq
-#          poetry install
-          poetry run pip install uw-it-build-fingerprinter tox
+          poetry install
+#          poetry run pip install uw-it-build-fingerprinter tox
       - uses: UWIT-IAM/actions/configure-gcloud-docker@0.1
         with:
           gcloud-token: ${{ secrets.GCR_TOKEN }}
