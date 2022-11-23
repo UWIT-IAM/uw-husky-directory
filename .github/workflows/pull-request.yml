@@ -16,8 +16,8 @@ env:
 
 jobs:
   update-pr-branch-version:
-    runs-on: ubuntu-20.04.5
-#    runs-on: ubuntu-latest
+#    runs-on: ubuntu-20.04.5
+    runs-on: ubuntu-latest
     outputs:
       new-version: ${{ steps.update-version.outputs.new-version }}
     steps:
