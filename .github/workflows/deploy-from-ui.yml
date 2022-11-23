@@ -31,7 +31,7 @@ jobs:
       target-version: ${{ steps.reconcile-version.outputs.target-version }}
 
   deploy:
-    runs-on: ubuntu-20.04.5
+    runs-on: ubuntu-20.04
 #    runs-on: ubuntu-latest
     strategy:
       max-parallel: 1
