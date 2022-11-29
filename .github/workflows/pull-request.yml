@@ -16,8 +16,7 @@ env:
 
 jobs:
   update-pr-branch-version:
-    runs-on: ubuntu-20.04
-#    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
     outputs:
       new-version: ${{ steps.update-version.outputs.new-version }}
     steps:
@@ -42,8 +41,7 @@ jobs:
       pull-requests: write
 
     needs: [update-pr-branch-version]
-    runs-on: ubuntu-20.04
-#    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
     env:
       APP_VERSION: ${{ needs.update-pr-branch-version.outputs.new-version }}
     steps:

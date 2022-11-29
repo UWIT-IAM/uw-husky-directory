@@ -10,8 +10,7 @@ env:
 
 jobs:
   configure-release:
-    runs-on: ubuntu-20.04
-#    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
     outputs:
       release-required: ${{ steps.get-release.outputs.release-required }}
       version: ${{ steps.get-release.outputs.version }}
@@ -25,8 +24,7 @@ jobs:
   create-release:
     needs: [configure-release]
     if: needs.configure-release.outputs.release-required == 'true'
-    runs-on: ubuntu-20.04
-#    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
     env:
       version: ${{ needs.configure-release.outputs.version }}
     concurrency:

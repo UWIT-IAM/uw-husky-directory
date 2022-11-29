@@ -14,8 +14,7 @@ jobs:
       contents: write
       pull-requests: write
       packages: write
-      runs-on: ubuntu-20.04
-#    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: abatilo/actions-poetry@v2.1.6
