@@ -6,7 +6,9 @@ authors = ["Thomas Thorogood <goodtom@uw.edu>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.9"
+python = ">=3.8,<3.11"
+
+
 # Flask 2.2.0 broke our builds; there were several dependencies
 # that broke, which means Flask broke the semver contract.
 # Flask will remain pinned to <2.2 until someone else attempts

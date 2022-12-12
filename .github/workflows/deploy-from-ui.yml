@@ -24,6 +24,12 @@ env:
   target_cluster: dev
 
 jobs:
+  configure:
+    env:
+      target_cluster: ${{ github.event.inputs.target_cluster }}
+    outputs:
+      target-version: ${{ steps.reconcile-version.outputs.target-version }}
+
   deploy:
     runs-on: ubuntu-latest
     strategy:
@@ -41,7 +47,6 @@ jobs:
       - run: |
           sudo apt-get -y install jq
           poetry install
-
       - uses: UWIT-IAM/actions/configure-gcloud-docker@0.1
         with:
           gcloud-token: ${{ secrets.GCR_TOKEN }}
