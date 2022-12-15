@@ -165,6 +165,11 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v3
+      - uses: abatilo/actions-poetry@v2.1.6
+      - run: |
+          sudo apt-get -y install jq
+          poetry install
+      - uses: actions/checkout@v3
       - uses: ./.github/actions/configure-docker
         with:
           project-name: ${{ secrets.IAM_GCR_REPO }}
