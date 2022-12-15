@@ -147,9 +147,6 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 1
-    permissions:
-      contents: read
-      id-token: write
     timeout-minutes: 12   # 10 minutes, plus some Actions overhead wiggle room.
     needs: [ configure ]
     concurrency:
