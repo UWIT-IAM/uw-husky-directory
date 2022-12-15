@@ -9,6 +9,18 @@ function get_instance_version {
     echo "$version"
 }
 
+function get_stage_url {
+  case "$1" in
+    dev|eval|prod)
+      echo "https://directory.iam${1}.s.uw.edu"
+      ;;
+    *)
+      echo "Invalid stage provided to scripts/globals.sh/get_stage_url. You must provide one of dev|eval|prod as your
+      target cluster. You provided $1"
+      ;;
+  esac
+}
+
 function get_instance_deployment_id {
     local stage="$1"
     local url="https://directory.iam${stage}.s.uw.edu/status"

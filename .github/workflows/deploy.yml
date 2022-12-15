@@ -1,0 +1,204 @@
+name: Deploy the UW Directory
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_cluster:
+        description: cluster. Choose from dev/eval/prod.
+        default: eval
+        required: true
+      rfc:
+        description: >
+          rfc. The RFC number or link associated with this
+          deployment. Required when deploying to prod.
+      target-version:
+        description: >
+          version. The version to deploy (e.g., '1.2.3'). If not provided,
+          the most recent release candidate will be used (eval will source from dev,
+          prod will source from eval).
+
+env:
+  SLACK_BOT_TOKEN: ${{ secrets.ACTIONS_SLACK_BOT_TOKEN }}
+  DRY_RUN: false # ?
+  STEP_SCRIPTS: ${{ github.workspace }}/.github/steps/deploy
+  # target_cluster: dev
+
+jobs:
+  # The `configure` job reconciles the target version (if it wasn't explicitly provided),
+  # creates a slack notification for the deployment (except for developer instances),
+  # and updates the slack notification with additional deployment context information.
+  configure:
+    env:
+      target_cluster: ${{ github.event.inputs.target_cluster }}
+      rfc: ${{ github.event.inputs.rfc }}
+    outputs:
+      target-version: ${{ steps.reconcile-version.outputs.target-version }}
+      slack-notification-id: ${{ steps.slack.outputs.canvas-id }} #?
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      # We require a deployment record for the prod endpoint to make it
+      # harder to accidentally deploy to prod; unfortunately we cannot
+      # currently validate this record, because endpoints usually require
+      # authentication.
+      - name: Verify prod deployment record
+        if:  github.event.inputs.target_cluster == 'prod'
+        run: |
+          if [[ -z "${{ env.rfc }}" ]]
+          then
+            echo "Deployment to prod requires a link to an rfc"
+            exit 1
+          fi
+      # If the entity who created this deployment did not provide a version,
+      # we will derive the version from the target stage's "previous" environment.
+      # This means that deployments to eval will promote from dev, and deployments
+      # to prod will promote from eval. It's OK if the same version is re-deployed,
+      # it will have the same net effect of a `kubectl rollout restart`.
+      # Output: `target-version`: The reconciled version to deploy.
+      - name: Reconcile target deployment version
+        id: reconcile-version
+        run: |
+          set -x
+          if [[ -z "${target_version}" ]]
+          then
+             case "${target_cluster}" in
+                 prod)
+                   source_stage=eval
+                   ;;
+                 dev)
+                   source_stage=poetry
+                   ;;
+                 *)
+                   source_stage=dev
+                   ;;
+             esac
+             target_version=$(./scripts/get-deployed-version.sh -s ${target_cluster})
+          fi
+          if [[ "${source_stage}" == "poetry" ]]
+          then
+            # Get the target version from the poetry configuration
+            source ./scripts/globals.sh
+            target_version=$(get_poetry_version)
+          else
+            target_version=$(./scripts/get-deployed-version.sh -s ${source_stage})
+          fi
+          echo "::set-output name=target-version::${target_version}"
+      # For shared instances (dev, eval, prod) we create a slack notification
+      # so that others can be aware of the change.
+      # TODO: Eval and prod deployment notifications should go to #iam-uwnetid
+      # https://github.com/UWIT-IAM/uw-husky-directory/issues/152
+      - name: Create notification
+        id: slack
+        # Don't send notifications for developer instances
+        if: env.target_cluster == 'dev' || env.target_cluster == 'eval' || env.target_cluster == 'prod'
+        uses: UWIT-IAM/actions/set-up-slack-notification-canvas@0.1
+        env:
+          target_version: ${{ steps.reconcile-version.outputs.target-version }}
+        with:
+          json: >
+            {
+              "description": "Deploy UW Husky Directory v${{ env.target_version }} to ${{ env.target_cluster }}",
+              "channel": "#iam-bots",
+              "status": "in progress",
+              "steps": [
+                  {
+                    "stepId": "deploy",
+                    "status": "in progress",
+                    "description": "Create deployment and wait for update"
+                  }
+              ]
+            }
+      # This adds a special link for associated records, when they are provided;
+      # this logic was a little too complex to capture only using github actions contexts,
+      # so needed to be its own li'l step.
+      # Output: context - The slack message snippet that provides a link to the audit record.
+      - if: env.rfc
+        id: audit
+        run: |
+          slack_link="<${{ env.rfc }} | Audit Record>"
+          echo "::set-output name=context::[${slack_link}]"
+
+      # If we have a Slack notification for this change, add a context artifact to it.
+      # This provides at-a-glance links and details in the slack notification for
+      # traceability.
+      # The output winds up reading something like:
+      #   "Deployment workflow for UW Husky Directory app image started by goulter [Audit Record]" where
+      # all of "deployment workflow" "app image" "goulter" and "Audit Record" are all hyperlinks.
+      - if: steps.slack.outputs.canvas-id
+        uses: UWIT-IAM/actions/update-slack-workflow-canvas@0.1
+        env:
+          workflow_link: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          image_link: https://gcr.io/uwit-mci-iam/husky-directory.app:${{ steps.reconcile-version.outputs.target-version }}
+          target_version: ${{ steps.version.outputs.target-version }}
+          actor_link: https://github.com/${{ github.actor }}
+        with:
+          canvas-id: ${{ steps.slack.outputs.canvas-id }}
+          command: add-artifact
+          description: >
+            <${{ env.workflow_link }} | Deployment workflow> for UW Husky Directory
+            <${{ env.image_link }} | app image ${{ env.target_version }}>
+            started by <${{ env.actor_link }} | ${{ github.actor }}>
+            ${{ steps.audit.outputs.context }}
+
+  # The deploy job simply runs the deploy script. This script will wait for
+  # deployments to complete before exiting. If the deployment times out,
+  # it will be considered a failure, even if some pods succeed.
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1
+    timeout-minutes: 12   # 10 minutes, plus some Actions overhead wiggle room.
+    needs: [ configure ]
+    concurrency:
+      group: ${{ github.repository }}
+      cancel-in-progress: false
+    env:
+      target_version: ${{ needs.configure.outputs.target-version }}
+      target_stage: ${{ github.event.inputs.target_cluster }}
+      associated_record: ${{ github.event.inputs.rfc }}
+      slack_notification_id: ${{ needs.configure.outputs.slack-notification-id }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v3
+      - uses: abatilo/actions-poetry@v2.1.6
+      - run: |
+          sudo apt-get -y install jq
+          poetry install
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/configure-docker
+        with:
+          project-name: ${{ secrets.IAM_GCR_REPO }}
+          gcr-token: ${{ secrets.GCR_TOKEN }}
+      - run: |
+          gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+          ./scripts/deploy.sh -s ${target_stage} -t ${target_version}
+
+  # This removes extraneous volatile information from the Slack notification,
+  # leaving only any errors, the final status, and the deployment context artifact.
+  cleanup:
+    runs-on: ubuntu-latest
+    needs: [configure, deploy]
+    permissions:
+      contents: read
+      id-token: write
+    if: needs.configure.outputs.slack-notification-id
+    env:
+      SLACK_CANVAS_ID: ${{ needs.configure.outputs.slack-notification-id }}
+      deploy_result: ${{ needs.deploy.result == 'success' && 'succeeded' || 'failed' }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/configure-docker
+        with:
+          project-name: ${{ secrets.IAM_GCR_REPO }}
+          gcr-token: ${{ secrets.GCR_TOKEN }}
+      - uses: UWIT-IAM/actions/update-slack-workflow-canvas@0.1
+        with:
+          command: update-workflow
+          step-id: deploy
+          step-status: ${{ env.deploy_result }}
+          canvas-id: ${{ needs.configure.outputs.slack-notification-id }}
+      - uses: UWIT-IAM/actions/finalize-slack-notification-canvas@0.1
+        with:
+          workflow-status: ${{ env.deploy_result }}
