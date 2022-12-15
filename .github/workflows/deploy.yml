@@ -86,6 +86,7 @@ jobs:
       # For shared instances (dev, eval, prod) we create a slack notification
       # so that others can be aware of the change.
       # TODO: Eval and prod deployment notifications should go to #iam-uwnetid
+      # https://github.com/UWIT-IAM/uw-husky-directory/issues/152
       - name: Create notification
         id: slack
         # Don't send notifications for developer instances
@@ -127,7 +128,6 @@ jobs:
         uses: UWIT-IAM/actions/update-slack-workflow-canvas@0.1
         env:
           workflow_link: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          # image_link: https://gcr.io/uwit-mci-iam/identity-uw.app:${{ steps.reconcile-version.outputs.target-version }}
           image_link: https://gcr.io/uwit-mci-iam/husky-directory.app:${{ steps.reconcile-version.outputs.target-version }}
           target_version: ${{ steps.version.outputs.target-version }}
           actor_link: https://github.com/${{ github.actor }}

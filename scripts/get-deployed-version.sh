@@ -54,6 +54,7 @@ function get_stage_version {
   local stage=$1
   local url=$(get_stage_url $stage)
   local version=$(curl -Ssl ${url}/status | grep version | cut -f2 -d: | sed 's| ||g')
+  # version will return something similar to 2.2.5, no "v" prefix.
   echo "${version}"
 }
 

@@ -15,7 +15,8 @@ function get_stage_url {
       echo "https://directory.iam${1}.s.uw.edu"
       ;;
     *)
-      echo "invalid stage provided to scripts/globals.sh/get_stage_url"
+      echo "Invalid stage provided to scripts/globals.sh/get_stage_url. You must provide one of dev|eval|prod as your
+      target cluster. You provided $1"
       ;;
   esac
 }
