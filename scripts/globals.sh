@@ -9,6 +9,17 @@ function get_instance_version {
     echo "$version"
 }
 
+function get_stage_url {
+  case "$1" in
+    dev|eval|prod)
+      echo "https://directory.iam${1}.s.uw.edu"
+      ;;
+    *)
+      echo "invalid stage provided to scripts/globals.sh/get_stage_url"
+      ;;
+  esac
+}
+
 function get_instance_deployment_id {
     local stage="$1"
     local url="https://directory.iam${stage}.s.uw.edu/status"

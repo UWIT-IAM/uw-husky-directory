@@ -11,7 +11,7 @@ on:
         description: >
           rfc. The RFC number or link associated with this
           deployment. Required when deploying to prod.
-      version:
+      target-version:
         description: >
           version. The version to deploy (e.g., '1.2.3'). If not provided,
           the most recent release candidate will be used (eval will source from dev,
@@ -44,9 +44,9 @@ jobs:
       - name: Verify prod deployment record
         if:  github.event.inputs.target_cluster == 'prod'
         run: |
-          if [[ -z "${{ env.associated_record }}" ]]
+          if [[ -z "${{ env.rfc }}" ]]
           then
-            echo "Deployment to prod requires a link to an associated-record"
+            echo "Deployment to prod requires a link to an rfc"
             exit 1
           fi
       # If the entity who created this deployment did not provide a version,
@@ -61,7 +61,7 @@ jobs:
           set -x
           if [[ -z "${target_version}" ]]
           then
-             case "${target_stage}" in
+             case "${target_cluster}" in
                  prod)
                    source_stage=eval
                    ;;
@@ -72,7 +72,7 @@ jobs:
                    source_stage=dev
                    ;;
              esac
-             target_version=$(./scripts/get-deployed-version.sh -s ${target_stage})
+             target_version=$(./scripts/get-deployed-version.sh -s ${target_cluster})
           fi
           if [[ "${source_stage}" == "poetry" ]]
           then
@@ -89,14 +89,14 @@ jobs:
       - name: Create notification
         id: slack
         # Don't send notifications for developer instances
-        if: env.target_stage == 'dev' || env.target_stage == 'eval' || env.target_stage == 'prod'
+        if: env.target_cluster == 'dev' || env.target_cluster == 'eval' || env.target_cluster == 'prod'
         uses: UWIT-IAM/actions/set-up-slack-notification-canvas@0.1
         env:
           target_version: ${{ steps.reconcile-version.outputs.target-version }}
         with:
           json: >
             {
-              "description": "Deploy UW Husky Directory v${{ env.target_version }} to ${{ env.target_stage }}",
+              "description": "Deploy UW Husky Directory v${{ env.target_version }} to ${{ env.target_cluster }}",
               "channel": "#iam-bots",
               "status": "in progress",
               "steps": [
@@ -111,18 +111,18 @@ jobs:
       # this logic was a little too complex to capture only using github actions contexts,
       # so needed to be its own li'l step.
       # Output: context - The slack message snippet that provides a link to the audit record.
-      - if: env.associated_record
+      - if: env.rfc
         id: audit
         run: |
-          slack_link="<${{ env.associated_record }} | Audit Record>"
+          slack_link="<${{ env.rfc }} | Audit Record>"
           echo "::set-output name=context::[${slack_link}]"
 
       # If we have a Slack notification for this change, add a context artifact to it.
       # This provides at-a-glance links and details in the slack notification for
       # traceability.
       # The output winds up reading something like:
-      #   "Deployment workflow for Identity.UW app image started by tomthorogood [Audit Record]" where
-      # all of "deployment workflow" "app image" "tomthorogood" and "Audit Record" are all hyperlinks.
+      #   "Deployment workflow for UW Husky Directory app image started by goulter [Audit Record]" where
+      # all of "deployment workflow" "app image" "goulter" and "Audit Record" are all hyperlinks.
       - if: steps.slack.outputs.canvas-id
         uses: UWIT-IAM/actions/update-slack-workflow-canvas@0.1
         env:
@@ -135,7 +135,7 @@ jobs:
           canvas-id: ${{ steps.slack.outputs.canvas-id }}
           command: add-artifact
           description: >
-            <${{ env.workflow_link }} | Deployment workflow> for Identity.UW
+            <${{ env.workflow_link }} | Deployment workflow> for UW Husky Directory
             <${{ env.image_link }} | app image ${{ env.target_version }}>
             started by <${{ env.actor_link }} | ${{ github.actor }}>
             ${{ steps.audit.outputs.context }}
@@ -145,6 +145,11 @@ jobs:
   # it will be considered a failure, even if some pods succeed.
   deploy:
     runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 1
+    permissions:
+      contents: read
+      id-token: write
     timeout-minutes: 12   # 10 minutes, plus some Actions overhead wiggle room.
     needs: [ configure ]
     concurrency:
