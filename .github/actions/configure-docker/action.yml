@@ -1,0 +1,31 @@
+name: Authenticate with gcloud
+description: Authenticate with gcloud
+
+inputs:
+  project-name:
+    description: The GCR project name (gcr.io/<project_name>/)
+    required: true
+  gcr-token:
+    description: The Base-64 encoded service account token
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: google-github-actions/auth@v0
+      with:
+        credentials_json: ${{ inputs.gcr-token }}
+    - uses: google-github-actions/setup-gcloud@v1.0.1
+
+      # archiving leaving this "with" section, might b a handy reference at a later date.
+      # It was there when the above "uses" was uses: google-github-actions/setup-gcloud@v0
+      # with:
+        # This version has to stay pinned in order
+        # to work with docker-compose; there is a bug
+        # either in Docker's or Google's software.
+        # Ref: https://stackoverflow.com/questions/65295958/docker-compose-not-working-with-gcloud-cannot-find-openssl
+        # version: 297.0.1
+    - run: |
+        gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
+        cat ${GOOGLE_APPLICATION_CREDENTIALS} | docker login -u _json_key --password-stdin https://gcr.io
+      shell: bash
