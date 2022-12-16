@@ -174,7 +174,8 @@ jobs:
           gcr-token: ${{ secrets.GCR_TOKEN }}
       - run: |
           gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
-          ./scripts/deploy.sh -s ${target_stage} -t ${target_version}
+          ./scripts/deploy.sh -g -t ${target_stage} -v ${target_version} -r "${{ github.event.inputs.rfc }}"
+        # probably need to account for -x, --dry-run at some point. lets see how things go.
 
   # This removes extraneous volatile information from the Slack notification,
   # leaving only any errors, the final status, and the deployment context artifact.
