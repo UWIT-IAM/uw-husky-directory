@@ -18,6 +18,7 @@ on:
           prod will source from eval).
 
 env:
+  GCLOUD_TOKEN: ${{ secrets.GCR_TOKEN }}
   SLACK_BOT_TOKEN: ${{ secrets.ACTIONS_SLACK_BOT_TOKEN }}
   DRY_RUN: false # ?
   STEP_SCRIPTS: ${{ github.workspace }}/.github/steps/deploy
