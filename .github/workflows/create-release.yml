@@ -37,7 +37,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v3
-      - uses: UWIT-IAM/actions/configure-gcloud-docker@0.1
+      - uses: UWIT-IAM/actions/configure-gcloud-docker-gcloud-v101@0.1.17
         with:
           gcloud-token: ${{ secrets.GCR_TOKEN }}
       - name: Install poetry
