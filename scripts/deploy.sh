@@ -120,8 +120,8 @@ function configure_deployment {
   fi
   if [[ -n "${GITHUB_REF}" ]]
   then
-    echo "::set-output name=target-cluster::$target_cluster"
-    echo "::set-output name=target-version::$deploy_version"
+    echo "target-cluster=$target_cluster" >> $GITHUB_OUTPUT
+    echo "target-version=$deploy_version" >> $GITHUB_OUTPUT
   fi
 }
 
