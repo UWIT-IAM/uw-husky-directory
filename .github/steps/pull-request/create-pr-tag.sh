@@ -42,5 +42,5 @@ tag_name="pull-request-${pr_number}"
 dest_image="${DOCKER_REPOSITORY}.app:${tag_name}"
 docker tag "${source_image}" ${dest_image}
 docker push "${dest_image}"
-echo "::set-output name=image::${dest_image}"
+echo "image=${dest_image}" >> $GITHUB_OUTPUT
 echo "::notice::Pushed image https://${dest_image}"

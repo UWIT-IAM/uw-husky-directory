@@ -83,7 +83,7 @@ jobs:
           else
             target_version=$(./scripts/get-deployed-version.sh -s ${source_stage})
           fi
-          echo "::set-output name=target-version::${target_version}"
+          echo "target-version=${target_version}" >> $GITHUB_OUTPUT
       # For shared instances (dev, eval, prod) we create a slack notification
       # so that others can be aware of the change.
       # TODO: Eval and prod deployment notifications should go to #iam-uwnetid
@@ -117,7 +117,7 @@ jobs:
         id: audit
         run: |
           slack_link="<${{ env.rfc }} | Audit Record>"
-          echo "::set-output name=context::[${slack_link}]"
+          echo "context=[${slack_link}]" >> $GITHUB_OUTPUT
 
       # If we have a Slack notification for this change, add a context artifact to it.
       # This provides at-a-glance links and details in the slack notification for
