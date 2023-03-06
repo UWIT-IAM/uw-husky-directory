@@ -32,6 +32,7 @@ prometheus-flask-exporter = "^0.20"
 Flask-HTTPAuth = "^4.4.0"
 python-Levenshtein = "^0.12.2"
 uw-it-flask-gunicorn-json-logger = "^0.1.6"
+setuptools = "^65.4.0"
 
 [tool.poetry.dev-dependencies]
 black = "^22.0"
@@ -47,5 +48,5 @@ tox = "^3.24.5"
 
 #
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["setuptools", "poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
