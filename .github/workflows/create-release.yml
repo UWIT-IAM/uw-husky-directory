@@ -54,19 +54,15 @@ jobs:
           python -m pip install poetry
           poetry --version
 
+
       - run: |
           sudo apt-get -y install jq
           poetry run pip install tox uw-it-build-fingerprinter
-      - run: |
-          poetry run tox -e build-layers -- \
-            -t ${{ env.version }} --release ${{ env.version }} --cache \
-            --build-arg HUSKY_DIRECTORY_VERSION=${{ env.version }}
+
+      - name: Build and test
+        run: |
+          poetry run tox -e build-layers -- -t ${{ env.version }} --release ${{ env.version }} --cache --build-arg HUSKY_DIRECTORY_VERSION=${{ env.version }}
           poetry run tox -e unit-tests
-        # Build layers with the -k option to avoid installing a lot of
-        # unnecessary dependencies. We can also skip black/flake8 for
-        # this phase, because the code has already been accepted into
-        # the repository.
-        name: Validate build
 
       - name: Create release ${{ needs.configure-release.outputs.version }}
         uses: ncipollo/release-action@v1
@@ -74,9 +70,11 @@ jobs:
           tag: ${{ needs.configure-release.outputs.version }}
         if: github.ref == 'refs/heads/main'
 
-      - run: docker push gcr.io/uwit-mci-iam/husky-directory:${{ env.version }}
+      - name: Push Docker image
+        run: docker push gcr.io/uwit-mci-iam/husky-directory:${{ env.version }}
         if: github.ref == 'refs/heads/main'
 
-      - run: |
+      - name: Deploy
+        run: |
           ./scripts/deploy.sh -t dev -v ${{ env.version }} \
             ${{ github.ref != 'refs/heads/main' && '-x' || '' }}
