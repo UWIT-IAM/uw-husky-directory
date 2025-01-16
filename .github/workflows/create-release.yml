@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - dry-run-create-release
+  workflow_dispatch:
 
 env:
   STEP_SCRIPTS: ${{ github.workspace }}/.github/steps/create-release
