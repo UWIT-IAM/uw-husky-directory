@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - dry-run-create-release
+      - GH-169
   workflow_dispatch:
 
 env:
