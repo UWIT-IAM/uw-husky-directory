@@ -56,7 +56,7 @@ jobs:
 
       - run: |
           sudo apt-get -y install jq
-          poetry run pip install uw-it-build-fingerprinter tox
+          poetry run pip install tox uw-it-build-fingerprinter
       - run: |
           poetry run tox -e build-layers \
             -- -t ${{ env.version }} --release ${{ env.version }} --cache \
