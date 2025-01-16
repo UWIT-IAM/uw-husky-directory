@@ -60,10 +60,10 @@ jobs:
           poetry run pip install tox uw-it-build-fingerprinter
 
       - name: Build and test
-        env:
-          HUSKY_DIRECTORY_VERSION: ${{ env.version }}
         run: |
-          poetry run tox -e build-layers -v -- build-layers "-t ${{ env.version }}" "--release ${{ env.version }}" "--cache"
+          poetry run tox -e build-layers -- \
+            -t ${{ env.version }} --release ${{ env.version }} --cache \
+            --build-arg HUSKY_DIRECTORY_VERSION=${{ env.version }}
           poetry run tox -e unit-tests
 
       - name: Create release ${{ needs.configure-release.outputs.version }}
