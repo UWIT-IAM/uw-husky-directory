@@ -231,7 +231,7 @@ class PersonWebServiceClient(AppLoggerMixIn):
         """
         Given an input request, queries PWS and returns the output.
         For more information on this request,
-        see https://it-wseval1.s.uw.edu/identity/swagger/index.html#/PersonV2/PersonSearch
+        see https://wseval.s.uw.edu/identity/swagger/index.html#/PersonV2/PersonSearch
         """
         payload = request_input.payload
         constraints = self.global_constraints + request_input.constraints
