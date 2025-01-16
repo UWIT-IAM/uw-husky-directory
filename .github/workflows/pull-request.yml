@@ -49,7 +49,11 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
-      # Install Poetry using pipx
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
       - name: Install Poetry with pipx
         run: |
           pipx install poetry
