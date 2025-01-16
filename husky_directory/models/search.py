@@ -220,7 +220,25 @@ class Person(DirectoryBaseModel):
 
     @validator("href")
     def b64_encode_href(cls, value: str) -> str:
-        return base64.b64encode(value.encode("UTF-8")).decode("UTF-8")
+        """
+        Base64 encode href only if not already encoded.
+        Prevents double-encoding after browser back navigation when href
+        from previous page state is already encoded.
+        """
+        encoding = "UTF-8"
+        if not cls._is_base64_encoded(value, encoding):
+            return base64.b64encode(value.encode(encoding)).decode(encoding)
+        return value
+
+    @staticmethod
+    def _is_base64_encoded(value: str, encoding: str = "UTF-8") -> bool:
+        """
+        Check if a string is already base64 encoded.
+        """
+        try:
+            return base64.b64decode(value.encode(encoding)).decode(encoding) is not None
+        except (ValueError, UnicodeDecodeError):
+            return False
 
     @validator("sort_key", always=True)
     def set_default_sort_key(cls, v: Optional[str], values: Dict):
