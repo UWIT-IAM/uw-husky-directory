@@ -1,6 +1,6 @@
 UWCA_CERT_NAME=uwca
 UWCA_CERT_PATH=/app/certificates
-PWS_HOST=https://it-wseval1.s.uw.edu
+PWS_HOST=https://wseval.s.uw.edu
 PWS_DEFAULT_PATH=/identity/v2
 HOST=uw-directory.iamdev.s.uw.edu
 SAML_ENTITY_ID=https://${HOST}/saml

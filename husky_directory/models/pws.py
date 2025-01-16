@@ -1,6 +1,6 @@
 """
 Models for PWS inputs and outputs. These act as declarative, typed abstractions over
-the PWS API definitions at https://it-wseval1.s.uw.edu/identity/swagger/index.html#/
+the PWS API definitions at https://wseval.s.uw.edu/identity/swagger/index.html#/
 
 These are not 1:1 models of that API; only fields we care about are declared here.
 """
