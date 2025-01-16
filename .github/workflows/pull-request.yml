@@ -49,7 +49,12 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
-      - uses: abatilo/actions-poetry@v2.1.6
+      # Install Poetry using pipx
+      - name: Install Poetry with pipx
+        run: |
+          pipx install poetry
+          poetry --version  # Verify that Poetry was installed correctly
+
       - run: |
           sudo apt-get -y install jq
           poetry run pip install tox uw-it-build-fingerprinter
