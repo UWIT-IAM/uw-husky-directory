@@ -49,19 +49,18 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
       - name: Install Poetry with pipx
         run: |
           pipx install poetry
           poetry --version  # Verify that Poetry was installed correctly
 
+      - name: Configure Poetry environment with Python 3.10
+        run: |
+          poetry env use python3.10
+
       - run: |
           sudo apt-get -y install jq
-          poetry run pip install tox uw-it-build-fingerprinter
+          poetry run pip install tox uw-it-build-fingerprinter  # Install required Python dependencies
         id: configure
         name: Set up environment
 
