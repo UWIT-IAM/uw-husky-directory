@@ -63,11 +63,8 @@ jobs:
         env:
           HUSKY_DIRECTORY_VERSION: ${{ env.version }}
         run: |
-          poetry run tox -e build-layers -- \
-            -t ${{ env.version }} \
-            --release ${{ env.version }} \
-            --cache
-          poetry run tox -e unit-tests        
+          poetry run tox -e build-layers -v -- build-layers "-t ${{ env.version }}" "--release ${{ env.version }}" "--cache"
+          poetry run tox -e unit-tests
 
       - name: Create release ${{ needs.configure-release.outputs.version }}
         uses: ncipollo/release-action@v1
