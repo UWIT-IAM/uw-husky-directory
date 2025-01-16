@@ -61,8 +61,9 @@ jobs:
 
       - name: Build and test
         run: |
-          poetry run tox -e build-layers -- \
-            -t ${{ env.version }} --release ${{ env.version }} --cache --build-arg HUSKY_DIRECTORY_VERSION=${{ env.version }}
+          poetry run tox -e build-layers \
+            -- -- -t ${{ env.version }} --release ${{ env.version }} --cache \
+            --build-arg HUSKY_DIRECTORY_VERSION=${{ env.version }}
           poetry run tox -e unit-tests
 
       - name: Create release ${{ needs.configure-release.outputs.version }}
