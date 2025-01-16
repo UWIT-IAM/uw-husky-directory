@@ -21,16 +21,16 @@ jobs:
       new-version: ${{ steps.update-version.outputs.new-version }}
     steps:
       - name: Python Poetry Action
-        uses: abatilo/actions-poetry@v2.1.6
+        run: pipx install poetry
 
       - uses: uwit-iam/actions/require-semver-guidance-label@0.1
         id: guidance
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ github.token }}
 
-      - uses: uwit-iam/actions/update-pr-branch-version@0.1.16
+      - uses: uwit-iam/actions/update-pr-branch-version@0.1.20
         with:
-          github-token: ${{ env.GITHUB_TOKEN }}
+          github-token: ${{ github.token }}
           version-guidance: ${{ steps.guidance.outputs.guidance }}
         id: update-version
 
