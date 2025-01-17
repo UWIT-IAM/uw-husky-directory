@@ -174,9 +174,10 @@ jobs:
           python -m pip install poetry
           poetry --version
 
-      - name: Install jq
+      - name: Run Poetry Install
       - run: |
           sudo apt-get -y install jq
+          poetry install
 
       - uses: actions/checkout@v3
       - uses: ./.github/actions/configure-docker
