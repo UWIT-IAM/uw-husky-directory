@@ -81,7 +81,6 @@ jobs:
                    source_stage=dev
                    ;;
              esac
-             ./scripts/install-build-scripts.sh
              target_version=$(./scripts/get-deployed-version.sh -s ${target_stage})
 
             if [[ "${source_stage}" == "poetry" ]]
