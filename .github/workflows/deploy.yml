@@ -26,8 +26,7 @@ on:
 
 env:
   GCLOUD_TOKEN: ${{ secrets.GCR_TOKEN }}
-  #TODO Replace with Deploy WebHook - Testing with this for now, while coordinating with the team
-  TEAMS_INTEGRATIONS_DAILY_WEB_TESTS: ${{ secrets.TEAMS_INTEGRATIONS_DAILY_WEB_TESTS }}
+  UW_DIRECTORY_DEPLOY_MS_TEAMS_WEBHOOK_URL: ${{ secrets.UW_DIRECTORY_DEPLOY_MS_TEAMS_WEBHOOK_URL }}
 
 jobs:
   # The `configure` job reconciles the target version (if it wasn't explicitly provided)
@@ -167,7 +166,7 @@ jobs:
                    }
                  ]
                }' \
-               "${{ env.IDENTITY_UW_DEPLOY_MS_TEAMS_WEBHOOK_URL }}"
+               "${{ env.UW_DIRECTORY_DEPLOY_MS_TEAMS_WEBHOOK_URL }}"
 
       - uses: ./.github/actions/configure-docker
         with:
@@ -247,5 +246,5 @@ jobs:
                    }
                  ]
                }' \
-               "${{ env.IDENTITY_UW_DEPLOY_MS_TEAMS_WEBHOOK_URL }}"
+               "${{ env.UW_DIRECTORY_DEPLOY_MS_TEAMS_WEBHOOK_URL }}"
 
