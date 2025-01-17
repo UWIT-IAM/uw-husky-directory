@@ -176,7 +176,7 @@ jobs:
           gcr-token: ${{ secrets.GCR_TOKEN }}
       - run: |
           gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
-          ./scripts/deploy.sh -g -t ${target_stage} -v ${target_version} -r "${{ associated_record }}"
+          ./scripts/deploy.sh -g -t ${target_stage} -v ${target_version} -r "${{  github.event.inputs.associated-record }}"
         # probably need to account for -x, --dry-run at some point. lets see how things go.
 
   notify-teams-finish:
