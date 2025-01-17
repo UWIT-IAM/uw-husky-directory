@@ -4,6 +4,8 @@ on:
     branches:
       - main
       - dry-run-create-release
+      - GH-169
+  workflow_dispatch:
 
 env:
   STEP_SCRIPTS: ${{ github.workspace }}/.github/steps/create-release
@@ -40,21 +42,33 @@ jobs:
       - uses: UWIT-IAM/actions/configure-gcloud-docker-gcloud-v101@0.1.17
         with:
           gcloud-token: ${{ secrets.GCR_TOKEN }}
-      - name: Install poetry
-        uses: abatilo/actions-poetry@v2.1.6
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Poetry with pip
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install poetry
+          poetry --version
+
+
       - run: |
           sudo apt-get -y install jq
-          poetry run pip install uw-it-build-fingerprinter tox
-      - run: |
+          poetry run pip install tox uw-it-build-fingerprinter
+
+      - name: Validate Build and Test
+        run: |
           poetry run tox -e build-layers \
-            -- -t ${{ env.version }} --release ${{ env.version }} --cache \
+            -- -- -t ${{ env.version }} --release ${{ env.version }} --cache \
             --build-arg HUSKY_DIRECTORY_VERSION=${{ env.version }}
           poetry run tox -e unit-tests
         # Build layers with the -k option to avoid installing a lot of
         # unnecessary dependencies. We can also skip black/flake8 for
         # this phase, because the code has already been accepted into
         # the repository.
-        name: Validate build
 
       - name: Create release ${{ needs.configure-release.outputs.version }}
         uses: ncipollo/release-action@v1
@@ -62,9 +76,11 @@ jobs:
           tag: ${{ needs.configure-release.outputs.version }}
         if: github.ref == 'refs/heads/main'
 
-      - run: docker push gcr.io/uwit-mci-iam/husky-directory:${{ env.version }}
+      - name: Push Docker image
+        run: docker push gcr.io/uwit-mci-iam/husky-directory:${{ env.version }}
         if: github.ref == 'refs/heads/main'
 
-      - run: |
+      - name: Deploy
+        run: |
           ./scripts/deploy.sh -t dev -v ${{ env.version }} \
             ${{ github.ref != 'refs/heads/main' && '-x' || '' }}
