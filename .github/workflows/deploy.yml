@@ -117,6 +117,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Notify Teams of Deployment Start
+        # creates MS Teams notification for the deployment (except for developer instances),
+        if: env.target_stage == 'dev' || env.target_stage == 'eval' || env.target_stage == 'prod'
         run: |
           associated_record="${{ github.event.inputs.associated-record }}"
           target_stage="${{ github.event.inputs.target-stage }}"
