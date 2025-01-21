@@ -3,38 +3,43 @@ name: Deploy the UW Directory
 on:
   workflow_dispatch:
     inputs:
-      target_cluster:
-        description: cluster. Choose from dev/eval/prod.
-        default: eval
+      target-stage:
         required: true
-      rfc:
+        default: eval
         description: >
-          rfc. The RFC number or link associated with this
-          deployment. Required when deploying to prod.
+          (target-stage)
+          Which cluster you want to deploy to.
+          Choose from dev, eval, prod.
       target-version:
+        required: false
         description: >
-          version. The version to deploy (e.g., '1.2.3'). If not provided,
-          the most recent release candidate will be used (eval will source from dev,
-          prod will source from eval).
+          (target-version)
+          The semver you want to deploy. If you do not provide this, the workflow
+          will promote from the "previous" cluster (dev -> eval, eval -> prod).
+      associated-record:
+        required: false
+        description: >
+          (associated-record)
+          Only required if target-stage is prod.
+          A link to an RFC, Jira, or other document associated
+          with this change.          
 
 env:
   GCLOUD_TOKEN: ${{ secrets.GCR_TOKEN }}
-  SLACK_BOT_TOKEN: ${{ secrets.ACTIONS_SLACK_BOT_TOKEN }}
-  DRY_RUN: false # ?
-  STEP_SCRIPTS: ${{ github.workspace }}/.github/steps/deploy
-  # target_cluster: dev
+  UW_DIRECTORY_DEPLOY_MS_TEAMS_WEBHOOK_URL: ${{ secrets.UW_DIRECTORY_DEPLOY_MS_TEAMS_WEBHOOK_URL }}
 
 jobs:
-  # The `configure` job reconciles the target version (if it wasn't explicitly provided),
-  # creates a slack notification for the deployment (except for developer instances),
-  # and updates the slack notification with additional deployment context information.
+  # The `configure` job reconciles the target version (if it wasn't explicitly provided)
+  # and prepares the deployment context. Additionally, a Teams notification is sent at the
+  # start of the deployment in the `deploy` job, and another notification is sent upon
+  # deployment completion (regardless of success or failure) in the `notify-teams-finish` job.
   configure:
     env:
-      target_cluster: ${{ github.event.inputs.target_cluster }}
-      rfc: ${{ github.event.inputs.rfc }}
+      target_stage: ${{ github.event.inputs.target-stage }}
+      target_version: ${{ github.event.inputs.target-version }}
+      associated_record: ${{ github.event.inputs.associated-record }}
     outputs:
       target-version: ${{ steps.reconcile-version.outputs.target-version }}
-      slack-notification-id: ${{ steps.slack.outputs.canvas-id }} #?
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -43,11 +48,11 @@ jobs:
       # currently validate this record, because endpoints usually require
       # authentication.
       - name: Verify prod deployment record
-        if:  github.event.inputs.target_cluster == 'prod'
+        if: github.event.inputs.target-stage == 'prod'
         run: |
-          if [[ -z "${{ env.rfc }}" ]]
+          if [[ -z "${{ env.associated_record }}" ]]
           then
-            echo "Deployment to prod requires a link to an rfc"
+            echo "Deployment to prod requires a link to an associated record"
             exit 1
           fi
       # If the entity who created this deployment did not provide a version,
@@ -55,14 +60,16 @@ jobs:
       # This means that deployments to eval will promote from dev, and deployments
       # to prod will promote from eval. It's OK if the same version is re-deployed,
       # it will have the same net effect of a `kubectl rollout restart`.
+      # If the entity does provide a semver (target_version), that is used.
+
       # Output: `target-version`: The reconciled version to deploy.
       - name: Reconcile target deployment version
         id: reconcile-version
         run: |
           set -x
-          if [[ -z "${target_version}" ]]
+          if [[ -z "${{ env.target_version }}" ]]
           then
-             case "${target_cluster}" in
+             case "${target_stage}" in
                  prod)
                    source_stage=eval
                    ;;
@@ -73,73 +80,20 @@ jobs:
                    source_stage=dev
                    ;;
              esac
-             target_version=$(./scripts/get-deployed-version.sh -s ${target_cluster})
-          fi
-          if [[ "${source_stage}" == "poetry" ]]
-          then
-            # Get the target version from the poetry configuration
-            source ./scripts/globals.sh
-            target_version=$(get_poetry_version)
-          else
-            target_version=$(./scripts/get-deployed-version.sh -s ${source_stage})
-          fi
-          echo "target-version=${target_version}" >> $GITHUB_OUTPUT
-      # For shared instances (dev, eval, prod) we create a slack notification
-      # so that others can be aware of the change.
-      # TODO: Eval and prod deployment notifications should go to #iam-uwnetid
-      # https://github.com/UWIT-IAM/uw-husky-directory/issues/152
-      - name: Create notification
-        id: slack
-        # Don't send notifications for developer instances
-        if: env.target_cluster == 'dev' || env.target_cluster == 'eval' || env.target_cluster == 'prod'
-        uses: UWIT-IAM/actions/set-up-slack-notification-canvas@0.1
-        env:
-          target_version: ${{ steps.reconcile-version.outputs.target-version }}
-        with:
-          json: >
-            {
-              "description": "Deploy UW Husky Directory v${{ env.target_version }} to ${{ env.target_cluster }}",
-              "channel": "#iam-bots",
-              "status": "in progress",
-              "steps": [
-                  {
-                    "stepId": "deploy",
-                    "status": "in progress",
-                    "description": "Create deployment and wait for update"
-                  }
-              ]
-            }
-      # This adds a special link for associated records, when they are provided;
-      # this logic was a little too complex to capture only using github actions contexts,
-      # so needed to be its own li'l step.
-      # Output: context - The slack message snippet that provides a link to the audit record.
-      - if: env.rfc
-        id: audit
-        run: |
-          slack_link="<${{ env.rfc }} | Audit Record>"
-          echo "context=[${slack_link}]" >> $GITHUB_OUTPUT
+             target_version=$(./scripts/get-deployed-version.sh -s ${target_stage})
 
-      # If we have a Slack notification for this change, add a context artifact to it.
-      # This provides at-a-glance links and details in the slack notification for
-      # traceability.
-      # The output winds up reading something like:
-      #   "Deployment workflow for UW Husky Directory app image started by goulter [Audit Record]" where
-      # all of "deployment workflow" "app image" "goulter" and "Audit Record" are all hyperlinks.
-      - if: steps.slack.outputs.canvas-id
-        uses: UWIT-IAM/actions/update-slack-workflow-canvas@0.1
-        env:
-          workflow_link: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          image_link: https://gcr.io/uwit-mci-iam/husky-directory.app:${{ steps.reconcile-version.outputs.target-version }}
-          target_version: ${{ steps.version.outputs.target-version }}
-          actor_link: https://github.com/${{ github.actor }}
-        with:
-          canvas-id: ${{ steps.slack.outputs.canvas-id }}
-          command: add-artifact
-          description: >
-            <${{ env.workflow_link }} | Deployment workflow> for UW Husky Directory
-            <${{ env.image_link }} | app image ${{ env.target_version }}>
-            started by <${{ env.actor_link }} | ${{ github.actor }}>
-            ${{ steps.audit.outputs.context }}
+            if [[ "${source_stage}" == "poetry" ]]
+            then
+              source ./scripts/globals.sh
+              target_version=$(get_poetry_version)
+            else
+              target_version=$(./scripts/get-deployed-version.sh -s ${source_stage})
+            fi
+          else
+            target_version="${{ env.target_version }}"
+          fi
+          echo "***target_version=${target_version}" >> $GITHUB_OUTPUT
+          echo "::set-output name=target-version::${target_version}"
 
   # The deploy job simply runs the deploy script. This script will wait for
   # deployments to complete before exiting. If the deployment times out,
@@ -155,18 +109,83 @@ jobs:
       cancel-in-progress: false
     env:
       target_version: ${{ needs.configure.outputs.target-version }}
-      target_stage: ${{ github.event.inputs.target_cluster }}
-      associated_record: ${{ github.event.inputs.rfc }}
-      slack_notification_id: ${{ needs.configure.outputs.slack-notification-id }}
+      target_stage: ${{ github.event.inputs.target-stage }}
+      associated_record: ${{ github.event.inputs.associated-record }}
     permissions:
       contents: read
       id-token: write
     steps:
       - uses: actions/checkout@v3
-      - uses: abatilo/actions-poetry@v2.1.6
-      - run: |
+      - name: Notify Teams of Deployment Start
+        # creates MS Teams notification for the deployment (except for developer instances),
+        if: env.target_stage == 'dev' || env.target_stage == 'eval' || env.target_stage == 'prod'
+        run: |
+          associated_record="${{ github.event.inputs.associated-record }}"
+          target_stage="${{ github.event.inputs.target-stage }}"
+          
+          # Determine associated record value based on target stage and input
+          if [ -z "$associated_record" ]; then
+            if [ "$target_stage" != "prod" ]; then
+              associated_record="Not required (deployment to $target_stage)"
+            else
+              associated_record="Missing (required for production)"
+            fi
+          fi
+
+          curl -H "Content-Type: application/json" \
+               -d '{
+                 "type": "message",
+                 "attachments": [
+                   {
+                     "contentType": "application/vnd.microsoft.card.adaptive",
+                     "content": {
+                       "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                       "type": "AdaptiveCard",
+                       "version": "1.4",
+                       "body": [
+                         {
+                           "type": "TextBlock",
+                           "size": "Large",
+                           "weight": "Bolder",
+                           "text": "UW Directory - Deployment Notification"
+                         },
+                         {
+                           "type": "TextBlock",
+                           "text": "Deployment to stage **${{ github.event.inputs.target-stage }}** is starting.",
+                           "wrap": true
+                         },
+                         {
+                           "type": "FactSet",
+                           "facts": [
+                             {"title": "Stage:", "value": "${{ github.event.inputs.target-stage }}"},
+                             {"title": "Version:", "value": "${{ needs.configure.outputs.target-version }}"},
+                             {"title": "Associated Record:", "value": "'"${associated_record}"'"},
+                             {"title": "Initiated By:", "value": "${{ github.actor }}"}
+                           ]
+                         }
+                       ]
+                     }
+                   }
+                 ]
+               }' \
+               "${{ env.UW_DIRECTORY_DEPLOY_MS_TEAMS_WEBHOOK_URL }}"
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Poetry with pip
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install poetry
+          poetry --version
+
+      - name: Run Poetry Install
+        run: |
           sudo apt-get -y install jq
-          poetry install
+          poetry install --no-root
+
       - uses: actions/checkout@v3
       - uses: ./.github/actions/configure-docker
         with:
@@ -174,33 +193,77 @@ jobs:
           gcr-token: ${{ secrets.GCR_TOKEN }}
       - run: |
           gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
-          ./scripts/deploy.sh -g -t ${target_stage} -v ${target_version} -r "${{ github.event.inputs.rfc }}"
+          ./scripts/deploy.sh -g -t ${target_stage} -v ${target_version} -r "${{  github.event.inputs.associated-record }}"
         # probably need to account for -x, --dry-run at some point. lets see how things go.
 
-  # This removes extraneous volatile information from the Slack notification,
-  # leaving only any errors, the final status, and the deployment context artifact.
-  cleanup:
+  notify-teams-finish:
     runs-on: ubuntu-latest
-    needs: [configure, deploy]
-    permissions:
-      contents: read
-      id-token: write
-    if: needs.configure.outputs.slack-notification-id
-    env:
-      SLACK_CANVAS_ID: ${{ needs.configure.outputs.slack-notification-id }}
-      deploy_result: ${{ needs.deploy.result == 'success' && 'succeeded' || 'failed' }}
+    needs: [ configure, deploy ]
     steps:
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/configure-docker
-        with:
-          project-name: ${{ secrets.IAM_GCR_REPO }}
-          gcr-token: ${{ secrets.GCR_TOKEN }}
-      - uses: UWIT-IAM/actions/update-slack-workflow-canvas@0.1
-        with:
-          command: update-workflow
-          step-id: deploy
-          step-status: ${{ env.deploy_result }}
-          canvas-id: ${{ needs.configure.outputs.slack-notification-id }}
-      - uses: UWIT-IAM/actions/finalize-slack-notification-canvas@0.1
-        with:
-          workflow-status: ${{ env.deploy_result }}
+      - name: Notify Teams of Deployment Completion
+        if: always() # This step runs regardless of success or failure
+        run: |
+          deploy_result="${{ needs.deploy.result }}"
+          deploy_status="Failed"
+          associated_record="${{ github.event.inputs.associated-record }}"
+          target_stage="${{ github.event.inputs.target-stage }}"
+
+          if [ "$deploy_result" == "success" ]; then
+            deploy_status="Succeeded"
+          fi
+
+          # Determine associated record value based on target stage and input
+          if [ -z "$associated_record" ]; then
+            if [ "$target_stage" != "prod" ]; then
+              associated_record="Not required (deployment to $target_stage)"
+            else
+              associated_record="Missing (required for production)"
+            fi
+          fi
+
+          curl -H "Content-Type: application/json" \
+               -d '{
+                 "type": "message",
+                 "attachments": [
+                   {
+                     "contentType": "application/vnd.microsoft.card.adaptive",
+                     "content": {
+                       "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                       "type": "AdaptiveCard",
+                       "version": "1.4",
+                       "body": [
+                         {
+                           "type": "TextBlock",
+                           "size": "Large",
+                           "weight": "Bolder",
+                           "text": "UW Directory - Deployment Notification"
+                         },
+                         {
+                           "type": "TextBlock",
+                           "text": "Deployment to stage **${{ github.event.inputs.target-stage }}** has **'"$deploy_status"'**.",
+                           "wrap": true
+                         },
+                         {
+                           "type": "FactSet",
+                           "facts": [
+                             {"title": "Stage:", "value": "${{ github.event.inputs.target-stage }}"},
+                             {"title": "Version:", "value": "${{ needs.configure.outputs.target-version }}"},
+                             {"title": "Associated Record:", "value": "'"${associated_record}"'"},
+                             {"title": "Initiated By:", "value": "${{ github.actor }}"},
+                             {"title": "Status:", "value": "'"$deploy_status"'"}
+                           ]
+                         }
+                       ],
+                       "actions": [
+                         {
+                           "type": "Action.OpenUrl",
+                           "title": "View Workflow",
+                           "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                         }
+                       ]
+                     }
+                   }
+                 ]
+               }' \
+               "${{ env.UW_DIRECTORY_DEPLOY_MS_TEAMS_WEBHOOK_URL }}"
+
