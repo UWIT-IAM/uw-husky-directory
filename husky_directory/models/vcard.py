@@ -107,6 +107,6 @@ class VCard(DirectoryBaseModel):
     display_name: str
     titles: List[str] = []
     departments: List[str] = []
-    email: Optional[str]
+    emails: List[str] = []
     phones: List[VCardPhone] = []
     addresses: List[str] = []

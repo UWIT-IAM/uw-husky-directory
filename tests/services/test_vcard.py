@@ -87,7 +87,7 @@ class TestVCardServiceAttributeResolution:
             VCardPhone(types=["MSG"], value="5555555"),
         ]
 
-        assert vcard.email == "employee@uw.edu"
+        assert vcard.emails == ["employee@uw.edu"]
         assert vcard.departments == ["Snack Eating", "Napping"]
         assert vcard.titles == ["Chief of Kibble Testing", "Assistant Snuggler"]
 
@@ -95,7 +95,7 @@ class TestVCardServiceAttributeResolution:
         vcard = VCard.construct()
         self.service.set_student_vcard_attrs(vcard, student)
         assert vcard.phones == [VCardPhone(types=["home"], value="4444444")]
-        assert vcard.email == "student@uw.edu"
+        assert vcard.emails == ["student@uw.edu"]
         assert vcard.titles == ["Goodboi"]
         assert vcard.departments == ["Barkochemical Engineering"]
 

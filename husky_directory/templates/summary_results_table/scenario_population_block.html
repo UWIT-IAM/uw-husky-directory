@@ -23,7 +23,12 @@ and then 1 or more rows of results. #}
             {% set phone = data['phone_contacts']['phones']|first %}
             {% if phone %}{{ phone }}{% endif %}
         </td>
-        <td valign="top">{{ data['email'] }}&nbsp;</td>
+        <td valign="top">
+            {% for email in data['emails'] %}
+                {{ email }}{% if not loop.last %}, {% endif %}
+            {% endfor %}
+            &nbsp;
+        </td>
         <td>
             {% set form_id = "more-form-" ~ loop.index  %}
             <form action="/person/listing" id="{{ form_id }}"

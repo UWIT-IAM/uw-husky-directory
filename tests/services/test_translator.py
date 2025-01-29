@@ -41,8 +41,10 @@ class TestPersonOutputTranslator:
 
         person = employees.people[0]
 
-        # Ensure student email was overwritten by employee email
-        assert person.email == "dawg@uw.edu"
+        # Ensure student email is overwritten by employee email,
+        # and verify that both employee emails are displayed instead of just one.
+        # More on: https://github.com/UWIT-IAM/uw-husky-directory/blob/main/tests/conftest.py#L135
+        assert person.emails == ["dawg@uw.edu", "dawg2@uw.edu"]
         assert person.box_number == "351234"
         assert person.phone_contacts.phones == ["2068675309 Ext. 4242", "19999674222"]
         assert person.departments[0].department == "Cybertronic Engineering"

@@ -45,7 +45,11 @@ class ListPersonsOutputTranslator:
         student: StudentPersonAffiliation,
         result_in_progress: Person,
     ) -> NoReturn:
-        result_in_progress.email = student.directory_listing.email
+        # Supports multiple emails: students have one, employees may have many.
+        # Assigning student email as a single-item list for consistency.
+        if student.directory_listing.email:
+            result_in_progress.emails = [student.directory_listing.email]
+
         result_in_progress.departments.extend(
             UWDepartmentRole(
                 title=student.directory_listing.class_level, department=dept
@@ -58,11 +62,10 @@ class ListPersonsOutputTranslator:
     def _translate_employee_attributes(
         employee: EmployeePersonAffiliation, result_in_progress: Person
     ) -> NoReturn:
-        # Email will usually be the same, but just in case, we'll prefer the
-        # employee email address and not overwrite it with the student's if
-        # it's already set.
+        # Display all available employee emails
+        # More info on: https://github.com/UWIT-IAM/uw-husky-directory/issues/174
         if employee.directory_listing.emails:
-            result_in_progress.email = employee.directory_listing.emails[0]
+            result_in_progress.emails = employee.directory_listing.emails
 
         result_in_progress.box_number = employee.mail_stop
         result_in_progress.departments.extend(

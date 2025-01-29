@@ -1,6 +1,7 @@
 """
 Models for the DirectorySearchService.
 """
+
 from __future__ import annotations
 
 import base64
@@ -210,7 +211,7 @@ class PhoneContactMethods(DirectoryBaseModel):
 class Person(DirectoryBaseModel):
     name: str
     phone_contacts: PhoneContactMethods = PhoneContactMethods()
-    email: Optional[str]
+    emails: List[str] = []
     box_number: Optional[str]
     departments: List[UWDepartmentRole] = []
     sort_key: Optional[str]

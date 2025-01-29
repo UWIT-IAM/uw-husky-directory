@@ -71,7 +71,7 @@ class VCardService:
         # If student email exists, we prefer employee email (in case they are different),
         # so we overwrite.
         if employee.emails:
-            vcard.email = employee.emails[0]
+            vcard.emails = employee.emails
 
         if employee.addresses:
             vcard.addresses = [
@@ -95,7 +95,7 @@ class VCardService:
                 VCardPhone(types=[VCardPhoneType.home], value=student.phone)
             )
         if student.email:
-            vcard.email = student.email
+            vcard.emails.append(student.email)
 
         if student.class_level:
             vcard.titles.append(student.class_level)
