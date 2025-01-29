@@ -49,7 +49,6 @@ class ListPersonsOutputTranslator:
         # Assigning student email as a single-item list for consistency.
         if student.directory_listing.email:
             result_in_progress.emails = [student.directory_listing.email]
-
         result_in_progress.departments.extend(
             UWDepartmentRole(
                 title=student.directory_listing.class_level, department=dept
