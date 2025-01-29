@@ -15,9 +15,9 @@ FN:{{ display_name }}
     ORG:University of Washington;{{ dept }}
 {% endfor %}
 {# EMAIL;type=INTERNET,type=WORK:dawg@uw.edu #}
-{% if not email is blank -%}
+{% for email in emails -%}
     EMAIL;type=INTERNET,type=WORK:{{ email }}
-{% endif %}
+{% endfor %}
 {# TEL;type="pager,voice":5558675309 #}
 {% for phone in phones -%}
     TEL;type="{% for pt in phone['types'] -%}
