@@ -1,5 +1,5 @@
 
-export DOCKER_REPOSITORY="gcr.io/uwit-mci-iam/husky-directory"
+export DOCKER_REPOSITORY="us-docker.pkg.dev/uwit-mci-iam/containers/husky-directory"
 
 function get_instance_version {
     local stage="$1"
