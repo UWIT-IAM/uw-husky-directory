@@ -5,7 +5,7 @@ If you need to deploy to dev manually, instead of going through a pull request f
 can do this easily with the following commands:
 
 ```
-IMAGE=gcr.io/uwit-mci-iam/husky-directory:deploy-dev.commit-${USER}-$(date +%Y-%m-%dT%h-%m)
+IMAGE=us-docker.pkg.dev/uwit-mci-iam/containers/husky-directory:deploy-dev.commit-${USER}-$(date +%Y-%m-%dT%h-%m)
 docker build -f docker/development-server.dockerfile -t ${IMAGE}
 docker push ${IMAGE}
 ```
