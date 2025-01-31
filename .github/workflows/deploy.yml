@@ -41,7 +41,7 @@ jobs:
       target-version: ${{ steps.reconcile-version.outputs.target-version }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       # We require a deployment record for the prod endpoint to make it
       # harder to accidentally deploy to prod; unfortunately we cannot
       # currently validate this record, because endpoints usually require
@@ -114,7 +114,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Notify Teams of Deployment Start
         # creates MS Teams notification for the deployment (except for developer instances),
         if: env.target_stage == 'dev' || env.target_stage == 'eval' || env.target_stage == 'prod'
