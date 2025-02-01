@@ -38,8 +38,8 @@ jobs:
           commit-message: ${{ env.message }}
           delete-branch: true
           title: ${{ env.message }}
-          assignees: soufianerafik
-          reviewers: soufianerafik
+          assignees: goulter,jdiverp,soufianerafik
+          reviewers: goulter,jdiverp,soufianerafik
           labels: semver-guidance:patch
         env:
           message: '[bot] patch dependencies'
