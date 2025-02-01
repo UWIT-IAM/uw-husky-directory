@@ -3,7 +3,7 @@ function print_help {
    Use: push-release-image.sh --version <semver> [--debug --help]
    Options:
    -v, --version   (Required)
-                   The release version you want to dockerize and push to gcr.
+                   The release version you want to dockerize and push to gar.
 
    --strict        Die on any errors
    -h, --help      Show this message and exit

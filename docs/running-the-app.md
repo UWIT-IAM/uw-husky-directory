@@ -40,7 +40,7 @@ script, run it with `--help`**
 
 You can run any published tag with `-i`:
 
-`./scripts/run-development-server.sh -i gcr.io/uwit-mci-iam/husky-directory:${TAG}`
+`./scripts/run-development-server.sh -i us-docker.pkg.dev/uwit-mci-iam/containers/husky-directory:${TAG}`
 
 You can run an instance that also uses a redis cache (for testing and validation
 purposes) and includes a prometheus instance with:
