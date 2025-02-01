@@ -1,4 +1,4 @@
-<div class="rsummary" id="rsummary">
+<div class="results-summary">
     {% if search_result['num_results'] > 0 %}
         {% for scenario in search_result['scenarios'] %}
             {% if scenario['num_results'] > 0 %}
@@ -36,9 +36,7 @@
                         </a>
                     {% endif %}
                 {% endfor %}
-                <br>
             {% endif %}
         {% endfor %}
-        <br>
     {% endif %}
 </div>

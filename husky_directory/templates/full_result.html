@@ -1,30 +1,42 @@
-<h4>{{ person['name'] }}</h4>
-<ul class="dir-listing">
-    {% for email in person['emails'] %}
-        <li>{{ email }}</li>
-    {% endfor %}
-    {% for contact_method, numbers in
-                           person['phone_contacts'].items() %}
-        {% if numbers|length %}
+<!-- Begin Person Card -->
+<div class="person-card">
+    <!-- Full Name -->
+    <h4 class="person-name">{{ person['name'] }}</h4>
+    <!-- Departments -->
+    <ul class="multiaddr">
+        {% for entry in person['departments'] %}
+            <li>{{ entry.title }}, {{ entry.department }}</li>
+        {% endfor %}
+    </ul>
+    <ul class="dir-listing">
+        <!-- Emails -->
+        {% if person['emails']|length %}
             <li>
-                {{ contact_method|singularize|titleize }}:
-                {{ numbers|join(', ') }}
+                {% if person['emails']|length > 1 %}
+                    Emails: {{ person['emails']|join(' | ') }}
+                {% else %}
+                    Email: {{ person['emails'][0] }}
+                {% endif %}
             </li>
         {% endif %}
-    {% endfor %}
-    {% if person['box_number'] %}
-        <li class="dir-boxstuff">Box {{ person['box_number'] }}</li>
-    {% endif %}
-</ul>
-<ul class="multiaddr">
-    {% for entry in person['departments'] %}
-        <li>{{ entry.title }}, {{ entry.department }}</li>
-    {% endfor %}
-</ul>
-<form method="POST" action="/person/vcard">
-    <input type="hidden" name="person_href" value="{{ person['href'] }}">
-    <input class="btn btn-primary"
-           type="submit"
-           name="expand-{{ person['href'] }}"
-           value="Download vcard">
-</form>
+        <!-- Phones -->
+        {% for contact_method, numbers in person['phone_contacts'].items() %}
+            {% if numbers|length %}
+                <li>{{ contact_method|singularize|titleize }}: {{ numbers|join(', ') }}</li>
+            {% endif %}
+        {% endfor %}
+        <!-- Box Number -->
+        {% if person['box_number'] %}
+            <li class="person-box-number">Box {{ person['box_number'] }}</li>
+        {% endif %}
+    </ul>
+    <!-- Download vCard Button -->
+    <form method="POST" action="/person/vcard">
+        <input type="hidden" name="person_href" value="{{ person['href'] }}">
+        <input class="btn btn-primary"
+               type="submit"
+               name="expand-{{ person['href'] }}"
+               value="Download vcard">
+    </form>
+</div>
+<!-- End Person Card -->

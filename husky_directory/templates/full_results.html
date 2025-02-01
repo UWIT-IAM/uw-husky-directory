@@ -1,7 +1,6 @@
 {# scenario: models.search.DirectoryQueryScenarioOutput #}
 {% for scenario in search_result["scenarios"]%}
     {% if scenario['num_results'] > 0 %}
-        <p>
         {# population: str
          # results: models.search.DirectoryQueryPopulationOutput
         #}
@@ -16,6 +15,5 @@
                 {% endfor %}
             {% endif %}
         {% endfor %}
-        </p>
     {% endif %}
 {% endfor %}
