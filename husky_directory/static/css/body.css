@@ -4015,3 +4015,8 @@ label.screen-reader {
   margin: 10px 0;
 }
 
+.no-style-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}

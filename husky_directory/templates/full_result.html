@@ -3,12 +3,12 @@
     <!-- Full Name -->
     <h4 class="person-name">{{ person['name'] }}</h4>
     <!-- Departments -->
-    <ul class="multiaddr">
+    <ul class="no-style-list">
         {% for entry in person['departments'] %}
             <li>{{ entry.title }}, {{ entry.department }}</li>
         {% endfor %}
     </ul>
-    <ul class="dir-listing">
+    <ul class="dir-listing no-style-list">
         <!-- Emails -->
         {% if person['emails']|length %}
             <li>
