@@ -1,5 +1,116 @@
-/****** Print Styles ******/
+/*
+  TODO:
+  - This print stylesheet was originally mixed into body.css, making it unnecessarily long and hard to maintain.
+  - Cleaned it up a bit, but it still needs further refactoring for better readability and maintainability.
+  - One approach worth considering is using a `.no-print` class in the HTML instead of explicitly listing elements here.
+  - Something like `@media print { .no-print { display: none !important; } }` would make it cleaner and easier to manage.
+*/
 
-#wheader, .cblock, .rsummary, .mobileHeader, #footerMain, #footerMainNoPatch, .title, .btn-primary  {
-	display: none;
+@media print {
+	/* Hide unnecessary UI elements */
+	.uw-thinstrip, #dawgdrops, #quicklinks, #uwsearcharea, .uw-breadcrumbs,
+	.uw-hero-image, .uw-hero-image:after, .uw-hero-image:before, .uw-news-image,
+	.site-news.single .uw-site-title, .screen-reader-shortcut, #wpadminbar, #respond,
+	.uw-footer h4, .uw-footer .footer-social, .uw-footer > a, .uw-footer,
+	.cblock, .results-summary, .title, .btn-primary, #view-more, .navbar, .view-more {
+		display: none !important;
+	}
+
+	/* Footer cleanup */
+	.uw-footer {
+		border-top: none;
+	}
+
+	.uw-footer ul.footer-links li a {
+		color: #fff !important;
+	}
+
+	/* Layout fixes */
+	.info-box, .widget, ul.uw-sidebar-menu {
+		margin-left: 0;
+		padding-left: 0;
+		margin-top: 0;
+	}
+
+	/* Reset styles for print */
+	* {
+		text-shadow: none !important;
+		color: #000 !important;
+		background: transparent !important;
+		box-shadow: none !important;
+		position: static !important;
+		overflow: visible !important;
+	}
+
+	/* Typography adjustments */
+	.site-regents {
+		font-size: 14px !important;
+		line-height: 18px !important;
+	}
+
+	.site-regents h1 { font-size: 23px !important; }
+	.site-regents h2 { font-size: 20px !important; }
+	.site-regents h2.uw-site-title { font-size: 40px !important; }
+	.site-regents h3, .site-regents h4 { font-size: 17px !important; }
+
+	/* Link styles */
+	a, a:visited {
+		text-decoration: underline;
+	}
+
+	/* Abbreviation title formatting */
+	abbr[title]:after {
+		content: " (" attr(title) ")";
+	}
+
+	/* Block elements */
+	pre, blockquote {
+		border: 1px solid #999;
+		page-break-inside: avoid;
+	}
+
+	/* Ensure headers remain at the top of pages */
+	thead {
+		display: table-header-group;
+	}
+
+	/* Prevent page break issues */
+	tr, img {
+		page-break-inside: avoid;
+	}
+
+	img {
+		max-width: 100% !important;
+	}
+
+	p, h2, h3 {
+		orphans: 3;
+		widows: 3;
+	}
+
+	h2, h3 {
+		page-break-after: avoid;
+	}
+
+	/* Form and table styles */
+	select {
+		background: #fff !important;
+	}
+
+	.table, .table-bordered {
+		border-collapse: collapse !important;
+	}
+
+	.table-bordered th, .table-bordered td {
+		border: 1px solid #ddd !important;
+	}
+
+	/* Buttons and labels */
+	.btn > .caret, .dropup > .btn > .caret {
+		border-top-color: #000 !important;
+	}
+
+	.label {
+		border: 1px solid #000;
+	}
 }

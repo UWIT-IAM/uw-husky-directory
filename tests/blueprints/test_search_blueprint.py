@@ -251,7 +251,7 @@ class TestSearchBlueprint(BlueprintSearchTestBase):
                 },
             )
         ) as html:
-            assert not html.find_all("li", class_="dir-boxstuff")
+            assert not html.find_all("li", class_="person-box-number")
             self.html_validator.assert_has_scenario_anchor(
                 "students-last-name-is-lovelace"
             )

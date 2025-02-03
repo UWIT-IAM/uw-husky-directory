@@ -2,7 +2,7 @@
 and then 1 or more rows of results. #}
 <tr>
     <td colspan="3">
-        <div class="rcdescr">
+        <div class="scenario-description">
             {% set scenario_desc = scenario['description'] %}
             {% set anchor_id = population_name ~ '-' ~ scenario_desc|linkify %}
             <h3 class='scenario-anchor-reference'
@@ -12,7 +12,6 @@ and then 1 or more rows of results. #}
             </h3>
         </div>
     </td>
-    <td>&nbsp;</td>
 </tr>
 
 {# data: models.search.Person #}
@@ -29,7 +28,7 @@ and then 1 or more rows of results. #}
             {% endfor %}
             &nbsp;
         </td>
-        <td>
+        <td class="view-more">
             {% set form_id = "more-form-" ~ loop.index  %}
             <form action="/person/listing" id="{{ form_id }}"
                   method="POST" name="{{ form_id }}">
@@ -61,7 +60,7 @@ and then 1 or more rows of results. #}
                 <input id="{{ form_id }}-population"
                        type="hidden" name="population"
                        value="{{ request_input['population'] }}">
-                <input class="btn btn-primary"
+                <input class="btn btn-primary table-view-more-btn"
                        type="submit"
                        name="expand-{{ loop.index }}" value="More">
             </form>
