@@ -13,7 +13,7 @@
         {% if person['emails']|length %}
             <li>
                 {% if person['emails']|length > 1 %}
-                    Emails: {{ person['emails']|join(' | ') }}
+                    Emails: {{ person['emails']|join(', ') }}
                 {% else %}
                     Email: {{ person['emails'][0] }}
                 {% endif %}
