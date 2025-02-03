@@ -31,7 +31,7 @@ function print_help {
                    running instance.
 
    -i, --image     A complete image name you want to run; useful when testing something
-                   that has already been pushed, e.g., gcr.io/uwit-mci-iam/uw-directory:2.0.1
+                   that has already been pushed, e.g., us-docker.pkg.dev/uwit-mci-iam/containers/husky-directory:2.3.0
 
    --idp           Use a real IdP. Not likely to work when running from your laptop!
 

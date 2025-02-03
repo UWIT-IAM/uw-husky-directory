@@ -33,7 +33,7 @@ If no **version** is specified, a [promotion](#promotions) will occur instead.
 
 ### ... from your terminal
 
-**This is only available to people who have write access to the GCR repository.**
+**This is only available to people who have write access to the Google Artifact Registry (GAR) repository.**
 
 Use `./scripts/deploy.sh -t <stage> -v <version> -r <rfc_number>` 
 

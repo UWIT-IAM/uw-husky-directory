@@ -10,8 +10,6 @@ on:
       - '**.md'
 
 env:
-  GCR_TOKEN: ${{ secrets.GCR_TOKEN }}
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   STEP_SCRIPTS: ${{ github.workspace }}/.github/steps/pull-request
 
 jobs:
@@ -45,32 +43,18 @@ jobs:
     env:
       APP_VERSION: ${{ needs.update-pr-branch-version.outputs.new-version }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref }}
-
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v4
+      - name: Run uwit-iam/action-setup-poetry-project
+        uses: uwit-iam/action-setup-poetry-project@main
         with:
-          python-version: '3.10'
-
-      - name: Install Poetry with pip
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install poetry
-          poetry --version
-
+          credentials: "${{ secrets.MCI_GCLOUD_AUTH_JSON }}"
+          enable_private_docker: true
       - run: |
           sudo apt-get -y install jq
           poetry run pip install tox uw-it-build-fingerprinter
-        id: configure
-        name: Set up environment
-
-      - uses: UWIT-IAM/actions/configure-gcloud-docker-gcloud-v101@0.1.17
-        with:
-          gcloud-token: ${{ secrets.GCR_TOKEN }}
-
-      - run: poetry run tox -e build-layers
+          poetry run tox -e build-layers
 
       - name: Run validation checks and tests
         run: poetry run tox -e black,flake8,unit-tests
@@ -83,7 +67,7 @@ jobs:
         run: ${STEP_SCRIPTS}/create-pr-tag.sh -s ${{ env.source_image }}
         id: create-pr-tag
         env:
-          source_image: gcr.io/uwit-mci-iam/husky-directory.app:tox
+          source_image: us-docker.pkg.dev/uwit-mci-iam/containers/husky-directory.app:tox
 
       - uses: mshick/add-pr-comment@v1
         env:

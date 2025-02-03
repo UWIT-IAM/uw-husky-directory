@@ -25,7 +25,6 @@ on:
           with this change.          
 
 env:
-  GCLOUD_TOKEN: ${{ secrets.GCR_TOKEN }}
   UW_DIRECTORY_DEPLOY_MS_TEAMS_WEBHOOK_URL: ${{ secrets.UW_DIRECTORY_DEPLOY_MS_TEAMS_WEBHOOK_URL }}
 
 jobs:
@@ -42,7 +41,7 @@ jobs:
       target-version: ${{ steps.reconcile-version.outputs.target-version }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       # We require a deployment record for the prod endpoint to make it
       # harder to accidentally deploy to prod; unfortunately we cannot
       # currently validate this record, because endpoints usually require
@@ -115,7 +114,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Notify Teams of Deployment Start
         # creates MS Teams notification for the deployment (except for developer instances),
         if: env.target_stage == 'dev' || env.target_stage == 'eval' || env.target_stage == 'prod'
@@ -170,28 +169,15 @@ jobs:
                }' \
                "${{ env.UW_DIRECTORY_DEPLOY_MS_TEAMS_WEBHOOK_URL }}"
 
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - name: Initialize Poetry & Deploy to GCP
+        uses: uwit-iam/action-setup-poetry-project@main
         with:
-          python-version: '3.10'
-
-      - name: Install Poetry with pip
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install poetry
-          poetry --version
-
-      - name: Run Poetry Install
-        run: |
+          credentials: "${{ secrets.MCI_GCLOUD_AUTH_JSON }}"
+          enable_private_docker: true
+      - run: |
           sudo apt-get -y install jq
           poetry install --no-root
-
-      - uses: actions/checkout@v3
-      - uses: ./.github/actions/configure-docker
-        with:
-          project-name: ${{ secrets.IAM_GCR_REPO }}
-          gcr-token: ${{ secrets.GCR_TOKEN }}
-      - run: |
           gcloud auth activate-service-account --key-file=${GOOGLE_APPLICATION_CREDENTIALS}
           ./scripts/deploy.sh -g -t ${target_stage} -v ${target_version} -r "${{  github.event.inputs.associated-record }}"
         # probably need to account for -x, --dry-run at some point. lets see how things go.

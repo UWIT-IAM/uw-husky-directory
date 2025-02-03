@@ -11,7 +11,7 @@ ignore-paths:
 release-target: development-server
 
 docker:
-  repository: gcr.io/uwit-mci-iam
+  repository: us-docker.pkg.dev/uwit-mci-iam/containers
   app-name: husky-directory
   build-args:
     - arg: HUSKY_DIRECTORY_VERSION

@@ -26,32 +26,21 @@ Prod is the same, but `deploy-prod.X`
 
 This is a problem that still needs solving. See IAM-258.
 
-## GCR Image Repository
+## Google Artifact Registry (GAR) Repository
 
-The repository for this service is gcr.io/uwit-mci-iam/husky-directory. Access to 
-this repository requires operator permissions on our google project. Team members 
-can reach out on slack for access if they do not have it already.
+The repository for this service is `us-docker.pkg.dev/uwit-mci-iam/containers/husky-directory`.
+Access to this repository requires operator permissions on our Google Cloud project. Team members can reach out on Teams for access if they do not have it already.
+For GitHub Actions authentication setup and configuration,
+please refer to our `action-auth-artifact-registry` [documentation](https://github.com/UWIT-IAM/action-auth-artifact-registry).
 
-### Github Actions access to gcr.io:
-
-If the security token for Github Actions ever needs to be updated:
-
-1. Create a new key for the `uw-directory-github-actions` service account. Download 
-   the key. 
-1. Base64 encode it. (`cat $KEY_FILE_NAME | base64`)
-1. Update the `GCR_TOKEN` secret in the [github repository secrets] with the 
-   base64-encoded value.
-
-_This can only be done by a person who is an administrator of this repository, and 
-has access to the project IAM configuration._
 
 ## Running images
 
 See [Running the app](running-the-app.md).
 
 [development-server]: https://github.com/uwit-iam/uw-husky-directory/tree/main/docker/development-server.dockerfile 
-[poetry-base]: https://gcr.io/uwit-mci-iam/poetry
+[poetry-base]: https://github.com/UWIT-IAM/action-setup-poetry-project
 [search-image-tags]: https://github.com/uwit-iam/uw-husky-directory/tree/main/scripts/search-image-tags.sh]
 [commits]: commits.md
-[gcr.io]: https://gcr.io/uwit-mci-iam/husky-directory
+[Goole Artifact Registry (GAR)]: https://console.cloud.google.com/artifacts/docker/uwit-mci-iam/us/containers/husky-directory
 [github repository secrets]: https://github.com/UWIT-IAM/uw-husky-directory/settings/secrets/actions
