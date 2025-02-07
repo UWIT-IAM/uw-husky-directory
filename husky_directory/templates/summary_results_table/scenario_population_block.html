@@ -20,7 +20,13 @@ and then 1 or more rows of results. #}
         <td valign="top">{{ data['name'] }}&nbsp;</td>
         <td valign="top" nowrap="nowrap">
             {% set phone = data['phone_contacts']['phones']|first %}
-            {% if phone %}{{ phone }}{% endif %}
+            {% set mobile = data['phone_contacts']['mobiles']|first %}
+
+            {% if phone %}
+                {{ phone }}
+            {% elif mobile %}
+                {{ mobile }}
+            {% endif %}
         </td>
         <td valign="top">
             {% for email in data['emails'] %}
