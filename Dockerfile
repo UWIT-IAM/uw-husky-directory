@@ -7,7 +7,7 @@ RUN apt-get update && apt-get -y install gcc curl jq git
 
 COPY poetry.lock pyproject.toml ./
 
-RUN poetry install --no-dev --no-interaction \
+RUN poetry install --no-interaction --without dev \
     && apt-get -y remove gcc \
     && apt-get -y autoremove
 
@@ -27,7 +27,7 @@ FROM app AS test-runner
 WORKDIR /scripts
 COPY ./tests /tests
 COPY ./selenium-tests /selenium-tests
-# Re-running install without the `--no-dev` arg to get the extra dependencies;
+# Re-running install without the `--without dev` arg to get the extra dependencies;
 # the others won't need updating, so won't add extra time to the secondary run.
 WORKDIR /app
 RUN poetry install --no-interaction

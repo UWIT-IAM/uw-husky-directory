@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "uw-husky-directory"
-version = "2.4.2"
+version = "2.4.3"
 description = "An updated version of the UW Directory"
 authors = ["Thomas Thorogood <goodtom@uw.edu>"]
 license = "MIT"
@@ -34,7 +34,7 @@ Flask-HTTPAuth = "^4.4.0"
 python-Levenshtein = "^0.12.2"
 uw-it-flask-gunicorn-json-logger = "^0.1.6"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 black = "^22.0"
 pytest = "^7.1.1"
 pytest-flask = "^1.1.0"
@@ -46,7 +46,6 @@ uw-webdriver-recorder = "^5.0"
 uw-it-build-fingerprinter = "^0.2.5"
 tox = "^3.24.5"
 
-#
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
