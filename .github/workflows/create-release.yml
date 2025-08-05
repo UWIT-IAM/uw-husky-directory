@@ -49,10 +49,11 @@ jobs:
 
       - name: Validate Build and Test
         run: |
-          poetry run tox -e build-layers -- -t ${{ env.version }} --release ${{ env.version }} --cache \
+          poetry run -- tox -e build-layers \
+            -- -t ${{ env.version }} --release ${{ env.version }} --cache \
             --build-arg HUSKY_DIRECTORY_VERSION=${{ env.version }}
-
-          poetry run tox -e unit-tests
+      
+          poetry run -- tox -e unit-tests
         # Build layers with the -k option to avoid installing a lot of
         # unnecessary dependencies. We can also skip black/flake8 for
         # this phase, because the code has already been accepted into
