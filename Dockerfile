@@ -1,5 +1,5 @@
 ARG uw_saml_poetry_version=latest
-FROM ghcr.io/uwit-iam/uw-saml-poetry:${uw_saml_poetry_version} as base
+FROM ghcr.io/uwit-iam/uw-saml-poetry:${uw_saml_poetry_version} AS base
 WORKDIR /app
 
 # gcc is required to install the Levenshtein library.
@@ -11,7 +11,7 @@ RUN poetry install --no-interaction --without dev \
     && apt-get -y remove gcc \
     && apt-get -y autoremove
 
-FROM base as app
+FROM base AS app
 ARG HUSKY_DIRECTORY_VERSION
 COPY ./husky_directory ./husky_directory/
 ENV PYTHONPATH="/app:${PYTHONPATH}" \
