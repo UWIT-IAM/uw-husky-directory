@@ -1,9 +1,25 @@
-ARG uw_saml_poetry_version=latest
-FROM ghcr.io/uwit-iam/uw-saml-poetry:${uw_saml_poetry_version} AS base
-WORKDIR /app
+# ARG uw_saml_poetry_version=latest
+# FROM ghcr.io/uwit-iam/uw-saml-poetry:${uw_saml_poetry_version} AS base
+# WORKDIR /app
 
-# gcc is required to install the Levenshtein library.
-RUN apt-get update && apt-get -y install gcc curl jq git
+# # gcc is required to install the Levenshtein library.
+# RUN apt-get update && apt-get -y install gcc curl jq git
+
+# Use the python-base image (no need for uw-saml-poetry anymore)
+ARG APP_IMAGE=app
+# Use the python-base image
+FROM us-docker.pkg.dev/uwit-mci-iam/containers/base-python-3.12 AS app-base
+
+# Install system dependencies necessary for the app, previously installed by uw-saml-poetry image:
+# https://github.com/UWIT-IAM/docker-library/blob/main/images/uw-saml-poetry/bootstrap-xmlsec-env.sh
+RUN apt-get update && apt-get install -y \
+    libxmlsec1-dev \
+    build-essential \
+    pkg-config \
+    libxmlsec1-openssl \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
 
 COPY poetry.lock pyproject.toml ./
 
@@ -11,7 +27,8 @@ RUN poetry install --no-interaction --without dev \
     && apt-get -y remove gcc \
     && apt-get -y autoremove
 
-FROM base AS app
+FROM app-base AS app
+WORKDIR /app
 ARG HUSKY_DIRECTORY_VERSION
 COPY ./husky_directory ./husky_directory/
 ENV PYTHONPATH="/app:${PYTHONPATH}" \

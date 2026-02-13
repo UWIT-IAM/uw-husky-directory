@@ -121,6 +121,7 @@ if [[ -z "${IMAGE}" ]]
 then
   VERSION=$(poetry version -s)
   $(fingerprinter -o build-script) --build-arg HUSKY_DIRECTORY_VERSION=${VERSION}
+  export HUSKY_DIRECTORY_VERSION=${VERSION}
   docker compose -f docker/docker-compose.app.yaml up --build --exit-code-from app
 else
   export development_server_image="${IMAGE}"
