@@ -1,10 +1,3 @@
-# ARG uw_saml_poetry_version=latest
-# FROM ghcr.io/uwit-iam/uw-saml-poetry:${uw_saml_poetry_version} AS base
-# WORKDIR /app
-
-# # gcc is required to install the Levenshtein library.
-# RUN apt-get update && apt-get -y install gcc curl jq git
-
 # Use the python-base image (no need for uw-saml-poetry anymore)
 ARG APP_IMAGE=app
 # Use the python-base image
