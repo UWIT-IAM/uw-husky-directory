@@ -1,14 +1,19 @@
-ARG uw_saml_poetry_version=latest
-FROM ghcr.io/uwit-iam/uw-saml-poetry:${uw_saml_poetry_version} as base
+FROM us-docker.pkg.dev/uwit-mci-iam/containers/base-python-3.10:latest as base
 WORKDIR /app
 
 # gcc is required to install the Levenshtein library.
-RUN apt-get update && apt-get -y install gcc curl jq git
+RUN apt-get update && apt-get install -y \
+    libxmlsec1-dev \
+    build-essential \
+    pkg-config \
+    libxmlsec1-openssl \
+    curl jq git \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY poetry.lock pyproject.toml ./
 
-RUN poetry install --no-interaction --without dev \
-    && apt-get -y remove gcc \
+RUN poetry install --no-interaction --without dev
+RUN apt-get -y remove gcc \
     && apt-get -y autoremove
 
 FROM base as app
