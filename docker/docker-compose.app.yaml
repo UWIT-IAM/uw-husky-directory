@@ -23,8 +23,12 @@ services:
       - ${UWCA_CERT_PATH}/:/app/certificates:ro
       - ${PWD}/husky_directory/:/app/husky_directory
   redis:
-    image: redis:latest
-    command: redis-server --user uw-directory on +@all -@dangerous ~uw-directory:* >supersecret
+    image: redis:7-alpine
+    command: redis-server --user default off --user uw-directory on +@all -@dangerous '~uw-directory:*' '>supersecret'
+    # the below stopped working and is fixed with the above.
+    #image: redis:latest
+    #command: redis-server --user uw-directory on +@all -@dangerous ~uw-directory:* >supersecret
+
     ports:
       - "6379:6379"
   prometheus:
