@@ -415,7 +415,7 @@ class HTMLValidator:
             return result
         if assert_expected_ != result:
             raise AssertionError(
-                f"Expected sign-in link {'not ' if not assert_expected_ else '' }to be found."
+                f"Expected sign-in link {'not ' if not assert_expected_ else ''}to be found."
             )
 
     def has_student_search_options(self, assert_=True, assert_expected_=True) -> bool:

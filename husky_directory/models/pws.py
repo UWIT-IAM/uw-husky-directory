@@ -4,6 +4,7 @@ the PWS API definitions at https://wseval.s.uw.edu/identity/swagger/index.html#/
 
 These are not 1:1 models of that API; only fields we care about are declared here.
 """
+
 from __future__ import annotations
 
 from typing import Any, Dict, List, NoReturn, Optional
