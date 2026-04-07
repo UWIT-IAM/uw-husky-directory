@@ -1,6 +1,4 @@
 # Use the python-base image (no need for uw-saml-poetry anymore)
-ARG APP_IMAGE=app
-# Use the python-base image
 FROM us-docker.pkg.dev/uwit-mci-iam/containers/base-python-3.12 AS app-base
 
 # Install system dependencies necessary for the app, previously installed by uw-saml-poetry image:
