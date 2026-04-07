@@ -31,11 +31,11 @@ targets:
       - Dockerfile
     build-target: false  # This is just a fingerprint base, not a build target
 
-  base:
+  app-base:
     depends-on: [build-config]
 
   app:
-    depends-on: [base]
+    depends-on: [app-base]
     include-paths:
       - husky_directory
 

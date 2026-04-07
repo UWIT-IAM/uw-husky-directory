@@ -24,7 +24,7 @@ services:
       - ${PWD}/husky_directory/:/app/husky_directory
   redis:
     image: redis:latest
-    command: redis-server --user uw-directory on +@all -@dangerous ~uw-directory:* >supersecret
+    command: redis-server --user uw-directory on +@all -@dangerous '~uw-directory:*' '>supersecret'
     ports:
       - "6379:6379"
   prometheus:

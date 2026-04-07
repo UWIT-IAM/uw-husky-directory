@@ -1,13 +1,14 @@
 [tool.poetry]
 name = "uw-husky-directory"
-version = "2.4.5"
+version = "2.4.6"
 description = "An updated version of the UW Directory"
 authors = ["Thomas Thorogood <goodtom@uw.edu>"]
 license = "MIT"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.11"
+#python = ">=3.8,<3.11"
+python = "^3.12"
 
 
 # Flask 2.2.0 broke our builds; there were several dependencies
@@ -31,7 +32,7 @@ redis = "^4.1.0"
 pytz = "^2022.1"
 prometheus-flask-exporter = "^0.20"
 Flask-HTTPAuth = "^4.4.0"
-python-Levenshtein = "^0.12.2"
+python-Levenshtein = "^0.27.3"
 uw-it-flask-gunicorn-json-logger = "^0.1.6"
 
 [tool.poetry.group.dev.dependencies]

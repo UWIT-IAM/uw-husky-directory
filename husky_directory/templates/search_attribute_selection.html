@@ -9,7 +9,9 @@
     {% set default_selection = request_input['render_method'] %}
 {% endif %}
 <select name="method"
-        id="method" style="width: 220px; border: 1px solid #bbb; margin: 10px 0;">
+        id="method" 
+        aria-label="Select search method"
+        style="width: 220px; border: 1px solid #bbb; margin: 10px 0;">
     {% for attribute in search_attributes %}
         <option value="{{ attribute }}"
                 {% if default_selection == attribute %}
