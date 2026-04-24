@@ -204,7 +204,7 @@ body {
   font-family: 'Open Sans', sans-serif;
   font-size: 17px;
   line-height: 1.72222;
-  color: #595959;
+  color: #8c8c8c;
   background-color: #ffffff;
 }
 input,
@@ -216,8 +216,8 @@ textarea {
   line-height: inherit;
 }
 a {
-  color: #001f5c;
-  text-decoration: none;
+  color: #002966;
+  text-decoration: underline;
 }
 a:hover,
 a:focus {
@@ -2896,8 +2896,8 @@ body {
   background-color: #ffffff;
 }
 a {
-  color: #001f5c;
-  text-decoration: none;
+  color: #002966;
+  text-decoration: underline;
   -o-transition: 0.25s;
   -webkit-transition: 0.25s;
   transition: 0.25s;
@@ -2905,7 +2905,7 @@ a {
 a:hover,
 a:focus {
   color: #c9c9c9;
-  text-decoration: none;
+  text-decoration: underline;
 }
 a:focus {
   outline: none;
