@@ -216,7 +216,7 @@ textarea {
   line-height: inherit;
 }
 a {
-  color: #0052b3;
+  color: #001f5c;
   text-decoration: none;
 }
 a:hover,
@@ -2896,7 +2896,7 @@ body {
   background-color: #ffffff;
 }
 a {
-  color: #0088dd;
+  color: #001f5c;
   text-decoration: none;
   -o-transition: 0.25s;
   -webkit-transition: 0.25s;
