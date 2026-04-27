@@ -12,3 +12,5 @@ For more information on enrolling and certificate requirements, follow the [PWS 
 ***Note: If you are a UW-IT IAM developer, you may already have access!***
 
 [PWS Onboarding Guide]: https://wiki.cac.washington.edu/display/pws/Getting+Access+to+PWS
+
+Note, add something here about where the certificates are located.
