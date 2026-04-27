@@ -22,6 +22,7 @@ Flask-Injector = "^0.13.0"
 pydantic = {extras = ["email", "dotenv"], version = "^1.8.1"}
 inflection = "^0.5.1"
 gunicorn = {extras = ["gevent"], version = "^20.0.4"}
+setuptools = ">=40.0.0"
 PyYAML = "^6"
 requests = "^2.25.1"
 devtools = "^0.8.0"
