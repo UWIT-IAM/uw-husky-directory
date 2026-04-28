@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     libxmlsec1-openssl \
     curl jq git \
+    xmlsec1 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
