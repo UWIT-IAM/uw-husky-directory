@@ -13,4 +13,8 @@ For more information on enrolling and certificate requirements, follow the [PWS 
 
 [PWS Onboarding Guide]: https://wiki.cac.washington.edu/display/pws/Getting+Access+to+PWS
 
-Note, add something here about where the certificates are located.
+The certificate the application on dev/eva/prod instances to reach PWS is located at:
+https://mosler.s.uw.edu/ui/vault/secrets/iam%2Fkv/show/dev/uw-directory/certificates/uwca
+https://mosler.s.uw.edu/ui/vault/secrets/iam%2Fkv/show/eval/uw-directory/certificates/uwca
+https://mosler.s.uw.edu/ui/vault/secrets/iam%2Fkv/show/prod/uw-directory/certificates/uwca
+
