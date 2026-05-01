@@ -6,6 +6,7 @@ HOST=uw-directory.iamdev.s.uw.edu
 SAML_ENTITY_ID=https://${HOST}/saml
 SAML_ACS_URL=https://${HOST}/saml/login
 USE_TEST_IDP=1
+# USE_TEST_IDP=False # use this one if you dont want the mock idp.
 
 FLASK_SESSION_TYPE=redis
 REDIS_HOST=redis

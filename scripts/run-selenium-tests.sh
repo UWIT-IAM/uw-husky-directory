@@ -49,5 +49,5 @@ export DEBUG="${DEBUG}"
 export pytest_args="${pytest_args}"
 export uw_directory_url="${uw_directory_url}"
 
-docker-compose -f docker/docker-compose.selenium.yml up \
+docker compose -f docker/docker-compose.selenium.yml up \
   --exit-code-from test-runner
