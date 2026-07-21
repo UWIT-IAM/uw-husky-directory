@@ -3772,9 +3772,6 @@ body.error404 .woof {
 .uw-footer ul.footer-social li a.twitter {
   background-position: -46px -185px;
 }
-.uw-footer ul.footer-social li a.tumblr {
-  background-position: -366px -185px;
-}
 .uw-footer ul.footer-social li a.youtube {
   background-position: -138px -185px;
 }
@@ -3800,10 +3797,6 @@ body.error404 .woof {
 .uw-footer ul.footer-social li a:hover.twitter,
 .uw-footer ul.footer-social li a:focus.twitter {
   background-position: -46px -225px;
-}
-.uw-footer ul.footer-social li a:hover.tumblr,
-.uw-footer ul.footer-social li a:focus.tumblr {
-  background-position: -366px -225px;
 }
 .uw-footer ul.footer-social li a:hover.youtube,
 .uw-footer ul.footer-social li a:focus.youtube {
