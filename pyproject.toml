@@ -37,7 +37,7 @@ python-Levenshtein = "^0.27.3"
 uw-it-flask-gunicorn-json-logger = "^0.1.6"
 
 [tool.poetry.group.dev.dependencies]
-black = "^22.0"
+black = ">=22,<27"
 pytest = "^7.1.1"
 pytest-flask = "^1.1.0"
 pytest-cov = "^3.0.0"
