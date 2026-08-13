@@ -29,6 +29,52 @@ class TestNamedIdentityAnalyzer:
             NameQueryResultAnalyzer(self.identity, query).relevant_bucket[0] == bucket
         )
 
+    # Most identities have no preferred name, but do have registered names,
+    # so the buckets have to be just as accurate for them.
+    registered_identity = NamedIdentity(
+        display_name="Alpha Beta Gamma",
+        registered_name="Alpha Beta Gamma",
+        registered_first_middle_name="Alpha Beta",
+        registered_surname="Gamma",
+    )
+
+    multi_word_surname_identity = NamedIdentity(
+        display_name="Jane Van Der Berg",
+        registered_name="Jane Van Der Berg",
+        registered_first_middle_name="Jane",
+        registered_surname="Van Der Berg",
+    )
+
+    @pytest.mark.parametrize(
+        "query, bucket",
+        [
+            ("alpha beta", 'First name is "alpha beta"'),
+            ("gamma", 'Last name is "gamma"'),
+            ("alpha", 'First name starts with "alpha"'),
+        ],
+    )
+    def test_relevant_bucket_registered_name(self, query, bucket):
+        assert (
+            NameQueryResultAnalyzer(self.registered_identity, query).relevant_bucket[0]
+            == bucket
+        )
+
+    @pytest.mark.parametrize(
+        "query, bucket",
+        [
+            ("van der berg", 'Last name is "van der berg"'),
+            ("van der", 'Last name starts with "van der"'),
+            ("jane", 'First name is "jane"'),
+        ],
+    )
+    def test_relevant_bucket_multi_word_surname(self, query, bucket):
+        assert (
+            NameQueryResultAnalyzer(
+                self.multi_word_surname_identity, query
+            ).relevant_bucket[0]
+            == bucket
+        )
+
 
 class TestNameSearchResultReducer:
     @pytest.fixture(autouse=True)
