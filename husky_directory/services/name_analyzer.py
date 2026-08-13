@@ -81,7 +81,9 @@ class NameAnalyzer:
             # is part of the display name, return everything except for the last
             # name from the display name.
             elif reg_first_middle and reg_first_middle in first_middle:
-                result = self.identity.display_name[:last_name_index]
+                # The slice ends at the surname, so it also includes the space
+                # that separated the two; that space is not part of the name.
+                result = self.identity.display_name[:last_name_index].strip()
             # If all else fails, and our data is dirty, make the assumption that the user
             # has only a single-word first name, and that it's the first token of their
             # display name. (Rather than using the registered first_middle name, which may
@@ -170,7 +172,7 @@ class NameAnalyzer:
             normalized_keys = {
                 "display_name",
                 "registered_name",
-                "registered surname",
+                "registered_surname",
                 "registered_first_middle_name",
                 "preferred_first_name",
                 "preferred_middle_name",
